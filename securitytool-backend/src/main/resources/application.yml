@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: securitytool
+  datasource:
+    url: jdbc:mysql://${DB_HOSTNAME}:${DB_PORT}/${DB_NAME}
+    driverClassName: com.mysql.cj.jdbc.Driver
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+server:
+  port: 8080
+
+# Cache settings
+spring.cache:
+  type: simple
+
