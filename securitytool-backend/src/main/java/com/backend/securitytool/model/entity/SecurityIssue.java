@@ -41,6 +41,10 @@ public class SecurityIssue {
     @Column(name = "remediation")
     private String remediation;
 
+    @Lob
+    @Column(name = "solution")
+    private String solution;
+
     @ColumnDefault("'open'")
     @Column(name = "status", length = 50)
     private String status;

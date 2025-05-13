@@ -201,6 +201,7 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
                     issue.setSeverity(getSeverityForMetric(metric));
                     issue.setDescription(formatDescription(metric, value));
                     issue.setStatus("Open");
+                    issue.setSolution(formatSolution(metric)); // Add this line
 
                     securityIssueRepository.save(issue);
                 }
@@ -247,6 +248,31 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
                 return "Technical debt ratio is " + value + "%";
             default:
                 return metric + ": " + value;
+        }
+    }
+
+    private String formatSolution(String metric) {
+        switch (metric) {
+            case "vulnerabilities":
+                return "Review the identified security vulnerabilities in the SonarQube dashboard. Understand the nature of each vulnerability (e.g., SQL Injection, XSS) and apply the recommended SonarQube fix or consult security best practices for remediation. Update dependencies if the vulnerability is in a third-party library.";
+            case "bugs":
+                return "Analyze the bugs reported by SonarQube. Understand the logical error or incorrect behavior. Debug the code, fix the root cause, and add unit tests to prevent regressions.";
+            case "code_smells":
+                return "Examine the code smells. These indicate maintainability issues. Refactor the code according to SonarQube's suggestions or general clean code principles (e.g., reduce complexity, improve naming, remove duplication).";
+            case "security_hotspots":
+                return "Security hotspots are security-sensitive pieces of code that require manual review. Carefully examine each hotspot to confirm whether it's a true vulnerability. If it is, apply appropriate security measures. If not, mark it as 'Safe' in SonarQube.";
+            case "coverage":
+                return "Increase test coverage by writing more unit and integration tests for the untested parts of the codebase. Aim for a higher coverage percentage to ensure code reliability and catch regressions early.";
+            case "reliability_rating": // A-E, where A is best
+                return "Improve code reliability by addressing the underlying issues causing a poor rating (likely bugs or bad practices). Focus on fixing bugs and improving code quality to achieve a better reliability rating (closer to A).";
+            case "security_rating": // A-E, where A is best
+                return "Enhance security by fixing vulnerabilities and addressing security hotspots. A better security rating (closer to A) indicates fewer security risks.";
+            case "duplicated_lines_density":
+                return "Reduce code duplication by refactoring duplicated blocks into reusable methods, functions, or classes. This improves maintainability and reduces the risk of inconsistencies.";
+            case "sqale_debt_ratio":
+                return "Lower the technical debt ratio by addressing code smells, bugs, and vulnerabilities. Prioritize fixing issues that contribute most to the debt. This improves long-term maintainability and reduces development costs.";
+            default:
+                return "Consult the SonarQube documentation for specific guidance on addressing issues related to '" + metric + "'.";
         }
     }
 }

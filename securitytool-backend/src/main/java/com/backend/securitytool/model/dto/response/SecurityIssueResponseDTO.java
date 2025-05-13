@@ -15,6 +15,8 @@ public class SecurityIssueResponseDTO {
     private String severity;
     private String description;
     private String remediation;
+    private String solution;
     private String status;
     private Instant createdAt;
 }
+

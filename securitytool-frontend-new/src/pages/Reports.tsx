@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import { useQuery } from '@tanstack/react-query';
 import { fetchApplications } from '../api/applicationApi';
-import { getReport, exportReportCsv } from '../api/reportApi';
+import { getReport } from '../api/reportApi';
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
 import Layout from '../components/Layout';
 import { ApplicationResponseDTO } from '../types/application';
-import { ReportResponseDTO } from '../types/report';
+import { ReportResponseDTO, SecurityIssueResponseDTO } from '../types/report';
 
 const APP_REPORTS_STORAGE_KEY = 'appReportsData'; // Key for localStorage
 
@@ -108,39 +108,60 @@ const Reports: React.FC = () => {
     }
   };
 
+  // Helper function to convert issues to CSV string
+  const convertIssuesToCsv = (issues: SecurityIssueResponseDTO[]): string => {
+    if (!issues || issues.length === 0) return "";
+
+    const header = ["Issue ID", "Issue Type", "Severity", "Description", "Remediation", "Solution", "Status", "Created At", "Endpoint ID"];
+    const rows = issues.map(issue => [
+      issue.issueId,
+      issue.issueType,
+      issue.severity,
+      `"${issue.description?.replace(/"/g, '\'') || ''}"`,
+      `"${issue.remediation?.replace(/"/g, '\'') || ''}"`,
+      `"${issue.solution?.replace(/"/g, '\'') || ''}"`,
+      issue.status,
+      issue.createdAt,
+      issue.endpointId || 'N/A'
+    ].join(','));
+
+    return [header.join(','), ...rows].join('\r\n');
+  };
+
   const downloadCsv = async (appId: number) => {
     const report = appReports[appId];
-    if (!report) {
-      setAppErrors(prev => ({ ...prev, [appId]: "No report loaded to download CSV from." }));
+    if (!report || !report.issues) {
+      setAppErrors(prev => ({ ...prev, [appId]: "No report issues loaded to download CSV from." }));
       return;
     }
     const app = applications?.find(a => a.appId === appId);
     const appName = app ? app.appName : 'report';
 
-    // Clear previous errors for this app before attempting download
     setAppErrors(prev => ({ ...prev, [appId]: null }));
-    setPageLevelError(null); // Clear general errors
+    setPageLevelError(null);
     setLoading(true);
 
     try {
-      const csvData = await exportReportCsv(report.resultId);
-      
-      // Create a blob with the CSV data
-      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-      
-      // Create a link element
+      // Use the client-side converter with the already fetched report data
+      const csvString = convertIssuesToCsv(report.issues);
+      if (!csvString) {
+        setAppErrors(prev => ({ ...prev, [appId]: "No issues found in the report to export." }));
+        setLoading(false);
+        return;
+      }
+
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
       link.setAttribute('download', `${appName}_scan_${report.resultId}_report.csv`);
-      
-      // Append to the document, click, and remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
     } catch (e: any) {
-      setAppErrors(prev => ({ ...prev, [appId]: `Failed to download CSV: ${e.message}` }));
+      setAppErrors(prev => ({ ...prev, [appId]: `Failed to generate or download CSV: ${e.message}` }));
     } finally {
       setLoading(false);
     }
@@ -182,7 +203,7 @@ const Reports: React.FC = () => {
                       className="px-4 py-2 bg-teal-800 text-white rounded"
                       disabled={!currentReport || loading} // loading here refers to CSV download or report load
                     >
-                      Download CSV
+                      Download Solution (.CSV)
                     </button>
                   </div>
                 </div>
@@ -216,16 +237,10 @@ const Reports: React.FC = () => {
                                   {issue.severity}
                                 </span>
                               </p>
-                              <p className="mt-1"><strong>Description:</strong></p>
-                              <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded mt-1 text-sm">{issue.description}</pre>
-                              {issue.remediation && (
-                                <>
-                                  <p className="mt-1"><strong>Remediation:</strong></p>
-                                  <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded mt-1 text-sm">{issue.remediation}</pre>
-                                </>
-                              )}
-                               <p className="text-xs text-gray-500 mt-1">Status: {issue.status} | Created: {new Date(issue.createdAt).toLocaleString()}</p>
-                               {issue.endpointId && <p className="text-xs text-gray-500">Endpoint ID: {issue.endpointId}</p>}
+                              <p><strong>Description:</strong> {issue.description}</p>
+                              {issue.remediation && <p><strong>Remediation:</strong> {issue.remediation}</p>}
+                              <p><strong>Status:</strong> {issue.status}</p> {/* Status displayed like other fields */}
+                              {issue.endpointId && <p className="text-xs text-gray-500">Endpoint ID: {issue.endpointId}</p>}
                             </li>
                           ))}
                         </ul>

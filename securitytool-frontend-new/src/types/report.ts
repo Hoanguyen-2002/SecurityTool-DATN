@@ -6,6 +6,7 @@ export interface SecurityIssueResponseDTO {
     severity: string;
     description: string;
     remediation?: string;
+    solution?: string; // Added new field
     status: string;
     createdAt: string;
   }

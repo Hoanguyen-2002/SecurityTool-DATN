@@ -14,6 +14,7 @@ public interface SecurityIssueMapper {
     @Mapping(source = "severity", target = "severity")
     @Mapping(source = "description", target = "description")
     @Mapping(source = "remediation", target = "remediation")
+    @Mapping(source = "solution", target = "solution")
     @Mapping(source = "status", target = "status")
     @Mapping(source = "result.id", target = "resultId")
     @Mapping(source = "endpoint.id", target = "endpointId")
