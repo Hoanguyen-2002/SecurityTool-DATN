@@ -34,23 +34,26 @@ public class ReportServiceImpl implements ReportService {
         this.securityIssueMapper = securityIssueMapper;
     }
 
-    public ReportResponseDTO getReport(Integer resultId) {
-        logger.debug("Fetching report for resultId: {}", resultId);
-        Page<SecurityIssue> issuesPage = securityIssueRepository.findByResultAppId(resultId, PageRequest.of(0, 100));
-        List<SecurityIssue> issues = issuesPage.getContent();
+    @Override
+    public List<SecurityIssueResponseDTO> getReport(Integer resultId) {
+        logger.debug("Fetching all issues for resultId: {}", resultId);
+
+        // Get all issues for the result using the correct method to find by result ID
+        List<SecurityIssue> issues = securityIssueRepository.findByResultId(resultId);
+
         List<SecurityIssueResponseDTO> issueDTOs = issues.stream()
                 .map(securityIssueMapper::toResponseDTO)
                 .collect(Collectors.toList());
-        ReportResponseDTO report = new ReportResponseDTO();
-        report.setResultId(resultId);
-        report.setIssues(issueDTOs);
-        logger.info("Retrieved {} issues for report", issues.size());
-        return report;
+
+        logger.info("Retrieved {} issues for resultId: {}", issues.size(), resultId);
+        return issueDTOs;
     }
 
+    @Override
     public String exportCsv(Integer resultId) {
         logger.debug("Exporting CSV for resultId: {}", resultId);
-        List<SecurityIssue> issues = securityIssueRepository.findByResultAppId(resultId);
+        // Update to use the correct method to find by result ID
+        List<SecurityIssue> issues = securityIssueRepository.findByResultId(resultId);
         String csv = ReportExporter.toCsv(issues);
         logger.info("CSV export completed for resultId: {}", resultId);
         return csv;

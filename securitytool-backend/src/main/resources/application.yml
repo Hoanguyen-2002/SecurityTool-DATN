@@ -22,3 +22,8 @@ server:
 spring.cache:
   type: simple
 
+
+#sonarqube
+sonarqube:
+  projectKey: sqp_9797b07916a233f02fd8b5291521cd7e5af0327d
+

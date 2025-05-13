@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApplications } from '../api/applicationApi';
 import { createModule } from '../api/moduleApi';
 import Loading from '../components/Loading';
-import Error from '../components/Error';
+import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
 import Layout from '../components/Layout';
 import { ApplicationResponseDTO } from '../types/application';
@@ -52,7 +52,7 @@ const ModuleManagement: React.FC = () => {
   };
 
   if (isLoading) return <Loading />;
-  if (isError) return <Error message={(error as Error).message} />;
+  if (isError) return <ErrorDisplay message={(error as Error).message} />;
 
   return (
       <div>
@@ -84,6 +84,7 @@ const ModuleManagement: React.FC = () => {
           })}
         </ul>
 
+        {createMut.isError && <ErrorDisplay message={createMut.error.message} />}
         <Modal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

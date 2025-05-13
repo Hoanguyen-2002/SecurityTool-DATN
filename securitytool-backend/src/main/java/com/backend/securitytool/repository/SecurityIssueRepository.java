@@ -11,8 +11,8 @@ import java.util.List;
 
 
 public interface SecurityIssueRepository extends JpaRepository<SecurityIssue, Integer> {
-    Page<SecurityIssue> findByResultAppId(Integer appId, Pageable pageable);
     List<SecurityIssue> findByResultAppId(Integer appId);
+    List<SecurityIssue> findByResultId(Integer resultId);
     @Query("SELECT s.severity, COUNT(s) FROM SecurityIssue s GROUP BY s.severity")
     List<Object[]> countBySeverity();
 }

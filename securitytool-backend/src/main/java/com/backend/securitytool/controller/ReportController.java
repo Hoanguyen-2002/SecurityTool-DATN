@@ -23,13 +23,25 @@ public class ReportController {
     @Autowired
     private ReportService reportService;
 
+//    @GetMapping(ApiConstants.REPORT_ID_PATH)
+//    public ResponseEntity<CommonResponse<ReportResponseDTO>> getReport(@PathVariable Integer resultId) {
+//        ReportResponseDTO report = reportService.getReport(resultId);
+//        CommonResponse<ReportResponseDTO> response = new CommonResponse<>(
+//                "success",
+//                "Report retrieved successfully",
+//                report,
+//                LocalDateTime.now()
+//        );
+//        return new ResponseEntity<>(response, HttpStatus.OK);
+//    }
+
     @GetMapping(ApiConstants.REPORT_ID_PATH)
-    public ResponseEntity<CommonResponse<ReportResponseDTO>> getReport(@PathVariable Integer resultId) {
-        ReportResponseDTO report = reportService.getReport(resultId);
-        CommonResponse<ReportResponseDTO> response = new CommonResponse<>(
+    public ResponseEntity<CommonResponse<List<SecurityIssueResponseDTO>>> getReport(@PathVariable Integer resultId) {
+        List<SecurityIssueResponseDTO> issues = reportService.getReport(resultId);
+        CommonResponse<List<SecurityIssueResponseDTO>> response = new CommonResponse<>(
                 "success",
-                "Report retrieved successfully",
-                report,
+                "Issues retrieved successfully",
+                issues,
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(response, HttpStatus.OK);

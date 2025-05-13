@@ -11,6 +11,7 @@ export interface SecurityIssueResponseDTO {
   }
   
   export interface ReportResponseDTO {
+    applicationId: number; // Added to verify report ownership
     resultId: number;
     issues: SecurityIssueResponseDTO[];
     summary?: {

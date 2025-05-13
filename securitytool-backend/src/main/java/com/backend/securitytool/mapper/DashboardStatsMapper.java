@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 @Mapper(componentModel = "spring")
 public interface DashboardStatsMapper {
 
@@ -15,7 +14,9 @@ public interface DashboardStatsMapper {
         Map<String, Integer> severityDistribution = new HashMap<>();
         for (Object[] severityCount : severityCounts) {
             String severity = (String) severityCount[0];
-            Integer count = (Integer) severityCount[1];
+            // Convert Long to Integer safely
+            Long longCount = (Long) severityCount[1];
+            Integer count = longCount.intValue();
             severityDistribution.put(severity, count);
         }
         return severityDistribution;

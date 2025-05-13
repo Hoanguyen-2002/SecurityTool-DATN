@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -110,5 +112,22 @@ public class ZapScannerServiceImpl implements ZapScannerService {
         ScanResult savedResult = scanResultRepository.save(scanResult);
         logger.info("ZAP scan on endpoint completed for appId: {}", appId);
         return scanResultMapper.toResponseDTO(savedResult);
+    }
+
+    @Override
+    public List<ScanResponseDTO> getAllScansByAppId(Integer appId) {
+        logger.debug("Fetching all ZAP scans for appId: {}", appId);
+
+        // Find all scan results for this application with type DYNAMIC
+        List<ScanResult> scanResults = scanResultRepository.findByAppIdAndScanType(
+                appId, ScanType.SCAN_TYPE_DYNAMIC);
+
+        // Map to DTOs
+        List<ScanResponseDTO> scanResponses = scanResults.stream()
+                .map(scanResultMapper::toResponseDTO)
+                .collect(Collectors.toList());
+
+        logger.info("Retrieved {} ZAP scans for application ID: {}", scanResponses.size(), appId);
+        return scanResponses;
     }
 }

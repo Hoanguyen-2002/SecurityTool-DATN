@@ -48,7 +48,7 @@ public class TargetApplication {
     @OneToMany(mappedBy = "app")
     private Set<ScanConfiguration> scanConfigurations;
 
-    @OneToMany(mappedBy = "app")
+    @OneToMany(mappedBy = "app", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ScanResult> scanResults;
 
 //    @OneToMany(mappedBy = "modules")

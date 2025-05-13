@@ -43,3 +43,23 @@ export const triggerSonarScan = async (
   const res = await instance.post('/scan/sonarqube', payload);
   return res.data.data;
 };
+
+/** Fetch all SonarQube scans for a specific application */
+export const getSonarScansForApplication = async (
+  appId: number
+): Promise<SonarScanResponseDTO[]> => {
+  const res = await instance.get(`/scan/sonarqube/${appId}`);
+  // Assuming the API returns an array of scans directly, or within a data property
+  // Adjust if your API response structure is different, e.g., res.data.data
+  return res.data.data || res.data; 
+};
+
+/** Fetch all ZAP scans for a specific application */
+export const getZapScansForApplication = async (
+  appId: number
+): Promise<ZapScanResponseDTO[]> => {
+  const res = await instance.get(`/scan/zap/${appId}`);
+  // Assuming the API returns an array of scans directly, or within a data property
+  // Adjust if your API response structure is different, e.g., res.data.data
+  return res.data.data || res.data;
+};

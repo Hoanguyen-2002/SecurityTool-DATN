@@ -22,3 +22,6 @@ public interface ApiEndpointMapper {
     @Mapping(target = "businessFlow", ignore = true)
     ApiEndpoint toEntity(ApiEndpointRequestDTO dto);
 }
+
+
+

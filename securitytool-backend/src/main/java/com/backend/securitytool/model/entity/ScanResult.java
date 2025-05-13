@@ -18,6 +18,7 @@ import java.util.Map;
 @Table(name = "scan_results", schema = "security_tool")
 public class ScanResult {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "result_id", nullable = false)
     private Integer id;
 

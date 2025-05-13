@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import { fetchApplications, createApplication, updateApplication, deleteApplication } from '../api/applicationApi';
 import Loading from '../components/Loading';
-import Error from '../components/Error';
+import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
 import { ApplicationRequestDTO, ApplicationResponseDTO } from '../types/application';
 
@@ -19,17 +19,52 @@ const ApplicationManagement: React.FC = () => {
       }));
     }
   });
+
+  const [appErrors, setAppErrors] = useState<{ [key: number]: string | null }>({});
+  const [addModalError, setAddModalError] = useState<string | null>(null);
+  const [editModalError, setEditModalError] = useState<string | null>(null);
+
   const createMut = useMutation<ApplicationResponseDTO, Error, ApplicationRequestDTO>({
     mutationFn: createApplication,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] })
+    onSuccess: (createdApp) => {
+      qc.invalidateQueries({ queryKey: ['applications'] });
+      setIsAddModalOpen(false);
+      setNewAppName('');
+      setNewAppUrl('');
+      setNewBasePath('/api');
+      setNewAuthInfo('');
+      setAddModalError(null);
+    },
+    onError: (err) => {
+      setAddModalError(err.message || 'Failed to create application.');
+    }
   });
+
   const updateMut = useMutation<ApplicationResponseDTO, Error, { id: number; payload: ApplicationRequestDTO }>({
     mutationFn: ({ id, payload }) => updateApplication(id, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] })
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] });
+      setIsEditModalOpen(false);
+      setEditingApp(null);
+      setEditModalError(null);
+    },
+    onError: (err) => {
+      setEditModalError(err.message || 'Failed to update application.');
+    }
   });
-  const deleteMut = useMutation<void, Error, number>({
+
+  const deleteMut: UseMutationResult<void, Error, number, unknown> = useMutation<void, Error, number>({
     mutationFn: deleteApplication,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] })
+    onMutate: (appId) => {
+      setAppErrors(prev => ({ ...prev, [appId]: null }));
+    },
+    onSuccess: (data, appId) => {
+      qc.invalidateQueries({ queryKey: ['applications'] });
+      setAppErrors(prev => ({ ...prev, [appId]: null }));
+    },
+    onError: (err, appId) => {
+      setAppErrors(prev => ({ ...prev, [appId]: err.message || 'Failed to delete application.' }));
+    }
   });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -46,19 +81,27 @@ const ApplicationManagement: React.FC = () => {
   const [editAuthInfo, setEditAuthInfo] = useState('');
 
   const handleAdd = () => {
-    // Reset fields to ensure a clean form when adding a new application
     setNewAppName('');
     setNewAppUrl('');
-    setNewBasePath(''); // Changed from '/api' to empty for a truly blank field
+    setNewBasePath('');
     setNewAuthInfo('');
+    setAddModalError(null); // Clear previous errors
     setIsAddModalOpen(true);
   };
 
   const handleAddSubmit = () => {
-    // Validate App URL: should not end with a slash
+    setAddModalError(null); // Clear previous error before new attempt
     if (newAppUrl.endsWith('/')) {
-      alert('Application URL should not end with a trailing slash (/).');
-      return; // Prevent submission
+      setAddModalError('Application URL should not end with a trailing slash (/).');
+      return;
+    }
+    if (!newAppName.trim()) {
+      setAddModalError('Application Name cannot be empty.');
+      return;
+    }
+    if (!newAppUrl.trim()) {
+      setAddModalError('Application URL cannot be empty.');
+      return;
     }
 
     if (newAppName && newAppUrl) {
@@ -73,11 +116,7 @@ const ApplicationManagement: React.FC = () => {
       }
       
       createMut.mutate(payload);
-      setIsAddModalOpen(false);
-      setNewAppName('');
-      setNewAppUrl('');
-      setNewBasePath('/api');
-      setNewAuthInfo('');
+      // No longer closing modal or resetting fields here, moved to onSuccess of createMut
     }
   };
 
@@ -88,6 +127,8 @@ const ApplicationManagement: React.FC = () => {
 
     if (actualId === undefined || actualId === null || isNaN(Number(actualId))) {
       console.error('Cannot edit application: ID is missing or invalid from the app object.', app);
+      // Optionally set a page-level error or a specific error for this app item if needed
+      setAppErrors(prev => ({ ...prev, [app.appId]: 'Cannot edit: Application ID is invalid.'}));
       return;
     }
 
@@ -101,44 +142,44 @@ const ApplicationManagement: React.FC = () => {
     setEditAppUrl(conformantAppForEditing.appUrl);
     setEditBasePath(conformantAppForEditing.basePath || '');
     setEditAuthInfo(conformantAppForEditing.authInfo || '');
+    setEditModalError(null); // Clear previous errors
     setIsEditModalOpen(true);
   };
 
   const handleEditSubmit = () => {
+    setEditModalError(null); // Clear previous error
     if (editingApp) {
-      // Validate required fields
       if (!editAppName.trim()) {
-        alert("Application Name cannot be empty.");
+        setEditModalError("Application Name cannot be empty.");
         return;
       }
       if (!editAppUrl.trim()) {
-        alert("Application URL cannot be empty.");
+        setEditModalError("Application URL cannot be empty.");
         return;
       }
-      // Validate App URL format: should not end with a slash
       if (editAppUrl.endsWith('/')) {
-        alert('Application URL should not end with a trailing slash (/).');
+        setEditModalError('Application URL should not end with a trailing slash (/).');
         return;
       }
 
       const payload: ApplicationRequestDTO = {
         appName: editAppName,
         appUrl: editAppUrl,
-        basePath: editBasePath, // Send the current value from the form (can be "")
-        authInfo: editAuthInfo, // Send the current value from the form (can be "")
+        basePath: editBasePath, 
+        authInfo: editAuthInfo, 
       };
 
-      console.log('Submitting edit with payload:', payload); // Log payload for debugging
+      console.log('Submitting edit with payload:', payload);
       updateMut.mutate({ id: editingApp.appId, payload });
-      setIsEditModalOpen(false);
-      setEditingApp(null);
+      // No longer closing modal or resetting fields here, moved to onSuccess of updateMut
     } else {
       console.error('No application selected for editing.');
+      setEditModalError('No application selected for editing. Please close and try again.');
     }
   };
 
   if (isLoading) return <Loading />;
-  if (isError) return <Error message={(error as Error).message} />;
+  if (isError && !data) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
   return (
       <div>
@@ -146,6 +187,8 @@ const ApplicationManagement: React.FC = () => {
           <h1 className="text-2xl mr-4">Applications</h1>
           <button onClick={handleAdd} className="px-4 py-2 bg-green-600 text-white rounded">Add Application</button>
         </div>
+        {isError && data && <ErrorDisplay message={error?.message || 'There was an issue fetching applications, but showing cached data.'} />}
+        
         <Modal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
@@ -160,7 +203,7 @@ const ApplicationManagement: React.FC = () => {
               value={newAppName}
               onChange={(e) => setNewAppName(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="book store" // MODIFIED placeholder
+              placeholder="book store" 
             />
           </div>
           <div className="mb-4">
@@ -171,7 +214,7 @@ const ApplicationManagement: React.FC = () => {
               value={newAppUrl}
               onChange={(e) => setNewAppUrl(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="http://localhost:5173" // MODIFIED placeholder
+              placeholder="http://localhost:5173" 
             />
           </div>
           <div className="mb-4">
@@ -182,7 +225,7 @@ const ApplicationManagement: React.FC = () => {
               value={newBasePath}
               onChange={(e) => setNewBasePath(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="/books" // MODIFIED placeholder
+              placeholder="/books" 
             />
           </div>
           <div>
@@ -196,6 +239,7 @@ const ApplicationManagement: React.FC = () => {
               placeholder="Auth Info (Optional)"
             />
           </div>
+          {addModalError && <div className="mt-4"><ErrorDisplay message={addModalError} /></div>}
         </Modal>
 
         {editingApp && (
@@ -255,49 +299,63 @@ const ApplicationManagement: React.FC = () => {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               />
             </div>
+            {editModalError && <div className="mt-4"><ErrorDisplay message={editModalError} /></div>}
           </Modal>
         )}
 
-        <ul className="space-y-2">
+        <ul className="space-y-2 mt-4">
           {data?.map((app, index) => {
             if (app.appId === undefined || app.appId === null || isNaN(app.appId)) {
               console.warn(
                 `Application at index ${index} has an invalid appId. Skipping render. ` +
                 `appId value: ${app.appId}, type: ${typeof app.appId}. Raw app object:`, app
               );
-              return null;
+              return (
+                <li key={`invalid-app-${index}`} className="p-4 bg-red-100 rounded shadow">
+                  <p className="text-red-700 font-semibold">Invalid application data at index {index}.</p>
+                  <p className="text-xs text-red-600">App ID is missing or invalid. Please check console for details.</p>
+                </li>
+              );
             }
 
+            const isDeleting = deleteMut.isPending && deleteMut.variables === app.appId;
+
             return (
-              <li key={app.appId} className="p-4 bg-white rounded shadow flex justify-between">
-                <div>
-                  {/* MODIFIED to add "App Name: " prefix, keeping appName value bold */}
-                  <div>App Name: <span className="font-bold">{app.appName}</span></div>
-                  {/* MODIFIED to add "App URL: " prefix */}
-                  <div className="text-gray-600">
-                    App URL: {app.appUrl}{app.basePath && app.basePath !== '/' ? app.basePath : ''}
+              <li key={app.appId} className="p-4 bg-white rounded shadow flex flex-col">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div>App Name: <span className="font-bold">{app.appName}</span></div>
+                    <div className="text-gray-600">
+                      App URL: {app.appUrl}{app.basePath && app.basePath !== '/' ? app.basePath : ''}
+                    </div>
+                    <div className="text-gray-600">
+                      Auth Info: {app.authInfo ? app.authInfo : 'Not set'}
+                    </div>
                   </div>
-                  <div className="text-gray-600">
-                    Auth Info: {app.authInfo ? app.authInfo : 'Not set'}
+                  <div className="space-x-2 flex-shrink-0">
+                    <button onClick={() => handleEdit(app)} className="px-2 py-1 bg-blue-500 text-white rounded">Edit</button>
+                    <button 
+                      onClick={() => {
+                        console.log(`Attempting to delete application with appId: ${app.appId} (type: ${typeof app.appId})`);
+                        if (app.appId === undefined || app.appId === null || isNaN(app.appId)) {
+                          console.error('Critical: Invalid appId before delete mutate call:', app.appId, app);
+                          setAppErrors(prev => ({ ...prev, [app.appId]: 'Error: Cannot delete due to invalid Application ID.' }));
+                          return;
+                        }
+                        deleteMut.mutate(app.appId);
+                      }} 
+                      disabled={isDeleting}
+                      className="px-2 py-1 bg-red-500 text-white rounded disabled:opacity-50"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </button>
                   </div>
                 </div>
-                <div className="space-x-2">
-                  <button onClick={() => handleEdit(app)} className="px-2 py-1 bg-blue-500 text-white rounded">Edit</button>
-                  <button 
-                    onClick={() => {
-                      console.log(`Attempting to delete application with appId: ${app.appId} (type: ${typeof app.appId})`);
-                      if (app.appId === undefined || app.appId === null || isNaN(app.appId)) {
-                        alert('Error: Cannot delete due to invalid Application ID. Please refresh.');
-                        console.error('Critical: Invalid appId before delete mutate call:', app.appId, app);
-                        return;
-                      }
-                      deleteMut.mutate(app.appId);
-                    }} 
-                    className="px-2 py-1 bg-red-500 text-white rounded"
-                  >
-                    Delete
-                  </button>
-                </div>
+                {appErrors[app.appId] && (
+                  <div className="mt-2 w-full">
+                    <ErrorDisplay message={appErrors[app.appId]!} />
+                  </div>
+                )}
               </li>
             );
           })}

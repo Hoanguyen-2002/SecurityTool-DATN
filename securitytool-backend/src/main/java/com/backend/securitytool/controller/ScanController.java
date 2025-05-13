@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping(ApiConstants.SCAN_BASE_URL)
@@ -26,11 +27,23 @@ public class ScanController {
     @Autowired
     private ZapScannerService zapScannerService;
 
+    @GetMapping("/sonarqube/{appId}")
+    public ResponseEntity<List<ScanResponseDTO>> getAllScansByAppId(@PathVariable Integer appId) {
+        List<ScanResponseDTO> scans = sonarQubeScannerService.getAllScansByAppId(appId);
+        return ResponseEntity.ok(scans);
+    }
+
+    @GetMapping("/zap/{appId}")
+    public ResponseEntity<List<ScanResponseDTO>> getAllZapScansByAppId(@PathVariable Integer appId) {
+        List<ScanResponseDTO> scans = zapScannerService.getAllScansByAppId(appId);
+        return ResponseEntity.ok(scans);
+    }
+
     @PostMapping(ApiConstants.SONARQUBE_SCAN_PATH)
     public ResponseEntity<CommonResponse<ScanResponseDTO>> runSonarQubeScan(
             @RequestBody ScanRequestDTO requestDTO,
             @RequestParam(required=false) Integer moduleId) {
-        ScanResponseDTO result = sonarQubeScannerService.scan(requestDTO.getAppId(), requestDTO.getProjectKey());
+        ScanResponseDTO result = sonarQubeScannerService.scan(requestDTO);
         CommonResponse<ScanResponseDTO> response = new CommonResponse<>(
                 "success",
                 "SonarQube scan completed successfully",
