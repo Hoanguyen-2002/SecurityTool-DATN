@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApplications } from '../api/applicationApi';
 import { triggerZapScan, triggerSonarScan, getSonarScansForApplication, getZapScansForApplication } from '../api/scanConfigApi';
+import { associateScanWithApp } from '../api/reportApi';
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
-import Layout from '../components/Layout';
 import Modal from '../components/Modal';
 import { ApplicationResponseDTO } from '../types/application';
 import { ScanResultDisplay, SonarScanResponseDTO as SonarScanResultType } from '../types/scanConfig';
@@ -43,6 +43,8 @@ const ScanConfig: React.FC = () => {
   const [currentScanType, setCurrentScanType] = useState<'sonar' | 'zap' | null>(null);
   const [currentApp, setCurrentApp] = useState<ApplicationResponseDTO | null>(null);
   const [modalInputs, setModalInputs] = useState({ projectKey: '', targetUrl: '' });
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalMessage, setSuccessModalMessage] = useState('');
 
   useEffect(() => {
     if (currentApp) {
@@ -123,12 +125,14 @@ const ScanConfig: React.FC = () => {
       }));
 
       if (result && result.id) {
+        associateScanWithApp(result.id, appId); // Call associateScanWithApp
         const latestScanResults = JSON.parse(localStorage.getItem('latestScanResultIds') || '{}');
         latestScanResults[appId] = { ...latestScanResults[appId], zap: result.id }; // Preserve Sonar id
         localStorage.setItem('latestScanResultIds', JSON.stringify(latestScanResults));
       }
 
-      alert('ZAP Scan triggered successfully!');
+      setSuccessModalMessage('ZAP Scan triggered successfully!');
+      setIsSuccessModalOpen(true);
     } catch (e: any) {
       setAppErrors(prev => ({ ...prev, [appId]: e.message }));
     } finally {
@@ -162,12 +166,14 @@ const ScanConfig: React.FC = () => {
       }));
       
       if (result && result.id) {
+        associateScanWithApp(result.id, appId); // Call associateScanWithApp
         const latestScanResults = JSON.parse(localStorage.getItem('latestScanResultIds') || '{}');
         latestScanResults[appId] = { sonar: result.id, zap: latestScanResults[appId]?.zap }; // Preserve ZAP id
         localStorage.setItem('latestScanResultIds', JSON.stringify(latestScanResults));
       }
       
-      alert('SonarQube Scan triggered successfully!');
+      setSuccessModalMessage('SonarQube Scan triggered successfully!');
+      setIsSuccessModalOpen(true);
     } catch (e: any) {
       setAppErrors(prev => ({ ...prev, [appId]: e.message }));
     } finally {
@@ -434,6 +440,20 @@ const ScanConfig: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      <Modal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        title="Scan Status"
+        showConfirmButton={true}
+        confirmButtonText="OK"
+        onConfirm={() => setIsSuccessModalOpen(false)}
+        showCancelButton={false}
+      >
+        <div className="p-4">
+          <p className="text-center text-lg text-green-600">{successModalMessage}</p>
+        </div>
+      </Modal>
     </div>
   );
 };

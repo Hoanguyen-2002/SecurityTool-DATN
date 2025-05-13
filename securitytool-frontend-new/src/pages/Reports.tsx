@@ -10,7 +10,6 @@ import { ApplicationResponseDTO } from '../types/application';
 import { ReportResponseDTO } from '../types/report';
 
 const APP_REPORTS_STORAGE_KEY = 'appReportsData'; // Key for localStorage
-const APP_CSVS_STORAGE_KEY = 'appCsvsData'; // Key for localStorage
 
 const Reports: React.FC = () => {
   const { data: applications, isLoading, isError, error } = useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
@@ -31,10 +30,6 @@ const Reports: React.FC = () => {
     const storedReports = localStorage.getItem(APP_REPORTS_STORAGE_KEY);
     return storedReports ? JSON.parse(storedReports) : {};
   });
-  const [appCsvs, setAppCsvs] = useState<Record<number, string>>(() => {
-    const storedCsvs = localStorage.getItem(APP_CSVS_STORAGE_KEY);
-    return storedCsvs ? JSON.parse(storedCsvs) : {};
-  });
   const [loading, setLoading] = useState(false); // Used for Load Report and Download CSV actions
   const [pageLevelError, setPageLevelError] = useState<string | null>(null); // For general errors displayed on the page
   const [appErrors, setAppErrors] = useState<Record<number, string | null>>({}); // New state for app-specific errors
@@ -45,15 +40,9 @@ const Reports: React.FC = () => {
     }
   }, [appReports]);
 
-  useEffect(() => {
-    if (Object.keys(appCsvs).length > 0 || localStorage.getItem(APP_CSVS_STORAGE_KEY)) {
-      localStorage.setItem(APP_CSVS_STORAGE_KEY, JSON.stringify(appCsvs));
-    }
-  }, [appCsvs]);
-
   const handleOpenLoadReportModal = (appId: number) => {
     setSelectedAppId(appId);
-    setScanResultId('');
+    setScanResultId(''); // Clear previous scanResultId input
     setPageLevelError(null); // Clear general page errors
     setAppErrors(prev => ({ ...prev, [appId]: null })); // Clear specific app error for this app
     setIsLoadReportModalOpen(true);
@@ -63,7 +52,7 @@ const Reports: React.FC = () => {
     const idNum = Number(scanResultId);
 
     if (!selectedAppId) {
-      setPageLevelError("An internal error occurred: No application selected."); // Use pageLevelError for this
+      setPageLevelError("An internal error occurred: No application selected.");
       setIsLoadReportModalOpen(false);
       return;
     }
@@ -121,7 +110,12 @@ const Reports: React.FC = () => {
 
   const downloadCsv = async (appId: number) => {
     const report = appReports[appId];
-    if (!report) return;
+    if (!report) {
+      setAppErrors(prev => ({ ...prev, [appId]: "No report loaded to download CSV from." }));
+      return;
+    }
+    const app = applications?.find(a => a.appId === appId);
+    const appName = app ? app.appName : 'report';
 
     // Clear previous errors for this app before attempting download
     setAppErrors(prev => ({ ...prev, [appId]: null }));
@@ -129,9 +123,22 @@ const Reports: React.FC = () => {
     setLoading(true);
 
     try {
-      const data = await exportReportCsv(report.resultId);
-      setAppCsvs(prev => ({ ...prev, [appId]: data }));
-      // App error already cleared for this appId
+      const csvData = await exportReportCsv(report.resultId);
+      
+      // Create a blob with the CSV data
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      
+      // Create a link element
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${appName}_scan_${report.resultId}_report.csv`);
+      
+      // Append to the document, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (e: any) {
       setAppErrors(prev => ({ ...prev, [appId]: `Failed to download CSV: ${e.message}` }));
     } finally {
@@ -152,7 +159,6 @@ const Reports: React.FC = () => {
               return null;
             }
             const currentReport = appReports[app.appId];
-            const currentCsv = appCsvs[app.appId];
             const currentError = appErrors[app.appId]; // Get app-specific error
 
             return (
@@ -191,23 +197,42 @@ const Reports: React.FC = () => {
                 {/* Display Report Details for this app */}
                 {currentReport && (
                   <div className="mt-4 p-4 border-t border-gray-200">
-                    <h3 className="text-lg font-semibold">Report Details for {app.appName}</h3>
-                    <pre className="whitespace-pre-wrap bg-gray-50 p-2 rounded mt-2">
-                      {JSON.stringify(currentReport, null, 2)}
-                    </pre>
-                  </div>
-                )}
-
-                {/* Display CSV content for this app */}
-                {currentCsv && (
-                  <div className="mt-4">
-                    <h3 className="text-lg font-semibold">CSV Data for {app.appName}</h3>
-                    <textarea
-                      readOnly
-                      rows={10}
-                      className="w-full mt-2 p-2 bg-gray-100 border rounded"
-                      value={currentCsv}
-                    />
+                    <h3 className="text-lg font-semibold">Report Details for {app.appName} (Scan ID: {currentReport.resultId})</h3>
+                    {currentReport.issues && currentReport.issues.length > 0 ? (
+                      <div className="mt-4">
+                        <h4 className="text-md font-semibold mb-2">Security Issues:</h4>
+                        <ul className="space-y-3 max-h-96 overflow-y-auto">
+                          {currentReport.issues.map((issue) => (
+                            <li key={issue.issueId} className="p-3 bg-gray-50 rounded border border-gray-200">
+                              <p><strong>Issue ID:</strong> <span className="font-mono text-xs bg-gray-200 px-1 rounded">{issue.issueId}</span></p>
+                              <p><strong>Type:</strong> {issue.issueType}</p>
+                              <p><strong>Severity:</strong> 
+                                <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
+                                  issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
+                                  issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                  issue.severity.toLowerCase() === 'low' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {issue.severity}
+                                </span>
+                              </p>
+                              <p className="mt-1"><strong>Description:</strong></p>
+                              <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded mt-1 text-sm">{issue.description}</pre>
+                              {issue.remediation && (
+                                <>
+                                  <p className="mt-1"><strong>Remediation:</strong></p>
+                                  <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded mt-1 text-sm">{issue.remediation}</pre>
+                                </>
+                              )}
+                               <p className="text-xs text-gray-500 mt-1">Status: {issue.status} | Created: {new Date(issue.createdAt).toLocaleString()}</p>
+                               {issue.endpointId && <p className="text-xs text-gray-500">Endpoint ID: {issue.endpointId}</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm text-gray-500">No security issues found in this report.</p>
+                    )}
                   </div>
                 )}
               </li>

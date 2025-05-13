@@ -6,85 +6,98 @@ import { ReportResponseDTO, SecurityIssueResponseDTO } from '../types/report';
  */
 export const getReport = async (resultId: number): Promise<ReportResponseDTO> => {
   try {
-    const res = await instance.get<any>(`/reports/${resultId}`);
-    
-    // Check if we got a direct array of SecurityIssueResponseDTO (from backend)
-    if (Array.isArray(res.data)) {
-      const issues: SecurityIssueResponseDTO[] = res.data;
-      
-      // Guard against empty response
-      if (issues.length === 0) {
-        throw new Error(`No issues found for resultId: ${resultId}`);
+    const res = await instance.get<any>(`/reports/${resultId}`); // Use any for flexibility
+
+    let issuesToProcess: any[] | undefined = undefined; // Allow any type for raw issues
+    let preStructuredReport: any | null = null;
+
+    // Scenario 1: Backend returns CommonResponse like { data: [...issues...] }
+    if (res.data && typeof res.data === 'object' && Array.isArray(res.data.data)) {
+      issuesToProcess = res.data.data;
+    } 
+    // Scenario 2: Backend returns a direct array of issues
+    else if (Array.isArray(res.data)) {
+      issuesToProcess = res.data;
+    } 
+    // Scenario 3: Backend returns an object that is already the fully formed ReportResponseDTO
+    // (This might happen if data was cached or transformed by another interceptor/service)
+    else if (res.data && typeof res.data === 'object' && 
+             'issues' in res.data && Array.isArray(res.data.issues) &&
+             'resultId' in res.data && typeof res.data.resultId === 'number') {
+      // We will still map issues inside this pre-structured report
+      preStructuredReport = res.data;
+      issuesToProcess = preStructuredReport.issues;
+    }
+
+    if (issuesToProcess) {
+      if (issuesToProcess.length === 0 && !preStructuredReport) { // if preStructuredReport, it might have other data
+        // If the array is empty, it's still a valid response, but no issues to summarize.
+        // For now, let's treat it as "no issues found" which might be a valid state.
+        // The original code threw an error, let's maintain that for consistency unless specified otherwise.
+        // However, an empty issues array is valid for a report.
+        // Let's return a report with an empty issues array.
       }
 
-      // Extract common resultId and extract applicationId from the first issue
-      // This assumes all issues have the same resultId and applicationId property
-      const sampleIssue = issues[0];
+      const mappedIssues: SecurityIssueResponseDTO[] = issuesToProcess.map((apiIssue: any) => ({
+        issueId: apiIssue.id, // Map 'id' to 'issueId'
+        resultId: apiIssue.resultId,
+        endpointId: apiIssue.endpointId,
+        issueType: apiIssue.issueType,
+        severity: apiIssue.severity,
+        description: apiIssue.description,
+        remediation: apiIssue.remediation,
+        status: apiIssue.status,
+        createdAt: apiIssue.createdAt || new Date(0).toISOString(), // Default for null createdAt
+      }));
       
-      // Create a summary object
       const summary = {
-        totalIssues: issues.length,
-        bySeverity: issues.reduce((acc: Record<string, number>, issue) => {
+        totalIssues: mappedIssues.length,
+        bySeverity: mappedIssues.reduce((acc: Record<string, number>, issue) => {
           acc[issue.severity] = (acc[issue.severity] || 0) + 1;
           return acc;
         }, {})
       };
 
-      // Determine applicationId - use direct property if available, otherwise use alternative sources
-      // This is a fallback mechanism if applicationId isn't directly available from issues
-      const applicationId = (sampleIssue as any).applicationId || 
-                          (sampleIssue as any).appId || 
-                          // Try to extract from query params or localStorage as last resort
-                          Number(localStorage.getItem(`scanApp_${resultId}`)) ||
-                          0; // Default to 0 if no applicationId can be determined
-      
-      // Transform the array into the expected ReportResponseDTO structure
-      return {
-        applicationId,
-        resultId: sampleIssue.resultId,
-        issues: issues,
-        summary
-      };
-    }
-    
-    // Check if the response contains nested data array
-    if (res.data && res.data.data && Array.isArray(res.data.data)) {
-      const issues: SecurityIssueResponseDTO[] = res.data.data;
-      
-      if (issues.length === 0) {
-        throw new Error(`No issues found for resultId: ${resultId}`);
+      // Determine applicationId from localStorage
+      const storedAppIdString = localStorage.getItem(`scanApp_${resultId}`); // Use the overall report's resultId
+      if (storedAppIdString === null) {
+        throw new Error(`Application ID for scan result ${resultId} not found in local storage. Ensure scan results are correctly associated with applications before attempting to load reports.`);
       }
       
-      const sampleIssue = issues[0];
+      const determinedApplicationId = Number(storedAppIdString);
+      if (isNaN(determinedApplicationId)) {
+        throw new Error(`Invalid Application ID format ('${storedAppIdString}') found in local storage for scan result ${resultId}.`);
+      }
       
-      const summary = {
-        totalIssues: issues.length,
-        bySeverity: issues.reduce((acc: Record<string, number>, issue) => {
-          acc[issue.severity] = (acc[issue.severity] || 0) + 1;
-          return acc;
-        }, {})
-      };
-      
-      const applicationId = (sampleIssue as any).applicationId || 
-                           (sampleIssue as any).appId || 
-                           Number(localStorage.getItem(`scanApp_${resultId}`)) ||
-                           0;
-      
+      if (preStructuredReport) {
+        // If we had a pre-structured report, use its top-level fields but with mapped issues
+        return {
+          applicationId: preStructuredReport.applicationId !== undefined ? Number(preStructuredReport.applicationId) : determinedApplicationId,
+          resultId: Number(preStructuredReport.resultId), // Ensure it's a number
+          issues: mappedIssues,
+          summary: preStructuredReport.summary || summary // Prefer existing summary if available
+        } as ReportResponseDTO;
+      }
+
       return {
-        applicationId,
-        resultId: sampleIssue.resultId,
-        issues: issues,
+        applicationId: determinedApplicationId,
+        resultId: resultId, // Use the function parameter resultId for the overall report
+        issues: mappedIssues,
         summary
       };
     }
-    
-    // If data is already in ReportResponseDTO format, return as is
-    if (res.data && typeof res.data === 'object' && !Array.isArray(res.data) && 'resultId' in res.data) {
-      return res.data as ReportResponseDTO;
-    }
-    
-    // If response doesn't match any expected format, throw an error
-    throw new Error(`Unable to process response for report ID ${resultId}. Check API endpoint and data format.`);
+  
+    // If none of the above conditions were met, the response format is unexpected.
+    let responsePreview = 'Unable to stringify response data';
+    try {
+      if (res.data !== undefined) {
+        responsePreview = JSON.stringify(res.data).substring(0, 200) + (JSON.stringify(res.data).length > 200 ? '...' : '');
+      } else {
+        responsePreview = 'Response data is undefined';
+      }
+    } catch (e) { /* ignore stringify error during preview generation */ }
+    throw new Error(`Unable to process response for report ID ${resultId}. Unexpected data format. Preview: ${responsePreview}`);
+
   } catch (error: any) {
     // Improve error message for debugging
     if (error.response && error.response.status === 404) {
@@ -98,14 +111,12 @@ export const getReport = async (resultId: number): Promise<ReportResponseDTO> =>
  * Export a report as CSV by its scan result ID
  */
 export const exportReportCsv = async (resultId: number): Promise<string> => {
-  const res = await instance.get<any>(`/reports/${resultId}/csv`);
+  const res = await instance.get(`/reports/${resultId}/csv`);
   // Handle both direct response and nested response structures
-  return res.data && res.data.data ? res.data.data : res.data;
+  return res.data.data || res.data;
 };
 
-/**
- * Store the association between scan result ID and application ID
- */
+// Store the association between scan result ID and application ID
 export const associateScanWithApp = (resultId: number, appId: number): void => {
   localStorage.setItem(`scanApp_${resultId}`, appId.toString());
 };
