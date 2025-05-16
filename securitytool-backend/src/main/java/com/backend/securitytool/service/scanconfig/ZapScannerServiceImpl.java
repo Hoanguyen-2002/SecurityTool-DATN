@@ -85,6 +85,11 @@ public class ZapScannerServiceImpl implements ZapScannerService {
         // Only top 5 alerts for summary
         String alertsJson = extractTop5AlertsFieldOnly(alertsResponse.getBody());
 
+        // Remove square brackets if present
+        if (alertsJson.startsWith("[") && alertsJson.endsWith("]")) {
+            alertsJson = alertsJson.substring(1, alertsJson.length() - 1);
+        }
+
         ScanResult scanResult = new ScanResult();
         scanResult.setApp(app);
         scanResult.setScanDate(Instant.now());

@@ -12,6 +12,7 @@ interface ModalProps {
   showFooterActions?: boolean; // If false, hides the entire footer
   showConfirmButton?: boolean; // Explicitly show/hide confirm button
   showCancelButton?: boolean;  // Explicitly show/hide cancel button
+  maxWidthClass?: string; // New prop for custom max-width
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -26,6 +27,7 @@ const Modal: React.FC<ModalProps> = ({
   showFooterActions = true,    // Default to true, meaning footer is visible unless specified
   showConfirmButton = true,  // Default to true
   showCancelButton = true,   // Default to true
+  maxWidthClass = 'max-w-md', // Default max-width
 }) => {
   if (!isOpen) return null;
 
@@ -34,7 +36,7 @@ const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-50">
-      <div className="bg-white p-5 rounded-lg shadow-xl w-full max-w-md mx-auto">
+      <div className={`bg-white p-5 rounded-lg shadow-xl w-full ${maxWidthClass} mx-auto`}>
         <h3 className="text-lg font-semibold mb-4">{title}</h3>
         <div>{children}</div>
         {shouldRenderFooter && (
