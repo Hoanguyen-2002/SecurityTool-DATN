@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface ZapScannerService {
     ScanResponseDTO scan(Integer appId, String targetUrl);
-    ScanResponseDTO scanEndpoint(Integer appId, String endpointPath);
+//    ScanResponseDTO scanEndpoint(Integer appId, String endpointPath);
     List<ScanResponseDTO> getAllScansByAppId(Integer appId);
 }

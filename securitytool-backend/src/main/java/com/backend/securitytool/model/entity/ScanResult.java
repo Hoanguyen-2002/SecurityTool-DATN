@@ -37,8 +37,9 @@ public class ScanResult {
     @Column(name = "status", nullable = false, length = 50)
     private String status;
 
-    @Column(name = "summary")
+    @Column(name = "summary", columnDefinition = "LONGTEXT")
     @Lob
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String summary;
 
 }

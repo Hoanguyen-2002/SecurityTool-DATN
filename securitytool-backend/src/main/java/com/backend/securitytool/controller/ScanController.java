@@ -65,15 +65,15 @@ public class ScanController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @PostMapping(ApiConstants.ZAP_SCAN_PATH + "/endpoints")
-    public ResponseEntity<CommonResponse<ScanResponseDTO>> runZapScanOnEndpoint(@RequestBody ApiEndpointRequestDTO endpointDTO) {
-        ScanResponseDTO result = zapScannerService.scanEndpoint(endpointDTO.getAppId(), endpointDTO.getPath());
-        CommonResponse<ScanResponseDTO> response = new CommonResponse<>(
-                "success",
-                "ZAP scan on endpoint completed successfully",
-                result,
-                LocalDateTime.now()
-        );
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
+//    @PostMapping(ApiConstants.ZAP_SCAN_PATH + "/endpoints")
+//    public ResponseEntity<CommonResponse<ScanResponseDTO>> runZapScanOnEndpoint(@RequestBody ApiEndpointRequestDTO endpointDTO) {
+//        ScanResponseDTO result = zapScannerService.scanEndpoint(endpointDTO.getAppId(), endpointDTO.getPath());
+//        CommonResponse<ScanResponseDTO> response = new CommonResponse<>(
+//                "success",
+//                "ZAP scan on endpoint completed successfully",
+//                result,
+//                LocalDateTime.now()
+//        );
+//        return new ResponseEntity<>(response, HttpStatus.OK);
+//    }
 }

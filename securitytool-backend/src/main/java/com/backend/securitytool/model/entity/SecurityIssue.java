@@ -34,7 +34,7 @@ public class SecurityIssue {
     private String severity;
 
     @Lob
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "LONGTEXT")
     private String description;
 
     @Lob
@@ -42,7 +42,7 @@ public class SecurityIssue {
     private String remediation;
 
     @Lob
-    @Column(name = "solution")
+    @Column(name = "solution", columnDefinition = "LONGTEXT")
     private String solution;
 
     @ColumnDefault("'open'")
@@ -54,3 +54,4 @@ public class SecurityIssue {
     @JoinColumn(name = "module_id")
     private SourceCodeModule module;
 }
+
