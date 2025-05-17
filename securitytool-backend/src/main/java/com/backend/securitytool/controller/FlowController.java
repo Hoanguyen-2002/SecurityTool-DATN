@@ -1,50 +1,43 @@
 package com.backend.securitytool.controller;
 
 import com.backend.securitytool.constants.ApiConstants;
-import com.backend.securitytool.model.dto.request.ApiEndpointRequestDTO;
-import com.backend.securitytool.model.dto.request.FlowAnalysisRequestDTO;
-import com.backend.securitytool.model.dto.response.CommonResponse;
-import com.backend.securitytool.model.dto.response.SecurityIssueResponseDTO;
+import com.backend.securitytool.model.dto.request.BusinessFlowRequestDTO;
+import com.backend.securitytool.model.dto.response.BusinessFlowResponseDTO;
 import com.backend.securitytool.service.flowanalyzer.FlowAnalyzerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping(ApiConstants.ANALYZE_BASE_URL)
+@RequestMapping(ApiConstants.FLOW_ANALYSIS_BASE_URL)
 public class FlowController {
 
     @Autowired
     private FlowAnalyzerService flowAnalyzerService;
 
-    @PostMapping(ApiConstants.FLOW_ANALYSIS_PATH)
-    public ResponseEntity<CommonResponse<List<SecurityIssueResponseDTO>>> analyzeFlow(@RequestBody FlowAnalysisRequestDTO requestDTO) {
-        List<SecurityIssueResponseDTO> issues = flowAnalyzerService.analyzeFlow(requestDTO.getFlowId(), requestDTO.getResultId());
-        CommonResponse<List<SecurityIssueResponseDTO>> response = new CommonResponse<>(
-                "success",
-                "Flow analysis completed successfully",
-                issues,
-                LocalDateTime.now()
-        );
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    @PostMapping
+    public ResponseEntity<BusinessFlowResponseDTO> createFlow(@RequestBody BusinessFlowRequestDTO requestDTO) {
+        BusinessFlowResponseDTO response = flowAnalyzerService.createFlow(requestDTO);
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping(ApiConstants.FLOW_ANALYSIS_PATH + "/endpoints")
-    public ResponseEntity<CommonResponse<List<SecurityIssueResponseDTO>>> analyzeFlowWithEndpoint(@RequestBody ApiEndpointRequestDTO endpointDTO) {
-        List<SecurityIssueResponseDTO> issues = flowAnalyzerService.analyzeFlowWithEndpoint(endpointDTO.getBusinessFlowId(), endpointDTO.getAppId());
-        CommonResponse<List<SecurityIssueResponseDTO>> response = new CommonResponse<>(
-                "success",
-                "Flow analysis with endpoint completed successfully",
-                issues,
-                LocalDateTime.now()
-        );
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    @PutMapping("/{id}")
+    public ResponseEntity<BusinessFlowResponseDTO> editFlow(@PathVariable Integer id, @RequestBody BusinessFlowRequestDTO requestDTO) {
+        BusinessFlowResponseDTO response = flowAnalyzerService.editFlow(id, requestDTO);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<BusinessFlowResponseDTO>> getListFlow(@RequestParam(required = false) Integer appId) {
+        List<BusinessFlowResponseDTO> flows = flowAnalyzerService.getListFlow(appId);
+        return ResponseEntity.ok(flows);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteFlow(@PathVariable Integer id) {
+        flowAnalyzerService.deleteFlow(id);
+        return ResponseEntity.noContent().build();
     }
 }

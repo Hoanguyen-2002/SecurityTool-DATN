@@ -25,6 +25,9 @@ public class ApiConstants {
     // Module management
     public static final String MODULES_BASE_URL = "/api/modules";
 
+    //Flow analysis
+    public static final String FLOW_ANALYSIS_BASE_URL = "/api/business-flow";
+
     private ApiConstants() {
         // Prevent instantiation
     }

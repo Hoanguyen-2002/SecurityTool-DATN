@@ -1,16 +1,67 @@
 package com.backend.securitytool.mapper;
 
+import com.backend.securitytool.model.dto.request.BusinessFlowRequestDTO;
 import com.backend.securitytool.model.dto.response.BusinessFlowResponseDTO;
 import com.backend.securitytool.model.entity.BusinessFlow;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.springframework.stereotype.Component;
+import com.backend.securitytool.model.entity.ScanResult;
+import com.backend.securitytool.model.entity.TargetApplication;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.mapstruct.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Collections;
+import java.util.List;
 
 @Mapper(componentModel = "spring")
-public interface BusinessFlowMapper {
+public abstract class BusinessFlowMapper {
 
-    @Mapping(source = "app.id", target = "appId")
-    @Mapping(source = "stepsJson", target = "stepsJson")
-    BusinessFlowResponseDTO toResponseDTO(BusinessFlow entity);
+    @Autowired
+    protected ObjectMapper objectMapper;
+
+    @Mapping(target = "resultId", source = "result.id")
+    @Mapping(target = "apiEndpoints", source = "apiEndpoints", qualifiedByName = "jsonToList")
+    @Mapping(target = "appId", source = "app.id")
+    public abstract BusinessFlowResponseDTO toResponseDTO(BusinessFlow entity);
+
+    @Mapping(target = "result", source = "resultId", qualifiedByName = "resultIdToScanResult")
+    @Mapping(target = "apiEndpoints", source = "apiEndpoints", qualifiedByName = "listToJson")
+    @Mapping(target = "app", source = "appId", qualifiedByName = "appIdToTargetApplication")
+    public abstract BusinessFlow toEntity(BusinessFlowRequestDTO dto);
+
+    @Named("jsonToList")
+    protected List<String> jsonToList(String json) {
+        if (json == null) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+        } catch (JsonProcessingException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    @Named("listToJson")
+    protected String listToJson(List<String> list) {
+        if (list == null) return "[]";
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            return "[]";
+        }
+    }
+
+    @Named("resultIdToScanResult")
+    protected ScanResult resultIdToScanResult(Integer resultId) {
+        if (resultId == null) return null;
+        ScanResult result = new ScanResult();
+        result.setId(resultId);
+        return result;
+    }
+
+    @Named("appIdToTargetApplication")
+    protected TargetApplication appIdToTargetApplication(Integer appId) {
+        if (appId == null) return null;
+        TargetApplication app = new TargetApplication();
+        app.setId(appId);
+        return app;
+    }
 }

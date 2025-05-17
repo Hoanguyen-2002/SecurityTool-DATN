@@ -1,31 +1,36 @@
 import instance from './axiosInstance';
-import { FlowAnalysisRequestDTO, ApiEndpointRequestDTO } from '../types/flow';
+import { FlowAnalysisRequestDTO, ApiEndpointRequestDTO, NewFlowPayload, BusinessFlowResponseDTO } from '../types/flow';
 import { SecurityIssueResponseDTO } from '../types/report';
 
-const BASE_PATH = '/analyze'; // corresponds to ApiConstants.ANALYZE_BASE_URL
+const FLOWS_BASE_PATH = '/business-flow'; // Updated base path for flow CRUD operations
 
 /**
- * Analyze a business flow by its flowId and resultId
+ * Create a new business flow
  */
-export const analyzeFlow = async (
-  payload: FlowAnalysisRequestDTO
-): Promise<SecurityIssueResponseDTO[]> => {
-  const res = await instance.post<SecurityIssueResponseDTO[]>(
-    `${BASE_PATH}`,
-    payload
-  );
+export const createFlow = async (payload: NewFlowPayload): Promise<BusinessFlowResponseDTO> => { 
+  const res = await instance.post<BusinessFlowResponseDTO>(FLOWS_BASE_PATH, payload);
   return res.data;
 };
 
 /**
- * Analyze a business flow with specific endpoint context
+ * Get all business flows
  */
-export const analyzeFlowWithEndpoints = async (
-  payload: ApiEndpointRequestDTO
-): Promise<SecurityIssueResponseDTO[]> => {
-  const res = await instance.post<SecurityIssueResponseDTO[]>(
-    `${BASE_PATH}/endpoints`,
-    payload
-  );
+export const getFlows = async (): Promise<BusinessFlowResponseDTO[]> => {
+  const res = await instance.get<BusinessFlowResponseDTO[]>(FLOWS_BASE_PATH);
   return res.data;
+};
+
+/**
+ * Update an existing business flow
+ */
+export const updateFlow = async (flowData: BusinessFlowResponseDTO): Promise<BusinessFlowResponseDTO> => {
+  if (flowData.id === undefined) {
+    throw new Error("Flow ID is required for updating.");
+  }
+  const response = await instance.put<BusinessFlowResponseDTO>(`${FLOWS_BASE_PATH}/${flowData.id}`, flowData);
+  return response.data;
+};
+
+export const deleteFlow = async (flowId: number): Promise<void> => {
+  await instance.delete(`${FLOWS_BASE_PATH}/${flowId}`);
 };

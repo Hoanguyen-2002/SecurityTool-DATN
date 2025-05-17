@@ -3,17 +3,29 @@ export interface FlowAnalysisRequestDTO {
     resultId: number;
   }
   
+  // Matches backend BusinessFlowResponseDTO
   export interface BusinessFlowResponseDTO {
-    flowId: number;
-    appId: number;
+    id: number; // Changed from flowId
     flowName: string;
-    flowDescription: string;
-    stepsJson: any[];
-    createdAt: string;
-    updatedAt?: string;
+    resultId?: number; // Was sonarQubeResultId, now matches backend DTO
+    apiEndpoints?: string[]; // Added to match backend DTO
+    flowDescription?: string; // Was description
+    appId: number;
+    // stepsJson: any[]; // Removed as not in new DTO
+    // createdAt: string; // Removed as not in new DTO
+    // updatedAt?: string; // Removed as not in new DTO
   }
   
   export interface ApiEndpointRequestDTO {
     businessFlowId: number;
+    appId: number;
+  }
+
+  // Matches backend BusinessFlowRequestDTO
+  export interface NewFlowPayload {
+    flowName: string;
+    resultId: number; // Changed from sonarQubeResultId
+    apiEndpoints: string[]; // Changed from endpoints
+    flowDescription: string; // Changed from description
     appId: number;
   }

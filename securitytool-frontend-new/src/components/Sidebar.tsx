@@ -5,7 +5,7 @@ const items = [
   ['Applications','/applications'],
   ['Modules','/modules'],
   ['Scan Config','/scan-config'],
-  ['Flow Analyzer','/flow-analyzer'],
+  ['Business Flow Analyzer','/flow-analyzer'],
   ['Reports','/reports']
 ];
 const Sidebar: React.FC = () => (

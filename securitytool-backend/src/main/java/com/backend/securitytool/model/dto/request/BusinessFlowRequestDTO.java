@@ -1,4 +1,4 @@
-package com.backend.securitytool.model.dto.response;
+package com.backend.securitytool.model.dto.request;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,8 +7,7 @@ import java.util.List;
 
 @Data
 @NoArgsConstructor
-public class BusinessFlowResponseDTO {
-    private Integer id;
+public class BusinessFlowRequestDTO {
     private String flowName;
     private Integer resultId;
     private List<String> apiEndpoints;
