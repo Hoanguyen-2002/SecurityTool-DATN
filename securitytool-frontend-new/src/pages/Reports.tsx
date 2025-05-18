@@ -13,7 +13,7 @@ const APP_REPORTS_STORAGE_KEY = 'appReportsData'; // Key for localStorage
 
 const Reports: React.FC = () => {
   const queryClient = useQueryClient();
-  const { data: applications, isLoading, isError, error } = useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
+  const { data: applications, isLoading: isLoadingApps, isError: isErrorApps, error: errorApps } = useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
     queryKey: ['applications'],
     queryFn: fetchApplications,
     select: (fetchedData: any[]) => {
@@ -50,6 +50,30 @@ const Reports: React.FC = () => {
       localStorage.setItem(APP_REPORTS_STORAGE_KEY, JSON.stringify(appReports));
     }
   }, [appReports]);
+
+  const openDetailedReportView = (appId: number, resultId: string | number) => {
+    const app = applications?.find(a => a.appId === appId);
+    const report = appReports[appId];
+    const appName = app ? app.appName : 'Selected Application';
+
+    if (report && report.resultId === resultId) {
+      setIssuesModalContent({
+        title: `Security Issues for ${appName} (Scan ID: ${resultId})`,
+        issues: report.issues || [],
+        isLoading: false,
+        error: null,
+        appName: appName,
+        scanId: resultId
+      });
+      setIsIssuesModalOpen(true);
+    } else {
+      // This case should ideally not happen if the button is only shown when a report is loaded
+      setAppErrors(prev => ({ ...prev, [appId]: `Report for Scan ID ${resultId} is not loaded or does not match.` }));
+      // Optionally, trigger a load for this specific report if desired, or show an error.
+      // For now, just log and set an error.
+      console.error(`Report for Scan ID ${resultId} not found or mismatch for app ${appName}`);
+    }
+  };
 
   const handleOpenLoadReportModal = (appId: number) => {
     setSelectedAppId(appId);
@@ -234,175 +258,181 @@ const Reports: React.FC = () => {
     }
   };
 
-  if (isLoading) return <Loading />; // This is for initial application list loading
-  if (isError) return <ErrorDisplay message={(error as Error).message} />;
-
-  const openIssuesModalForApp = (appId: number) => {
-    const report = appReports[appId];
-    const app = applications?.find(a => a.appId === appId);
-    if (report && app) {
-      setIssuesModalContent({
-        title: `Security Issues for ${app.appName} (Scan ID: ${report.resultId})`,
-        issues: report.issues || [],
-        isLoading: false,
-        error: null,
-        appName: app.appName,
-        scanId: report.resultId
-      });
-      setIsIssuesModalOpen(true);
-    } else {
-      setAppErrors(prev => ({ ...prev, [appId]: "Report details not available to display. Please load the report first."}));
-    }
-  };
+  if (isLoadingApps) return <Loading />; // This is for initial application list loading
+  if (isErrorApps && !applications) return <ErrorDisplay message={errorApps?.message || 'Failed to fetch applications'} />;
 
   return (
-      <div>
-        <h1 className="text-2xl mb-4">Reports</h1>
-        <ul className="space-y-4">
-          {applications?.map(app => {
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Security Reports</h1>
+      </div>
+
+      {isErrorApps && applications && 
+        <div className="mb-4">
+          <ErrorDisplay message={errorApps?.message || 'There was an issue fetching applications, but showing cached data.'} />
+        </div>
+      }
+      {pageLevelError && 
+        <div className="mb-4">
+          <ErrorDisplay message={pageLevelError} />
+        </div>
+      }
+
+      {applications && applications.length > 0 ? (
+        <div className="space-y-4">
+          {applications.map(app => {
             if (!app || app.appId === undefined || app.appId === null || isNaN(app.appId)) {
               console.warn('Skipping rendering application due to missing or invalid appId:', app);
               return null;
             }
+            const appSpecificError = appErrors[app.appId];
             const currentReport = appReports[app.appId];
-            const currentError = appErrors[app.appId]; // Get app-specific error
 
             return (
-              <li key={app.appId} className="p-4 bg-white rounded shadow">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div>App Name: <span className="font-bold text-lg">{app.appName}</span></div>
-                    <div className="text-gray-600">
-                      App URL: {app.appUrl}{app.basePath && app.basePath !== '/' ? app.basePath : ''}
-                    </div>
+              <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                <div className="p-6 flex justify-between items-center"> {/* MODIFIED for horizontal layout */}
+                  <div> {/* Wrapper for app details */}
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
+                    <p className="text-sm text-gray-500 mb-4 truncate">
+                      URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                    </p>
+
+                    {appSpecificError && (
+                      <div className="mt-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                        <p>Error: {appSpecificError}</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-x-2">
-                    <button
-                      onClick={() => handleOpenLoadReportModal(app.appId)}
-                      className="px-4 py-2 bg-teal-600 text-white rounded"
+
+                  <div className="flex-shrink-0 flex flex-col space-y-2"> {/* MODIFIED for vertical buttons on the right */}
+                    <button 
+                      onClick={() => handleOpenLoadReportModal(app.appId)} 
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
                     >
-                      Load Report
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h4a1 1 0 100-2H7z" clipRule="evenodd" />
+                      </svg>
+                      Load Report by Scan ID
                     </button>
-                    <button
-                      onClick={() => downloadCsv(app.appId)}
-                      className="px-4 py-2 bg-teal-800 text-white rounded"
-                      disabled={!currentReport || loading} // loading here refers to CSV download or report load
-                    >
-                      Download Solution (.CSV)
-                    </button>
+                    {currentReport && currentReport.issues && currentReport.issues.length > 0 && (
+                       <button 
+                        onClick={() => openDetailedReportView(app.appId, currentReport.resultId)} 
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        View Loaded Report (ID: {currentReport.resultId})
+                      </button>
+                    )}
+                    {currentReport && currentReport.issues && currentReport.issues.length > 0 && (
+                        <button 
+                            onClick={() => downloadCsv(app.appId)} 
+                            disabled={loading && selectedAppId === app.appId} // Ensure loading state is specific to this app's button
+                            className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
+                                        ${loading && selectedAppId === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`} // Removed w-full
+                        >
+                        {loading && selectedAppId === app.appId ? (
+                          <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Downloading...</>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                            Download Issues as CSV
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                {/* Display App-Specific Error */} 
-                {currentError && (
-                  <div className="mt-2">
-                    <ErrorDisplay message={currentError} />
-                  </div>
-                )}
-
-                {/* Button to view issues if report is loaded */}
-                {currentReport && (
-                  <div className="mt-2">
-                    <button
-                      onClick={() => openIssuesModalForApp(app.appId)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      View Issues (Scan ID: {currentReport.resultId})
-                    </button>
-                  </div>
-                )}
-                
-                {/* REMOVED INLINE DISPLAY OF REPORT DETAILS */}
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
+      ) : (
+        <p className="text-center text-gray-500 mt-10">No applications found. Please add an application first via Application Management.</p>
+      )}
 
-        {/* Page-level loading and error display for general/non-app-specific issues */}
-        {loading && <div className="mt-4"><Loading /></div>} {/* This loading is for report/CSV actions */}
-        {pageLevelError && ( // This will now only show non-app-specific errors
-          <div className="mt-4">
-            <ErrorDisplay message={pageLevelError} />
-          </div>
-        )}
+      {/* Load Report Modal */}
+      <Modal
+        isOpen={isLoadReportModalOpen}
+        onClose={() => setIsLoadReportModalOpen(false)}
+        onConfirm={handleLoadReportSubmit}
+        title="Load Report"
+      >
+        {/* Modal content is now cleaner, no specific error/loading for submission here */}
+        <div className="mb-2">
+          <label htmlFor="scanResultId" className="block text-sm font-medium text-gray-700">Scan Result ID</label>
+          <input
+            type="number"
+            id="scanResultId"
+            value={scanResultId}
+            onChange={(e) => setScanResultId(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            required
+          />
+        </div>
+      </Modal>
 
+      {/* Modal for Displaying Security Issues */}
+      {issuesModalContent && (
         <Modal
-          isOpen={isLoadReportModalOpen}
-          onClose={() => setIsLoadReportModalOpen(false)}
-          onConfirm={handleLoadReportSubmit}
-          title="Load Report"
+          isOpen={isIssuesModalOpen}
+          onClose={() => {
+            setIsIssuesModalOpen(false);
+            // Optionally clear content, or let it persist for quicker re-opening if desired.
+            // For now, let's clear it to ensure fresh state if re-opened via "Load Report"
+            // setIssuesModalContent(null); 
+          }}
+          title={issuesModalContent.title}
+          showConfirmButton={false}
+          showCancelButton={true}
+          cancelButtonText="Close"
+          maxWidthClass="max-w-2xl" // Increased width for this specific modal instance
         >
-          {/* Modal content is now cleaner, no specific error/loading for submission here */}
-          <div className="mb-2">
-            <label htmlFor="scanResultId" className="block text-sm font-medium text-gray-700">Scan Result ID</label>
-            <input
-              type="number"
-              id="scanResultId"
-              value={scanResultId}
-              onChange={(e) => setScanResultId(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              required
-            />
-          </div>
+          {issuesModalContent.isLoading && <Loading />}
+          {issuesModalContent.error && <ErrorDisplay message={issuesModalContent.error} />}
+          {!issuesModalContent.isLoading && !issuesModalContent.error && (
+            issuesModalContent.issues && issuesModalContent.issues.length > 0 ? (
+              <ul className="space-y-3 max-h-96 overflow-y-auto">
+                {issuesModalContent.issues.map((issue) => (
+                  <li key={issue.issueId} className="p-3 bg-gray-50 rounded border border-gray-200">
+                    <p><strong>Issue ID:</strong> <span className="font-mono text-xs bg-gray-200 px-1 rounded">{issue.issueId}</span></p>
+                    <p><strong>Type:</strong> 
+                      <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${ 
+                        issue.issueType?.toLowerCase() === 'sonarqube' ? 'bg-blue-100 text-blue-700' : 
+                        issue.issueType?.toLowerCase() === 'zap' ? 'bg-green-100 text-green-700' : 
+                        'bg-gray-100 text-gray-700' 
+                      }`}>
+                        {issue.issueType}
+                      </span>
+                    </p>
+                    <p><strong>Severity:</strong> 
+                      <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
+                        issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
+                        issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        issue.severity.toLowerCase() === 'low' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {issue.severity}
+                      </span>
+                    </p>
+                    <p><strong>Description:</strong> {issue.description}</p>
+                    {issue.remediation && <p><strong>Remediation:</strong> {issue.remediation}</p>}
+                    <p><strong>Status:</strong> {issue.status}</p>
+                    {issue.endpointId && <p className="text-xs text-gray-500">Endpoint ID: {issue.endpointId}</p>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm text-gray-500">No security issues found in this report.</p>
+            )
+          )}
         </Modal>
-
-        {/* Modal for Displaying Security Issues */}
-        {issuesModalContent && (
-          <Modal
-            isOpen={isIssuesModalOpen}
-            onClose={() => {
-              setIsIssuesModalOpen(false);
-              // Optionally clear content, or let it persist for quicker re-opening if desired.
-              // For now, let's clear it to ensure fresh state if re-opened via "Load Report"
-              // setIssuesModalContent(null); 
-            }}
-            title={issuesModalContent.title}
-            showConfirmButton={false}
-            showCancelButton={true}
-            cancelButtonText="Close"
-            maxWidthClass="max-w-2xl" // Increased width for this specific modal instance
-          >
-            {issuesModalContent.isLoading && <Loading />}
-            {issuesModalContent.error && <ErrorDisplay message={issuesModalContent.error} />}
-            {!issuesModalContent.isLoading && !issuesModalContent.error && (
-              issuesModalContent.issues && issuesModalContent.issues.length > 0 ? (
-                <ul className="space-y-3 max-h-96 overflow-y-auto">
-                  {issuesModalContent.issues.map((issue) => (
-                    <li key={issue.issueId} className="p-3 bg-gray-50 rounded border border-gray-200">
-                      <p><strong>Issue ID:</strong> <span className="font-mono text-xs bg-gray-200 px-1 rounded">{issue.issueId}</span></p>
-                      <p><strong>Type:</strong> 
-                        <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${ 
-                          issue.issueType?.toLowerCase() === 'sonarqube' ? 'bg-blue-100 text-blue-700' : 
-                          issue.issueType?.toLowerCase() === 'zap' ? 'bg-green-100 text-green-700' : 
-                          'bg-gray-100 text-gray-700' 
-                        }`}>
-                          {issue.issueType}
-                        </span>
-                      </p>
-                      <p><strong>Severity:</strong> 
-                        <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
-                          issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
-                          issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                          issue.severity.toLowerCase() === 'low' ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {issue.severity}
-                        </span>
-                      </p>
-                      <p><strong>Description:</strong> {issue.description}</p>
-                      {issue.remediation && <p><strong>Remediation:</strong> {issue.remediation}</p>}
-                      <p><strong>Status:</strong> {issue.status}</p>
-                      {issue.endpointId && <p className="text-xs text-gray-500">Endpoint ID: {issue.endpointId}</p>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-4 text-sm text-gray-500">No security issues found in this report.</p>
-              )
-            )}
-          </Modal>
-        )}
-      </div>
+      )}
+    </div>
   );
 };
 

@@ -53,5 +53,6 @@ public class SecurityIssue {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "module_id")
     private SourceCodeModule module;
-}
 
+    // Không cần sửa entity nếu đã có trường result và result liên kết với ScanResult, ScanResult đã có app
+}

@@ -1,7 +1,7 @@
 export interface ApplicationRequestDTO {
   appName: string;
   appUrl: string;
-  basePath: string;
+  basePath?: string; // Changed to optional
   authInfo?: string; // Added authInfo to match the backend's ApplicationRequestDTO
 }
 

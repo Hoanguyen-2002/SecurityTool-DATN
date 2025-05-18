@@ -8,8 +8,8 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 public class DashboardStatsResponseDTO {
-    private long totalApps;
-    private long totalScans;
+    private long staticScanCount;
+    private long dynamicScanCount;
     private long totalIssues;
     private Map<String, Integer> severityDistribution;
 }

@@ -33,10 +33,10 @@ const ScanConfig: React.FC = () => {
   });
 
   const [allSonarScans, setAllSonarScans] = useState<Record<number, SonarScanResultType[] | null>>({});
-  const [loadingAllSonarScans, setLoadingAllSonarScans] = useState<Record<number, boolean>>({});
+  // const [loadingAllSonarScans, setLoadingAllSonarScans] = useState<Record<number, boolean>>({});
 
   const [allZapScans, setAllZapScans] = useState<Record<number, ScanResultDisplay[] | null>>({});
-  const [loadingAllZapScans, setLoadingAllZapScans] = useState<Record<number, boolean>>({});
+  // const [loadingAllZapScans, setLoadingAllZapScans] = useState<Record<number, boolean>>({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentScanType, setCurrentScanType] = useState<'sonar' | 'zap' | null>(null);
@@ -221,7 +221,7 @@ const ScanConfig: React.FC = () => {
       error: null,
       appId,
     });
-    setLoadingAllSonarScans(prev => ({ ...prev, [appId]: true }));
+    // setLoadingAllSonarScans(prev => ({ ...prev, [appId]: true }));
     setAppErrors(prev => ({ ...prev, [sonarErrorKey]: null }));
 
     try {
@@ -249,7 +249,7 @@ const ScanConfig: React.FC = () => {
       });
       setAllSonarScans(prev => ({ ...prev, [appId]: null }));
     }
-    setLoadingAllSonarScans(prev => ({ ...prev, [appId]: false }));
+    // setLoadingAllSonarScans(prev => ({ ...prev, [appId]: false }));
   };
 
   const openZapHistoryModal = async (appId: number, appName: string) => {
@@ -276,7 +276,7 @@ const ScanConfig: React.FC = () => {
       error: null,
       appId,
     });
-    setLoadingAllZapScans(prev => ({ ...prev, [appId]: true }));
+    // setLoadingAllZapScans(prev => ({ ...prev, [appId]: true }));
     setAppErrors(prev => ({ ...prev, [zapErrorKey]: null }));
 
     try {
@@ -304,98 +304,119 @@ const ScanConfig: React.FC = () => {
       });
       setAllZapScans(prev => ({ ...prev, [appId]: null }));
     }
-    setLoadingAllZapScans(prev => ({ ...prev, [appId]: false }));
+    // setLoadingAllZapScans(prev => ({ ...prev, [appId]: false }));
   };
 
   if (isLoading) return <Loading />;
-  if (isError) return <ErrorDisplay message={(error as any)?.message} />;
+  if (isError && !applications) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
   return (
-    <div>
-      <h1 className="text-2xl mb-4">Scan Configurations</h1>
-      <ul className="space-y-4">
-        {applications?.map(app => {
-          const appIdNum = Number(app.appId);
-          if (isNaN(appIdNum)) {
-            console.warn('Skipping app with invalid ID:', app);
-            return null;
-          }
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Scan Configuration</h1>
+        {/* Optional: A button to refresh all application data or global settings */}
+      </div>
 
-          const currentAppError = appErrors[appIdNum] || appErrors[app.appId.toString()];
-          const sonarHistoryErrorKey = `sonar-history-${appIdNum}`;
-          const zapHistoryErrorKey = `zap-history-${appIdNum}`;
-
-          const sonarHistoryFetchError = appErrors[sonarHistoryErrorKey];
-          const zapHistoryFetchError = appErrors[zapHistoryErrorKey];
-
-          const isLoadingSonarHistoryButton = loadingAllSonarScans[appIdNum];
-          const isLoadingZapHistoryButton = loadingAllZapScans[appIdNum];
-
-          return (
-            <li key={appIdNum} className="p-4 bg-white rounded shadow">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                <div className="md:col-span-2">
-                    <h2 className="text-sm">
-                      App Name: <span className="font-bold text-lg">{app.appName}</span>
-                    </h2>
-                  <p className="text-sm text-gray-600 mb-1">App URL: {app.appUrl}</p>
-                  <p className="text-sm text-gray-600 mb-3">App ID: {appIdNum}</p>
-
-                  {currentAppError && <ErrorDisplay message={currentAppError} />}
-                </div>
-
-                <div className="md:col-span-1 flex flex-col md:flex-row md:items-center md:justify-end md:space-x-2 space-y-2 md:space-y-0">
-                  <button
-                    onClick={() => openModal(app, 'sonar')}
-                    className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded w-full md:w-auto disabled:opacity-50"
-                    disabled={loadingStates[`sonar-${appIdNum}`] || loadingStates[`zap-${appIdNum}`]}
-                  >
-                    {loadingStates[`sonar-${appIdNum}`] ? 'Scanning...' : 'Run SonarQube Scan'}
-                  </button>
-                  <button
-                    onClick={() => openModal(app, 'zap')}
-                    className="bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded w-full md:w-auto disabled:opacity-50"
-                    disabled={loadingStates[`sonar-${appIdNum}`] || loadingStates[`zap-${appIdNum}`]}
-                  >
-                    {loadingStates[`zap-${appIdNum}`] ? 'Scanning...' : 'Run ZAP Scan'}
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
-                <button
-                  onClick={() => openSonarHistoryModal(appIdNum, app.appName)}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded w-full sm:w-auto disabled:opacity-50 flex items-center justify-center"
-                  disabled={isLoadingSonarHistoryButton}
-                >
-                  {isLoadingSonarHistoryButton && <LoadingSpinnerIcon />} View SonarQube Scan History
-                </button>
-                {sonarHistoryFetchError && !historyModalContent?.isLoading && historyModalContent?.appId === appIdNum && historyModalContent?.scanType === 'sonar' && (
-                  <p className="text-xs text-red-500 mt-1">Error loading history. Click to retry.</p>
-                )}
-
-                <button
-                  onClick={() => openZapHistoryModal(appIdNum, app.appName)}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded w-full sm:w-auto disabled:opacity-50 flex items-center justify-center"
-                  disabled={isLoadingZapHistoryButton}
-                >
-                  {isLoadingZapHistoryButton && <LoadingSpinnerIcon />} View ZAP Scan History
-                </button>
-                {zapHistoryFetchError && !historyModalContent?.isLoading && historyModalContent?.appId === appIdNum && historyModalContent?.scanType === 'zap' && (
-                  <p className="text-xs text-red-500 mt-1">Error loading history. Click to retry.</p>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      {errorState && (
-        <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
-          <p className="font-semibold">An error occurred:</p>
-          <p>{errorState}</p>
+      {isError && applications && 
+        <div className="mb-4">
+          <ErrorDisplay message={error?.message || 'There was an issue fetching applications, but showing cached data.'} />
         </div>
+      }
+      {errorState && 
+        <div className="mb-4">
+          <ErrorDisplay message={errorState} />
+        </div>
+      }
+
+      {applications && applications.length > 0 ? (
+        <div className="space-y-4"> 
+          {applications.map(app => {
+            if (!app || app.appId === undefined || app.appId === null || isNaN(Number(app.appId))) {
+              console.warn('Skipping rendering application due to missing or invalid appId:', app);
+              return null; // Skip rendering this app if appId is invalid
+            }
+            const appSpecificError = appErrors[app.appId];
+            const isLoadingSonar = loadingStates[`sonar-${app.appId}`];
+            const isLoadingZap = loadingStates[`zap-${app.appId}`];
+
+            return (
+              <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                <div className="p-6">
+                  <div className="flex justify-between items-start"> {/* Changed items-center to items-start for better alignment if details are multi-line */}
+                    <div> {/* Wrapper for app details */}
+                      <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
+                      <p className="text-sm text-gray-500 truncate">
+                        URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                      </p>
+                    </div>
+
+                    <div className="flex-shrink-0 flex flex-col space-y-2 ml-4"> {/* Added ml-4 for spacing */}
+                      <button 
+                        onClick={() => openModal(app, 'sonar')} 
+                        disabled={isLoadingSonar || isLoadingZap}
+                        className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
+                                    ${isLoadingSonar ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                      >
+                        {isLoadingSonar ? (
+                          <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Scanning...</>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l-4 4-4-4M6 16l-4-4 4-4" /></svg>
+                            Configure SonarQube Scan
+                          </>
+                        )}
+                      </button>
+                      <button 
+                        onClick={() => openModal(app, 'zap')} 
+                        disabled={isLoadingZap || isLoadingSonar}
+                        className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
+                                    ${isLoadingZap ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
+                      >
+                        {isLoadingZap ? (
+                          <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Scanning...</>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.246.99-4.659.99-7.132A8 8 0 008 4a8 8 0 00-8 8c0 2.472.345 4.886.99 7.132h14.02z" /></svg>
+                            Configure ZAP Scan
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {appSpecificError && (
+                    <div className="mt-3 mb-3 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                      <p>Error: {appSpecificError}</p>
+                    </div>
+                  )}
+
+                  <div className="border-t border-gray-200 pt-4 mt-4"> {/* Added mt-4 for spacing */}
+                    <h3 className="text-md font-semibold text-gray-700 mb-2">Scan History</h3>
+                    <div className="flex space-x-2"> {/* Changed to flex space-x-2 for horizontal history buttons */}
+                      <button 
+                        onClick={() => openSonarHistoryModal(app.appId, app.appName)} 
+                        className="px-3 py-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                      >
+                        View SonarQube History
+                      </button>
+                      <button 
+                        onClick={() => openZapHistoryModal(app.appId, app.appName)} 
+                        className="px-3 py-1 text-xs text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+                      >
+                        View ZAP History
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-center text-gray-500 mt-10">No applications found. Please add an application first via Application Management.</p>
       )}
 
+      {/* Modals (Add/Edit Scan Config, Success, History) */}
       {currentApp && (
         <Modal
           isOpen={isModalOpen}
@@ -471,25 +492,21 @@ const ScanConfig: React.FC = () => {
                   <li className="text-gray-500">No scan history found.</li>
                 )}
                 {historyModalContent.data.map((scan: any) => {
-                  let dateValue = scan.scanDate; // Changed to always use scan.scanDate
+                  let dateValue = scan.scanDate; 
                   let formattedDate = 'N/A';
 
                   if (dateValue !== null && dateValue !== undefined) {
                     let d: Date | null = null;
                     if (typeof dateValue === 'string' && dateValue.trim() === '') {
-                      // If dateValue is an empty string or only whitespace, d remains null,
-                      // and formattedDate will stay 'N/A'.
+                      // d remains null
                     } else {
-                      // For non-empty strings, numbers, or actual Date objects
                       d = new Date(dateValue);
                     }
 
-                    // Check if d was successfully initialized and is a valid date
                     if (d && !isNaN(d.getTime())) {
                       formattedDate = d.toLocaleString();
                     }
                   }
-                  // If dateValue was null or undefined, formattedDate remains 'N/A'.
 
                   return (
                     <li key={scan.id} className="p-3 bg-gray-50 rounded-md border border-gray-200">
@@ -520,12 +537,5 @@ const ScanConfig: React.FC = () => {
     </div>
   );
 };
-
-const LoadingSpinnerIcon = () => (
-  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  </svg>
-);
 
 export default ScanConfig;

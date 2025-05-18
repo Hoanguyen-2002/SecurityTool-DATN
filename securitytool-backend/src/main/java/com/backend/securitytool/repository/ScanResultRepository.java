@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface ScanResultRepository extends JpaRepository<ScanResult, Integer> {
     Optional<ScanResult> findFirstByAppIdOrderByScanDateDesc(Integer appId);
     List<ScanResult> findByAppIdAndScanType(Integer appId, String scanType);
+    long countByAppIdAndScanType(Integer appId, String scanType);
 }
+
