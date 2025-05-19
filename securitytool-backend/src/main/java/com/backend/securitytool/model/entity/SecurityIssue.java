@@ -54,5 +54,8 @@ public class SecurityIssue {
     @JoinColumn(name = "module_id")
     private SourceCodeModule module;
 
+    @Column(name = "app_id")
+    private Integer appId;
+
     // Không cần sửa entity nếu đã có trường result và result liên kết với ScanResult, ScanResult đã có app
 }

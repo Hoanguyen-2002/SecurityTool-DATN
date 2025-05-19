@@ -50,7 +50,7 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
         this.targetApplicationRepository = targetApplicationRepository;
         this.securityIssueRepository = securityIssueRepository1;
         this.restTemplate = new RestTemplate();
-        }
+    }
 
     @Override
     public List<ScanResponseDTO> getAllScansByAppId(Integer appId) {
@@ -87,7 +87,6 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
         headers.set("Accept", "application/json");
         headers.set("User-Agent", "Mozilla/5.0");
 
-
         if (app.getAuthInfo() != null && !app.getAuthInfo().isEmpty()) {
             // Use authInfo directly without decryption
             String auth = app.getAuthInfo() + ":";
@@ -100,11 +99,11 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
         }
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
-         String sonarQubeUrl = "http://localhost:9000/api/measures/component?component=" + projectKey +
-                 "&metricKeys=bugs,reliability_rating,vulnerabilities,security_rating,security_hotspots," +
-                 "code_smells,sqale_debt_ratio,coverage,duplicated_lines_density";
+        String sonarQubeUrl = "http://localhost:9000/api/measures/component?component=" + projectKey +
+                "&metricKeys=bugs,reliability_rating,vulnerabilities,security_rating,security_hotspots," +
+                "code_smells,sqale_debt_ratio,coverage,duplicated_lines_density";
 
-         ResponseEntity<String> responseEntity;
+        ResponseEntity<String> responseEntity;
         try {
             // Fixed syntax error in the log statement
             logger.debug("Calling SonarQube API: URL='{}', Headers='{}'", sonarQubeUrl,
@@ -121,7 +120,6 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
             logger.error("Generic exception while calling SonarQube API: URL={}, Error={}", sonarQubeUrl, e.getMessage(), e);
             throw new RuntimeException("An unexpected error occurred while communicating with SonarQube: " + e.getMessage(), e);
         }
-
 
         // Process the JSON response to extract only measures in a readable format
         String summaryText = "";
@@ -180,7 +178,6 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
         return scanResultMapper.toResponseDTO(savedResult);
     }
 
-
     // Add this new private method to handle security issue extraction
     private void saveSecurityIssues(String responseBody, ScanResult scanResult) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
@@ -197,11 +194,12 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
                 if (!bestValue) {
                     SecurityIssue issue = new SecurityIssue();
                     issue.setResult(scanResult);
+                    issue.setAppId(scanResult.getApp().getId()); // Set appId from the scan result's app
                     issue.setIssueType("SonarQube");
                     issue.setSeverity(getSeverityForMetric(metric));
                     issue.setDescription(formatDescription(metric, value));
                     issue.setStatus("Open");
-                    issue.setSolution(formatSolution(metric)); // Add this line
+                    issue.setSolution(formatSolution(metric));
 
                     securityIssueRepository.save(issue);
                 }

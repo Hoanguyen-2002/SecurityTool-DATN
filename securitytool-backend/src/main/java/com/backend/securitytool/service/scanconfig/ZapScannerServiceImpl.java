@@ -211,6 +211,7 @@ public class ZapScannerServiceImpl implements ZapScannerService {
             for (JsonNode alert : alerts) {
                 SecurityIssue issue = new SecurityIssue();
                 issue.setResult(scanResult);
+                issue.setAppId(scanResult.getApp().getId()); // Set appId from the scan result's app
                 issue.setIssueType("Zap");
                 issue.setSeverity(alert.path("risk").asText());
                 issue.setDescription(alert.path("description").asText());
