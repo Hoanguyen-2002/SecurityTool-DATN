@@ -77,6 +77,10 @@ const ApplicationManagement: React.FC = () => {
   const [editAppUrl, setEditAppUrl] = useState('');
   const [editAuthInfo, setEditAuthInfo] = useState('');
 
+  // State for delete confirmation modal
+  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  const [appToDeleteId, setAppToDeleteId] = useState<number | null>(null);
+
   const handleAdd = () => {
     setNewAppName('');
     setNewAppUrl('');
@@ -171,6 +175,27 @@ const ApplicationManagement: React.FC = () => {
     }
   };
 
+  // Opens the delete confirmation modal
+  const handleDeleteApp = (appId: number) => {
+    setAppToDeleteId(appId);
+    setIsConfirmDeleteModalOpen(true);
+  };
+
+  // Performs the actual deletion
+  const confirmDeleteApp = () => {
+    if (appToDeleteId !== null) {
+      deleteMut.mutate(appToDeleteId);
+    }
+    setIsConfirmDeleteModalOpen(false);
+    setAppToDeleteId(null);
+  };
+
+  // Cancels the deletion and closes the modal
+  const cancelDeleteApp = () => {
+    setIsConfirmDeleteModalOpen(false);
+    setAppToDeleteId(null);
+  };
+
   if (isLoading) return <Loading />;
   if (isError && !applications) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
@@ -219,7 +244,7 @@ const ApplicationManagement: React.FC = () => {
                     Edit
                   </button>
                   <button 
-                    onClick={() => deleteMut.mutate(app.appId)} 
+                    onClick={() => handleDeleteApp(app.appId)} // Changed to open confirmation modal
                     disabled={deleteMut.isPending && deleteMut.variables === app.appId}
                     className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
                                 ${deleteMut.isPending && deleteMut.variables === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`} // Removed w-full
@@ -306,6 +331,21 @@ const ApplicationManagement: React.FC = () => {
           {editModalError && <ErrorDisplay message={editModalError} />}
         </Modal>
       )}
+
+      {/* Confirm Delete Application Modal */}
+      <Modal
+        isOpen={isConfirmDeleteModalOpen}
+        onClose={cancelDeleteApp}
+        onConfirm={confirmDeleteApp}
+        title="Confirm Delete Application"
+        confirmButtonText="Delete"
+        confirmButtonPosition="left"
+      >
+        <p className="text-gray-700">Are you sure you want to delete this application? This action cannot be undone.</p>
+        {deleteMut.isError && appToDeleteId && (
+            <ErrorDisplay message={(deleteMut.error as Error)?.message || `Failed to delete application ID: ${appToDeleteId}.`} />
+        )}
+      </Modal>
     </div>
   );
 };
