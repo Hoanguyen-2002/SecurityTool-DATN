@@ -290,7 +290,7 @@ const Reports: React.FC = () => {
 
             return (
               <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-                <div className="p-6 flex justify-between items-start"> {/* items-start for better alignment if content wraps */}
+                <div className="p-6 flex justify-between items-center"> {/* Changed items-start to items-center */}
                   <div className="flex-grow mr-4"> {/* Added flex-grow and margin-right for app details */}
                     <h2 className="text-xl font-semibold text-gray-800 mb-1 truncate" title={app.appName}>{app.appName}</h2>
                     <p className="text-sm text-gray-500 mb-3 truncate">
@@ -308,7 +308,7 @@ const Reports: React.FC = () => {
                   <div className="flex-shrink-0 flex flex-row space-x-2 items-center">
                     <button 
                       onClick={() => handleOpenLoadReportModal(app.appId)} 
-                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-xs font-medium flex items-center justify-center whitespace-nowrap"
+                      className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap" // Changed text-xs to text-sm
                       title="Load Report by Scan ID"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
@@ -319,7 +319,7 @@ const Reports: React.FC = () => {
                     {currentReport && currentReport.issues && currentReport.issues.length > 0 && (
                        <button 
                         onClick={() => openDetailedReportView(app.appId, currentReport.resultId)} 
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium flex items-center justify-center whitespace-nowrap"
+                        className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap" // Changed text-xs to text-sm
                         title={`View Loaded Report (ID: ${currentReport.resultId})`}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
@@ -333,8 +333,8 @@ const Reports: React.FC = () => {
                         <button 
                             onClick={() => downloadCsv(app.appId)} 
                             disabled={loading && selectedAppId === app.appId}
-                            className={`px-3 py-1.5 text-white rounded-md transition-colors text-xs font-medium flex items-center justify-center whitespace-nowrap 
-                                        ${loading && selectedAppId === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`}
+                            className={`px-3 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap 
+                                        ${loading && selectedAppId === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`} // Changed text-xs to text-sm
                             title="Download Issues as CSV"
                         >
                         {loading && selectedAppId === app.appId ? (
