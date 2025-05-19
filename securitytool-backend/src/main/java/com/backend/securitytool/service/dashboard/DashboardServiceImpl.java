@@ -11,6 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,41 +33,37 @@ public class DashboardServiceImpl implements DashboardService {
         logger.debug("Fetching dashboard statistics for appId: {}", appId);
         DashboardStatsResponseDTO stats = new DashboardStatsResponseDTO();
 
-        // Scan counts by type for this app
-        long staticScanCount = scanResultRepository.countByAppIdAndScanType(appId, "static");
-        long dynamicScanCount = scanResultRepository.countByAppIdAndScanType(appId, "dynamic");
-        stats.setStaticScanCount(staticScanCount);
-        stats.setDynamicScanCount(dynamicScanCount);
+        if (appId == null) {
+            logger.warn("Null appId provided, returning empty statistics");
+            return stats;
+        }
 
-        // Total issues for this app
-        long totalIssues = securityIssueRepository.findByResultAppId(appId).size();
-        stats.setTotalIssues(totalIssues);
+        try {
+            // Scan counts by type for this app
+            long staticScanCount = scanResultRepository.countByAppIdAndScanType(appId, "static");
+            long dynamicScanCount = scanResultRepository.countByAppIdAndScanType(appId, "dynamic");
+            stats.setStaticScanCount(staticScanCount);
+            stats.setDynamicScanCount(dynamicScanCount);
+            
+            // Total issues for this app
+            long totalIssues = securityIssueRepository.countByAppId(appId);
+            stats.setTotalIssues(totalIssues);
 
-        // Severity distribution for this app
-        // Sử dụng custom query để lấy severity distribution theo appId
-        // Nếu chưa có, cần bổ sung query trong repository
-        // Ví dụ:
-        // @Query("SELECT s.severity, COUNT(s) FROM SecurityIssue s WHERE s.result.app.id = :appId GROUP BY s.severity")
-        // List<Object[]> countBySeverityAndAppId(Integer appId);
-        if (securityIssueRepository instanceof com.backend.securitytool.repository.SecurityIssueRepository) {
-            try {
-                var severityCounts = securityIssueRepository
-                    .getClass()
-                    .getMethod("countBySeverityAndAppId", Integer.class)
-                    .invoke(securityIssueRepository, appId);
+            // Severity distribution for this app
+            List<Object[]> severityCounts = securityIssueRepository.countBySeverityAndAppId(appId);
+            if (severityCounts != null && !severityCounts.isEmpty()) {
                 stats.setSeverityDistribution(
-                    dashboardStatsMapper.mapSeverityDistribution((java.util.List<Object[]>) severityCounts)
+                    dashboardStatsMapper.mapSeverityDistribution(severityCounts)
                 );
-            } catch (Exception e) {
-                logger.warn("Could not get severity distribution by appId, fallback to all severities.", e);
-                stats.setSeverityDistribution(
-                    dashboardStatsMapper.mapSeverityDistribution(securityIssueRepository.countBySeverity())
-                );
+            } else {
+                // If no issues found for this app, set empty distribution
+                stats.setSeverityDistribution(new HashMap<>());
             }
-        } else {
-            stats.setSeverityDistribution(
-                dashboardStatsMapper.mapSeverityDistribution(securityIssueRepository.countBySeverity())
-            );
+        } catch (Exception e) {
+            logger.error("Error fetching dashboard statistics for appId {}: {}", appId, e.getMessage());
+            // Set default values in case of error
+            stats.setTotalIssues(0);
+            stats.setSeverityDistribution(new HashMap<>());
         }
 
         logger.info("Dashboard statistics for appId {} retrieved successfully", appId);
