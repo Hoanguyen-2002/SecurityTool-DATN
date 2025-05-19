@@ -1,35 +1,152 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardStats } from '../api/dashboardApi';
+import { fetchAppDashboardStats } from '../api/dashboardApi';
+import { fetchApplications } from '../api/applicationApi';
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
+import Modal from '../components/Modal';
+import { ApplicationResponseDTO } from '../types/application';
+import { AppDashboardStatsDTO } from '../types/dashboard';
 
 const Dashboard: React.FC = () => {
-  const { data, isLoading, isError, error } = useQuery({ queryKey: ['dashboardStats'], queryFn: fetchDashboardStats });
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<ApplicationResponseDTO | null>(null);
 
-  if (isLoading) return <Loading />;
-  if (isError) return <ErrorDisplay message={(error as any)?.message} />;
-  if (!data) return <Loading />;
+  const { data: apps, isLoading: appsLoading, isError: appsIsError, error: appsError } = 
+    useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
+      queryKey: ['applications'], 
+      queryFn: fetchApplications,
+      select: (fetchedData: any[]) => {
+        if (!fetchedData) return [];
+        return fetchedData.map(app => ({
+          ...app,
+          appId: Number(app.id),
+        }));
+      }
+    });
+
+  const { 
+    data: appStats,
+    isLoading: appStatsLoading,
+    isError: appStatsIsError,
+    error: appStatsError,
+  } = useQuery<AppDashboardStatsDTO, Error>({
+    queryKey: ['appDashboardStats', selectedApp?.appId],
+    queryFn: () => selectedApp ? fetchAppDashboardStats(selectedApp.appId) : Promise.reject('No app selected'),
+    enabled: !!selectedApp,
+  });
+
+  const openStatsModal = (app: ApplicationResponseDTO) => {
+    setSelectedApp(app);
+    setIsStatsModalOpen(true);
+  };
+
+  const closeStatsModal = () => {
+    setIsStatsModalOpen(false);
+    setSelectedApp(null);
+  };
+
+  if (appsLoading) return <Loading />;
+  if (appsIsError) return <ErrorDisplay message={(appsError as any)?.message || 'Failed to load applications'} />;
 
   return (
-      <div>
-        <h1 className="text-2xl mb-4">Dashboard</h1>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 bg-white rounded shadow">Total Applications: {data.totalApps}</div>
-          <div className="p-4 bg-white rounded shadow">Total Scans: {data.totalScans}</div>
-          <div className="p-4 bg-white rounded shadow">Total Issues: {data.totalIssues}</div>
-          <div className="p-4 bg-white rounded shadow">
-            <h2 className="text-lg font-bold mb-2">Severity Distribution</h2>
-            <ul>
-              {Object.entries(data.severityDistribution).map(([severity, count]) => (
-                <li key={severity} className="flex">
-                  <span className="mr-4">{severity}:</span>
-                  <span>{count}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+      <div className="p-6 bg-gray-50 min-h-screen"> {/* Added bg-gray-50 and min-h-screen for consistency */}
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Application Dashboard</h1> {/* Updated style */}
+
+        {/* <h2 className="text-xl mb-4 font-medium text-gray-600">Applications</h2> */}
+        {apps && apps.length > 0 ? (
+          <ul className="space-y-4">
+            {apps.map(app => (
+              <li key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out"> {/* Enhanced card style */}
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h3> {/* Updated style */}
+                    <p className="text-sm text-gray-500">URL: {app.appUrl || 'N/A'}</p>
+                  </div>
+                  <button 
+                    onClick={() => openStatsModal(app)} 
+                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors text-sm font-medium" // Added rounded-md
+                  >
+                    View Issue Statistics
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500">No applications found.</p>
+        )}
+
+        {selectedApp && (
+          <Modal
+            isOpen={isStatsModalOpen}
+            onClose={closeStatsModal}
+            title={`Statistics for ${selectedApp.appName}`}
+            showConfirmButton={false}
+            cancelButtonText="Close"
+            maxWidthClass="max-w-lg"
+          >
+            {appStatsLoading && <Loading />}
+            {appStatsIsError && <ErrorDisplay message={(appStatsError as any)?.message || 'Failed to load statistics for this application'} />}
+            {appStats && !appStatsLoading && !appStatsIsError && (
+              <div className="space-y-4 p-1">
+                <div className="p-3 bg-blue-100 rounded-md shadow-sm">
+                  <p className="text-sm text-blue-700">
+                    <strong>SonarQube Scans:</strong> 
+                    <span className="font-bold text-blue-800 ml-2">{appStats.staticScanCount}</span>
+                  </p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-md shadow-sm">
+                  <p className="text-sm text-green-700">
+                    <strong>Zap Scans:</strong> 
+                    <span className="font-bold text-green-800 ml-2">{appStats.dynamicScanCount}</span>
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-md shadow-sm">
+                  <p className="text-sm text-purple-700">
+                    <strong>Total Issues:</strong> 
+                    <span className="font-bold text-purple-800 ml-2">{appStats.totalIssues}</span>
+                  </p>
+                </div>
+                
+                <div className="p-3 bg-gray-50 rounded-md shadow-sm">
+                  <h4 className="text-md font-semibold mb-2 text-gray-700">Severity Distribution:</h4>
+                  {appStats.severityDistribution && Object.keys(appStats.severityDistribution).length > 0 ? (
+                    <ul className="space-y-1 text-sm">
+                      {['High', 'Medium', 'Low', 'Informational'] // Use capitalized keys to match API response
+                        .filter(level => appStats.severityDistribution[level] !== undefined && appStats.severityDistribution[level] !== null)
+                        .map((severityKey) => { // severityKey will be 'High', 'Medium', etc.
+                        const count = appStats.severityDistribution[severityKey]; // Access with capitalized key
+                        let textColor = 'text-gray-600';
+                        // Comparisons for styling use toLowerCase(), which is robust
+                        if (severityKey.toLowerCase() === 'high') textColor = 'text-red-600 font-semibold';
+                        else if (severityKey.toLowerCase() === 'medium') textColor = 'text-yellow-600 font-semibold';
+                        else if (severityKey.toLowerCase() === 'low') textColor = 'text-green-600';
+                        else if (severityKey.toLowerCase() === 'informational') textColor = 'text-blue-500';
+                        
+                        let bgColor = 'bg-gray-100'; // Default background
+                        if (severityKey.toLowerCase() === 'high') bgColor = 'bg-red-50';
+                        else if (severityKey.toLowerCase() === 'medium') bgColor = 'bg-yellow-50';
+                        else if (severityKey.toLowerCase() === 'low') bgColor = 'bg-green-50';
+                        else if (severityKey.toLowerCase() === 'informational') bgColor = 'bg-blue-50';
+
+                        return (
+                          <li key={severityKey} className={`flex justify-between items-center p-1.5 rounded ${bgColor}`}>
+                            {/* Display text is lowercased then capitalized by CSS class */}
+                            <span className={`capitalize ${textColor}`}>{severityKey.toLowerCase()}</span>
+                            <span className={`font-bold ${textColor}`}>{count}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No severity data available.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </Modal>
+        )}
       </div>
   );
 };

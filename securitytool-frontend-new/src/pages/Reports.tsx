@@ -290,57 +290,61 @@ const Reports: React.FC = () => {
 
             return (
               <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-                <div className="p-6 flex justify-between items-center"> {/* MODIFIED for horizontal layout */}
-                  <div> {/* Wrapper for app details */}
-                    <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
-                    <p className="text-sm text-gray-500 mb-4 truncate">
+                <div className="p-6 flex justify-between items-start"> {/* items-start for better alignment if content wraps */}
+                  <div className="flex-grow mr-4"> {/* Added flex-grow and margin-right for app details */}
+                    <h2 className="text-xl font-semibold text-gray-800 mb-1 truncate" title={app.appName}>{app.appName}</h2>
+                    <p className="text-sm text-gray-500 mb-3 truncate">
                       URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
                     </p>
 
                     {appSpecificError && (
-                      <div className="mt-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                      <div className="mt-2 p-2 bg-red-50 text-red-700 rounded-md text-sm">
                         <p>Error: {appSpecificError}</p>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-shrink-0 flex flex-col space-y-2"> {/* MODIFIED for vertical buttons on the right */}
+                  {/* MODIFIED for horizontal buttons on the right, smaller buttons */}
+                  <div className="flex-shrink-0 flex flex-row space-x-2 items-center">
                     <button 
                       onClick={() => handleOpenLoadReportModal(app.appId)} 
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-xs font-medium flex items-center justify-center whitespace-nowrap"
+                      title="Load Report by Scan ID"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h4a1 1 0 100-2H7z" clipRule="evenodd" />
                       </svg>
-                      Load Report by Scan ID
+                      Load Report
                     </button>
                     {currentReport && currentReport.issues && currentReport.issues.length > 0 && (
                        <button 
                         onClick={() => openDetailedReportView(app.appId, currentReport.resultId)} 
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
+                        className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium flex items-center justify-center whitespace-nowrap"
+                        title={`View Loaded Report (ID: ${currentReport.resultId})`}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                             <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                         </svg>
-                        View Loaded Report (ID: {currentReport.resultId})
+                        View Report (ID: {currentReport.resultId})
                       </button>
                     )}
                     {currentReport && currentReport.issues && currentReport.issues.length > 0 && (
                         <button 
                             onClick={() => downloadCsv(app.appId)} 
-                            disabled={loading && selectedAppId === app.appId} // Ensure loading state is specific to this app's button
-                            className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
-                                        ${loading && selectedAppId === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`} // Removed w-full
+                            disabled={loading && selectedAppId === app.appId}
+                            className={`px-3 py-1.5 text-white rounded-md transition-colors text-xs font-medium flex items-center justify-center whitespace-nowrap 
+                                        ${loading && selectedAppId === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`}
+                            title="Download Issues as CSV"
                         >
                         {loading && selectedAppId === app.appId ? (
-                          <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Downloading...</>
+                          <><svg className="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Downloading...</>
                         ) : (
                           <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
-                            Download Issues as CSV
+                            Download CSV (ID: {currentReport.resultId})
                           </>
                         )}
                       </button>

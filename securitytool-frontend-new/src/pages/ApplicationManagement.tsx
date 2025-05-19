@@ -8,7 +8,7 @@ import { ApplicationRequestDTO, ApplicationResponseDTO } from '../types/applicat
 
 const ApplicationManagement: React.FC = () => {
   const qc = useQueryClient();
-  const { data, isLoading, isError, error } = useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
+  const { data: applications, isLoading, isError, error } = useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
     queryKey: ['applications'],
     queryFn: fetchApplications,
     select: (fetchedData: any[]) => {
@@ -31,7 +31,6 @@ const ApplicationManagement: React.FC = () => {
       setIsAddModalOpen(false);
       setNewAppName('');
       setNewAppUrl('');
-      setNewBasePath('/api');
       setNewAuthInfo('');
       setAddModalError(null);
     },
@@ -70,20 +69,17 @@ const ApplicationManagement: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newAppName, setNewAppName] = useState('');
   const [newAppUrl, setNewAppUrl] = useState('');
-  const [newBasePath, setNewBasePath] = useState('/api');
   const [newAuthInfo, setNewAuthInfo] = useState('');
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<ApplicationResponseDTO | null>(null);
   const [editAppName, setEditAppName] = useState('');
   const [editAppUrl, setEditAppUrl] = useState('');
-  const [editBasePath, setEditBasePath] = useState('');
   const [editAuthInfo, setEditAuthInfo] = useState('');
 
   const handleAdd = () => {
     setNewAppName('');
     setNewAppUrl('');
-    setNewBasePath('');
     setNewAuthInfo('');
     setAddModalError(null); // Clear previous errors
     setIsAddModalOpen(true);
@@ -108,7 +104,6 @@ const ApplicationManagement: React.FC = () => {
       const payload: ApplicationRequestDTO = {
         appName: newAppName,
         appUrl: newAppUrl,
-        basePath: newBasePath,
       };
       
       if (newAuthInfo) {
@@ -140,7 +135,6 @@ const ApplicationManagement: React.FC = () => {
     setEditingApp(conformantAppForEditing);
     setEditAppName(conformantAppForEditing.appName);
     setEditAppUrl(conformantAppForEditing.appUrl);
-    setEditBasePath(conformantAppForEditing.basePath || '');
     setEditAuthInfo(conformantAppForEditing.authInfo || '');
     setEditModalError(null); // Clear previous errors
     setIsEditModalOpen(true);
@@ -165,7 +159,6 @@ const ApplicationManagement: React.FC = () => {
       const payload: ApplicationRequestDTO = {
         appName: editAppName,
         appUrl: editAppUrl,
-        basePath: editBasePath, 
         authInfo: editAuthInfo, 
       };
 
@@ -179,188 +172,141 @@ const ApplicationManagement: React.FC = () => {
   };
 
   if (isLoading) return <Loading />;
-  if (isError && !data) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
+  if (isError && !applications) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
   return (
-      <div>
-        <div className="flex items-center mb-4">
-          <h1 className="text-2xl mr-4">Applications</h1>
-          <button onClick={handleAdd} className="px-4 py-2 bg-green-600 text-white rounded">Add Application</button>
-        </div>
-        {isError && data && <ErrorDisplay message={error?.message || 'There was an issue fetching applications, but showing cached data.'} />}
-        
-        <Modal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onConfirm={handleAddSubmit}
-          title="Add New Application"
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Application Management</h1>
+        <button 
+          onClick={handleAdd}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors text-base font-semibold flex items-center"
         >
-          <div className="mb-4">
-            <label htmlFor="appName" className="block text-sm font-medium text-gray-700">Application Name</label>
-            <input
-              type="text"
-              id="appName"
-              value={newAppName}
-              onChange={(e) => setNewAppName(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="book store" 
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="appUrl" className="block text-sm font-medium text-gray-700">Application URL</label>
-            <input
-              type="text"
-              id="appUrl"
-              value={newAppUrl}
-              onChange={(e) => setNewAppUrl(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="http://localhost:5173" 
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="basePath" className="block text-sm font-medium text-gray-700">Base Path</label>
-            <input
-              type="text"
-              id="basePath"
-              value={newBasePath}
-              onChange={(e) => setNewBasePath(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="/books" 
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+          </svg>
+          Add New Application
+        </button>
+      </div>
+
+      {isError && applications && <div className="mb-4"><ErrorDisplay message={error?.message || 'There was an issue fetching applications, but showing cached data.'} /></div>}
+      
+      {applications && applications.length > 0 ? (
+        <div className="space-y-4"> {/* Changed from grid to vertical list */}
+          {applications.map(app => (
+            <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+              <div className="p-6 flex justify-between items-center"> {/* MODIFIED for horizontal layout */}
+                <div> {/* Wrapper for app details */}
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
+                  <p className="text-sm text-gray-500 mb-1 truncate">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
+                  
+                  {appErrors[app.appId] && (
+                    <div className="mt-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                      <p>Error: {appErrors[app.appId]}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex space-x-2"> {/* MODIFIED for horizontal buttons */}
+                  <button 
+                    onClick={() => handleEdit(app)}
+                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                        <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                    </svg>
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => deleteMut.mutate(app.appId)} 
+                    disabled={deleteMut.isPending && deleteMut.variables === app.appId}
+                    className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
+                                ${deleteMut.isPending && deleteMut.variables === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`} // Removed w-full
+                  >
+                    {deleteMut.isPending && deleteMut.variables === app.appId ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Delete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-500">No applications found. Click "Add New Application" to get started.</p>
+      )}
+
+      {/* Add Application Modal */}
+      <Modal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onConfirm={handleAddSubmit} 
+        title="Add New Application"
+        confirmButtonText="Add Application"
+        confirmButtonPosition="left"
+      >
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="newAppName" className="block text-sm font-medium text-gray-700">Application Name</label>
+            <input type="text" id="newAppName" value={newAppName} onChange={e => setNewAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required />
           </div>
           <div>
-            <label htmlFor="authInfo" className="block text-sm font-medium text-gray-700">Authentication Info</label>
-            <input
-              type="text"
-              id="authInfo"
-              value={newAuthInfo}
-              onChange={(e) => setNewAuthInfo(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Auth Info (Optional)"
-            />
+            <label htmlFor="newAppUrl" className="block text-sm font-medium text-gray-700">Application URL</label>
+            <input type="text" id="newAppUrl" value={newAppUrl} onChange={e => setNewAppUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
           </div>
-          {addModalError && <div className="mt-4"><ErrorDisplay message={addModalError} /></div>}
-        </Modal>
+          <div>
+            <label htmlFor="newAuthInfo" className="block text-sm font-medium text-gray-700">Authentication Info (Optional)</label>
+            <textarea id="newAuthInfo" value={newAuthInfo} onChange={e => setNewAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., API Key, Token, etc."></textarea>
+          </div>
+        </div>
+        {addModalError && <ErrorDisplay message={addModalError} />}
+      </Modal>
 
-        {editingApp && (
-          <Modal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onConfirm={handleEditSubmit}
-            title={`Edit ${editingApp.appName}`}
-          >
-            <div className="mb-4">
-              <label htmlFor="editAppId" className="block text-sm font-medium text-gray-700">Application ID</label>
-              <input
-                type="text"
-                id="editAppId"
-                value={editingApp.appId}
-                readOnly
-                className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:outline-none sm:text-sm"
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="editAppName" className="block text-sm font-medium text-gray-700">Application Name</label>
-              <input
-                type="text"
-                id="editAppName"
-                value={editAppName}
-                onChange={(e) => setEditAppName(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="editAppUrl" className="block text-sm font-medium text-gray-700">Application URL</label>
-              <input
-                type="text"
-                id="editAppUrl"
-                value={editAppUrl}
-                onChange={(e) => setEditAppUrl(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="editBasePath" className="block text-sm font-medium text-gray-700">Base Path</label>
-              <input
-                type="text"
-                id="editBasePath"
-                value={editBasePath}
-                onChange={(e) => setEditBasePath(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
-            </div>
+      {/* Edit Application Modal */}
+      {editingApp && (
+        <Modal 
+          isOpen={isEditModalOpen} 
+          onClose={() => setIsEditModalOpen(false)} 
+          title="Edit Application"
+          confirmButtonPosition="left"
+          onConfirm={handleEditSubmit}
+          isConfirmDisabled={updateMut.isPending}
+          confirmButtonText={updateMut.isPending ? 'Saving...' : 'Save Changes'}
+        >
+          {editingApp && ( // Add this check to ensure editingApp is not null
             <div>
-              <label htmlFor="editAuthInfo" className="block text-sm font-medium text-gray-700">Authentication Info</label>
-              <input
-                type="text"
-                id="editAuthInfo"
-                value={editAuthInfo}
-                onChange={(e) => setEditAuthInfo(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
+              <div className="mb-4">
+                <label htmlFor="editAppName" className="block text-sm font-medium text-gray-700">Application Name</label>
+                <input type="text" id="editAppName" value={editAppName} onChange={e => setEditAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editAppUrl" className="block text-sm font-medium text-gray-700">Application URL</label>
+                <input type="text" id="editAppUrl" value={editAppUrl} onChange={e => setEditAppUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editAuthInfo" className="block text-sm font-medium text-gray-700">Authentication Info (Optional)</label>
+                <textarea id="editAuthInfo" value={editAuthInfo} onChange={e => setEditAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., API Key, Token, etc."></textarea>
+              </div>
             </div>
-            {editModalError && <div className="mt-4"><ErrorDisplay message={editModalError} /></div>}
-          </Modal>
-        )}
-
-        <ul className="space-y-2 mt-4">
-          {data?.map((app, index) => {
-            if (app.appId === undefined || app.appId === null || isNaN(app.appId)) {
-              console.warn(
-                `Application at index ${index} has an invalid appId. Skipping render. ` +
-                `appId value: ${app.appId}, type: ${typeof app.appId}. Raw app object:`, app
-              );
-              return (
-                <li key={`invalid-app-${index}`} className="p-4 bg-red-100 rounded shadow">
-                  <p className="text-red-700 font-semibold">Invalid application data at index {index}.</p>
-                  <p className="text-xs text-red-600">App ID is missing or invalid. Please check console for details.</p>
-                </li>
-              );
-            }
-
-            const isDeleting = deleteMut.isPending && deleteMut.variables === app.appId;
-
-            return (
-              <li key={app.appId} className="p-4 bg-white rounded shadow flex flex-col">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div>App Name: <span className="font-bold">{app.appName}</span></div>
-                    <div className="text-gray-600">
-                      App URL: {app.appUrl}{app.basePath && app.basePath !== '/' ? app.basePath : ''}
-                    </div>
-                    <div className="text-gray-600">
-                      Auth Info: {app.authInfo ? app.authInfo : 'Not set'}
-                    </div>
-                  </div>
-                  <div className="space-x-2 flex-shrink-0">
-                    <button onClick={() => handleEdit(app)} className="px-2 py-1 bg-blue-500 text-white rounded">Edit</button>
-                    <button 
-                      onClick={() => {
-                        console.log(`Attempting to delete application with appId: ${app.appId} (type: ${typeof app.appId})`);
-                        if (app.appId === undefined || app.appId === null || isNaN(app.appId)) {
-                          console.error('Critical: Invalid appId before delete mutate call:', app.appId, app);
-                          setAppErrors(prev => ({ ...prev, [app.appId]: 'Error: Cannot delete due to invalid Application ID.' }));
-                          return;
-                        }
-                        deleteMut.mutate(app.appId);
-                      }} 
-                      disabled={isDeleting}
-                      className="px-2 py-1 bg-red-500 text-white rounded disabled:opacity-50"
-                    >
-                      {isDeleting ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </div>
-                </div>
-                {appErrors[app.appId] && (
-                  <div className="mt-2 w-full">
-                    <ErrorDisplay message={appErrors[app.appId]!} />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+          )}
+          {editModalError && <ErrorDisplay message={editModalError} />}
+        </Modal>
+      )}
+    </div>
   );
 };
 export default ApplicationManagement;

@@ -22,7 +22,17 @@ const ModuleManagement: React.FC = () => {
       }));
     }
   });
-  const createMut = useMutation({ mutationFn: createModule, onSuccess: () => qc.invalidateQueries({ queryKey: ['modules'] }) });
+  const createMut = useMutation<ModuleRequestDTO, Error, ModuleRequestDTO>({
+    mutationFn: createModule, 
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['modules'] });
+      setIsAddModalOpen(false);
+      setNewModuleName('');
+      setNewRepoPath('');
+      setNewDescription('');
+      setSelectedAppId(null);
+    } 
+  });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
@@ -55,36 +65,59 @@ const ModuleManagement: React.FC = () => {
   if (isError) return <ErrorDisplay message={(error as Error).message} />;
 
   return (
-      <div>
-        <h1 className="text-2xl mb-4">Modules</h1>
-        <ul className="space-y-4">
-          {applications?.map(app => {
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Module Management</h1>
+      </div>
+
+      {applications && applications.length > 0 ? (
+        <div className="space-y-4">
+          {applications.map(app => {
             if (!app || app.appId === undefined || app.appId === null || isNaN(app.appId)) {
               console.warn('Skipping rendering application due to missing or invalid appId:', app);
               return null;
             }
             return (
-              <li key={app.appId} className="p-4 bg-white rounded shadow">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div>App Name: <span className="font-bold text-lg">{app.appName}</span></div>
-                    <div className="text-gray-600">
-                      App URL: {app.appUrl}{app.basePath && app.basePath !== '/' ? app.basePath : ''}
-                    </div>
+              <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                <div className="p-6 flex justify-between items-center"> {/* MODIFIED for horizontal layout */}
+                  <div> {/* Wrapper for app details */}
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
+                    <p className="text-sm text-gray-500 mb-4 truncate">
+                      URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                    </p>
                   </div>
-                  <button
-                    onClick={() => handleOpenAddModal(app.appId)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded"
-                  >
-                    Add Module
-                  </button>
+                  
+                  <div className="flex space-x-2"> {/* MODIFIED for horizontal buttons */}
+                    <button
+                      onClick={() => handleOpenAddModal(app.appId)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                      Add New Module
+                    </button>
+                    <button
+                      // onClick={() => navigateToViewModules(app.appId)} // TODO: Implement navigation or modal for viewing modules
+                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
+                    >
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                      </svg>
+                      View Modules
+                    </button>
+                  </div>
                 </div>
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
+      ) : (
+        <p className="text-center text-gray-500 mt-10">No applications found. Please add an application first.</p>
+      )}
 
-        {createMut.isError && <ErrorDisplay message={createMut.error.message} />}
+        {createMut.isError && <div className="mt-4"><ErrorDisplay message={(createMut.error as Error)?.message || 'Failed to create module.'} /></div>}
         <Modal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

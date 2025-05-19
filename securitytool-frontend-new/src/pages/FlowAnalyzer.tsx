@@ -240,7 +240,7 @@ const FlowAnalyzer: React.FC = () => {
             <div key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out"> {/* Enhanced card style */}
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-1">{app.appName}</h2> {/* Updated style */}
+                  <h2 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h2> {/* Updated style */}
                   <p className="text-sm text-gray-500">URL: {app.appUrl || 'N/A'}</p>
                 </div>
                 <div className="flex space-x-2">
