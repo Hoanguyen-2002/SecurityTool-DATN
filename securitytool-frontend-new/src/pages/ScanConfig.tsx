@@ -395,13 +395,13 @@ const ScanConfig: React.FC = () => {
                     <div className="flex space-x-2"> {/* Changed to flex space-x-2 for horizontal history buttons */}
                       <button 
                         onClick={() => openSonarHistoryModal(app.appId, app.appName)} 
-                        className="px-3 py-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                        className="px-4 py-2 text-sm text-blue-700 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors font-medium"
                       >
                         View SonarQube History
                       </button>
                       <button 
                         onClick={() => openZapHistoryModal(app.appId, app.appName)} 
-                        className="px-3 py-1 text-xs text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+                        className="px-4 py-2 text-sm text-red-700 hover:text-red-900 bg-red-100 hover:bg-red-200 rounded-md transition-colors font-medium"
                       >
                         View ZAP History
                       </button>

@@ -223,7 +223,7 @@ const ApplicationManagement: React.FC = () => {
               <div className="p-6 flex justify-between items-center"> {/* MODIFIED for horizontal layout */}
                 <div> {/* Wrapper for app details */}
                   <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
-                  <p className="text-sm text-gray-500 mb-1 truncate">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
+                  <p className="text-sm text-gray-500 mb-1 truncate">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a></p>
                   
                   {appErrors[app.appId] && (
                     <div className="mt-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
@@ -287,7 +287,7 @@ const ApplicationManagement: React.FC = () => {
         <div className="space-y-3">
           <div>
             <label htmlFor="newAppName" className="block text-sm font-medium text-gray-700">Application Name</label>
-            <input type="text" id="newAppName" value={newAppName} onChange={e => setNewAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required />
+            <input type="text" id="newAppName" value={newAppName} onChange={e => setNewAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter application name" required />
           </div>
           <div>
             <label htmlFor="newAppUrl" className="block text-sm font-medium text-gray-700">Application URL</label>

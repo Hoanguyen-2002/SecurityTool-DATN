@@ -61,7 +61,7 @@ const Dashboard: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h3> {/* Updated style */}
-                    <p className="text-sm text-gray-500">URL: {app.appUrl || 'N/A'}</p>
+                    <p className="text-sm text-gray-500">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
                   </div>
                   <button 
                     onClick={() => openStatsModal(app)} 

@@ -241,7 +241,7 @@ const FlowAnalyzer: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h2> {/* Updated style */}
-                  <p className="text-sm text-gray-500">URL: {app.appUrl || 'N/A'}</p>
+                  <p className="text-sm text-gray-500">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a></p>
                 </div>
                 <div className="flex space-x-2">
                   <button 
@@ -353,43 +353,55 @@ const FlowAnalyzer: React.FC = () => {
           maxWidthClass="max-w-2xl" 
         >
           {flowsForModal.length > 0 ? (
-            <ul className="space-y-3">
+            <ul className="space-y-4"> 
               {flowsForModal.map(flow => (
-                <li key={flow.id} className="p-3 bg-gray-50 rounded-md shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold text-md text-indigo-700">{flow.flowName.toUpperCase()}</h4>
-                      <p className="text-xs text-gray-600 mt-1"><strong>Description:</strong> {flow.flowDescription || 'N/A'}</p>
+                <li key={flow.id} className="p-4 bg-slate-100 rounded-lg shadow hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-3"> 
+                    <div className="pr-4 flex-grow min-w-0"> 
+                      <h4 className="font-semibold text-lg text-indigo-700 truncate">{flow.flowName.toUpperCase()}</h4> {/* Increased font size and weight */}
+                      <p className="text-sm text-gray-700 mt-1.5"><strong>Description:</strong> {flow.flowDescription || 'N/A'}</p> {/* Increased font size and text color */}
                       {flow.apiEndpoints && flow.apiEndpoints.length > 0 && (
-                        <div className="mt-1">
-                          <p className="text-xs text-gray-600"><strong>API Endpoints:</strong></p>
-                          <ul className="list-disc list-inside pl-4">
-                            {flow.apiEndpoints.map((ep, idx) => <li key={idx} className="text-xs text-gray-500">{ep}</li>)}
+                        <div className="mt-1.5">
+                          <p className="text-sm text-gray-700"><strong>API Endpoints:</strong></p> {/* Increased font size and text color */}
+                          <ul className="list-disc list-inside pl-4 space-y-0.5 mt-1">
+                            {flow.apiEndpoints.map((ep, idx) => <li key={idx} className="text-sm text-gray-600 truncate">{ep}</li>)} {/* Increased font size and text color */}
                           </ul>
                         </div>
                       )}
-                       <p className="text-xs text-gray-500 mt-1"><strong>Related Scan Result ID:</strong> {flow.resultId || 'N/A'}</p>
+                       <p className="text-sm text-gray-700 mt-1.5"><strong>Related Scan Result ID:</strong> {flow.resultId || 'N/A'}</p> {/* Increased font size and text color */}
                     </div>
-                    <div className="flex flex-col space-y-1.5 items-end ml-2 flex-shrink-0">
+                    <div className="flex space-x-1.5 flex-shrink-0"> 
                         <button 
                             onClick={() => openEditFlowModal(flow)}
-                            className="px-2.5 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs w-full text-center"
+                            className="px-3 py-1.5 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm font-medium whitespace-nowrap flex items-center" // Increased padding and font size
                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor"> {/* Increased icon size and margin */}
+                                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                                <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                            </svg>
                             Edit
                         </button>
                         <button 
-                            onClick={() => handleDeleteFlow(flow.id)}
-                            className="px-2.5 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs w-full text-center"
+                            onClick={() => handleDeleteFlow(flow.id)} 
+                            className="px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 text-sm font-medium whitespace-nowrap flex items-center" // Increased padding and font size
                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor"> {/* Increased icon size and margin */}
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
                             Delete
                         </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-2"> 
                         <button 
                             onClick={() => handleAnalyzeFlows(flow.id)}
-                            className="px-2.5 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 text-xs w-full text-center"
+                            className="px-3 py-1.5 bg-purple-500 text-white rounded hover:bg-purple-600 text-sm font-medium whitespace-nowrap flex items-center" // Increased padding and font size
                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor"> {/* Increased icon size and margin */}
+                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                            </svg>
                             Analyze
                         </button>
-                    </div>
                   </div>
                 </li>
               ))}
@@ -475,12 +487,16 @@ const FlowAnalyzer: React.FC = () => {
         isOpen={isConfirmDeleteModalOpen}
         onClose={cancelDeleteFlow}
         onConfirm={confirmDeleteFlow}
-        title="Confirm Delete"
+        title="Confirm Delete Flow"
         confirmButtonText="Delete"
         confirmButtonPosition="left"
       >
-        <p>Are you sure you want to delete this business flow? This action cannot be undone.</p>
-        {deleteFlowMutation.isError && <ErrorDisplay message={(deleteFlowMutation.error as Error)?.message || 'Failed to delete flow.'} />}
+        <p className="text-gray-700">Are you sure you want to delete this business flow? This action cannot be undone.</p>
+        {deleteFlowMutation.isError && (
+            <div className="mt-2">
+                <ErrorDisplay message={(deleteFlowMutation.error as Error)?.message || 'Failed to delete flow.'} />
+            </div>
+        )}
       </Modal>
 
     </div>
