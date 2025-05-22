@@ -1,5 +1,5 @@
 import instance from './axiosInstance';
-import { FlowAnalysisRequestDTO, ApiEndpointRequestDTO, NewFlowPayload, BusinessFlowResponseDTO } from '../types/flow';
+import { FlowAnalysisRequestDTO, ApiEndpointRequestDTO, NewFlowPayload, BusinessFlowResponseDTO, AnalyzeFlowApiResponse } from '../types/flow';
 import { SecurityIssueResponseDTO } from '../types/report';
 
 const FLOWS_BASE_PATH = '/business-flow'; // Updated base path for flow CRUD operations
@@ -33,4 +33,12 @@ export const updateFlow = async (flowData: BusinessFlowResponseDTO): Promise<Bus
 
 export const deleteFlow = async (flowId: number): Promise<void> => {
   await instance.delete(`${FLOWS_BASE_PATH}/${flowId}`);
+};
+
+/**
+ * Analyze a business flow
+ */
+export const analyzeBusinessFlow = async (payload: FlowAnalysisRequestDTO): Promise<AnalyzeFlowApiResponse> => {
+  const response = await instance.post<AnalyzeFlowApiResponse>(`${FLOWS_BASE_PATH}/analyze`, payload);
+  return response.data;
 };

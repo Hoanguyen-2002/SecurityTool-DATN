@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFlow, getFlows, updateFlow, deleteFlow } from '../api/flowApi';
+import { createFlow, getFlows, updateFlow, deleteFlow, analyzeBusinessFlow } from '../api/flowApi';
 import { fetchApplications } from '../api/applicationApi';
 import { ApplicationResponseDTO } from '../types/application';
-import { NewFlowPayload, BusinessFlowResponseDTO } from '../types/flow';
+import { NewFlowPayload, BusinessFlowResponseDTO, AnalyzeFlowApiResponse, FlowAnalysisRequestDTO, StepResult } from '../types/flow'; // Added StepResult, removed AnalyzeFlowData
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
@@ -46,6 +46,21 @@ const FlowAnalyzer: React.FC = () => {
     }
   });
 
+  const analyzeFlowMutation = useMutation<AnalyzeFlowApiResponse, Error, FlowAnalysisRequestDTO>({
+    mutationFn: analyzeBusinessFlow,
+    onSuccess: (data) => {
+      setAnalyzeResult(data);
+      setIsAnalyzeResultModalOpen(true);
+      setAnalyzeLoading(false);
+    },
+    onError: (error) => {
+      setAnalyzeError(error.message || 'Failed to analyze flow.');
+      setAnalyzeResult(null);
+      setAnalyzeLoading(false);
+      setIsAnalyzeResultModalOpen(true); // Open modal to show error
+    },
+  });
+
   const [isAddFlowModalOpen, setIsAddFlowModalOpen] = useState(false);
   const [newFlowData, setNewFlowData] = useState<Omit<NewFlowPayload, 'appId' | 'resultId' | 'apiEndpoints'> & { appId: string; resultId: string; apiEndpoints: string[] }>({
     appId: '',
@@ -63,6 +78,11 @@ const FlowAnalyzer: React.FC = () => {
 
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
   const [flowToDeleteId, setFlowToDeleteId] = useState<number | null>(null);
+
+  const [isAnalyzeResultModalOpen, setIsAnalyzeResultModalOpen] = useState(false);
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeFlowApiResponse | null>(null); // Updated type
+  const [analyzeLoading, setAnalyzeLoading] = useState(false); // Kept for immediate UI feedback
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null); // Kept for immediate UI feedback
 
   const { data: apps, isLoading: appsLoading, isError: appsIsError, error: appsError } = 
     useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({ 
@@ -212,9 +232,30 @@ const FlowAnalyzer: React.FC = () => {
     setFlowToDeleteId(null);
   };
 
-  const handleAnalyzeFlows = (flowId: number) => {
-    console.log("Analyze flow:", flowId);
-    alert(`Trigger analysis for flow ID: ${flowId}`);
+  const handleAnalyzeFlows = async (flowId: number) => {
+    const flow = flowsForModal.find(f => f.id === flowId);
+    if (!flow || typeof flow.resultId !== 'number') { 
+      setAnalyzeError('Flow data is incomplete or resultId is missing. Cannot start analysis.');
+      setAnalyzeResult(null);
+      setAnalyzeLoading(false);
+      setIsAnalyzeResultModalOpen(true);
+      return;
+    }
+
+    setAnalyzeLoading(true);
+    setAnalyzeError(null);
+    setAnalyzeResult(null); 
+
+    // Construct the payload according to the updated FlowAnalysisRequestDTO
+    const payload: FlowAnalysisRequestDTO = {
+      flowName: flow.flowName,
+      resultId: flow.resultId,
+      apiEndpoints: flow.apiEndpoints || [],
+      flowDescription: flow.flowDescription || '',
+      appId: flow.appId
+    };
+
+    analyzeFlowMutation.mutate(payload);
   };
 
   const openViewFlowsModal = (app: ApplicationResponseDTO) => {
@@ -308,7 +349,7 @@ const FlowAnalyzer: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="resultId" className="block text-sm font-medium text-gray-700">Related Scan Result ID</label>
+            <label htmlFor="resultId" className="block text-sm font-medium text-gray-700">SonarQube Scan Result ID</label>
             <input
               type="number" // Changed to type number
               name="resultId"
@@ -368,7 +409,7 @@ const FlowAnalyzer: React.FC = () => {
                           </ul>
                         </div>
                       )}
-                       <p className="text-sm text-gray-700 mt-1.5"><strong>Related Scan Result ID:</strong> {flow.resultId || 'N/A'}</p> {/* Increased font size and text color */}
+                       <p className="text-sm text-gray-700 mt-1.5"><strong>SonarQube Scan Result ID:</strong> {flow.resultId || 'N/A'}</p> {/* Increased font size and text color */}
                     </div>
                     <div className="flex space-x-1.5 flex-shrink-0"> 
                         <button 
@@ -496,6 +537,64 @@ const FlowAnalyzer: React.FC = () => {
             <div className="mt-2">
                 <ErrorDisplay message={(deleteFlowMutation.error as Error)?.message || 'Failed to delete flow.'} />
             </div>
+        )}
+      </Modal>
+
+      {/* Analyze Result Modal */}
+      <Modal
+        isOpen={isAnalyzeResultModalOpen}
+        onClose={() => { 
+          setIsAnalyzeResultModalOpen(false); 
+          setAnalyzeResult(null); 
+          setAnalyzeError(null); 
+          setAnalyzeLoading(false); // Reset loading state when modal is closed
+        }}
+        title="Business Flow Analysis Result"
+        showConfirmButton={false}
+        cancelButtonText="Close"
+        maxWidthClass="max-w-2xl" // Added to match View Flows modal size
+      >
+        {analyzeLoading ? (
+          <div className="py-8 flex justify-center"><Loading /></div>
+        ) : analyzeError ? (
+          <ErrorDisplay message={analyzeError} />
+        ) : analyzeResult && analyzeResult.data ? (
+          <div className="space-y-3">
+            <div className="bg-slate-100 rounded p-4">
+              <h3 className="text-lg font-semibold text-indigo-700 mb-1">{analyzeResult.data.flowName}</h3>
+              <p className="text-sm text-gray-700 mb-1"><strong>Description:</strong> {analyzeResult.data.flowDescription}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mt-2"> {/* Adjusted gap */}
+                <span><strong>Total Steps:</strong> {analyzeResult.data.totalSteps}</span>
+                <span><strong>Passed Steps:</strong> {analyzeResult.data.passedSteps}</span>
+                <span><strong>Static Issues:</strong> {analyzeResult.data.totalStaticIssues}</span>
+                <span><strong>Overall Passed:</strong> {analyzeResult.data.overallPassed ? <span className="text-green-600 font-bold">Yes</span> : <span className="text-red-600 font-bold">No</span>}</span>
+              </div>
+            </div>
+            {analyzeResult.data.stepResults && analyzeResult.data.stepResults.length > 0 ? (
+              <div className="mt-2">
+                <h4 className="font-semibold text-gray-800 mb-2">Step Results</h4>
+                <ul className="space-y-2">
+                  {analyzeResult.data.stepResults.map((step: StepResult, idx: number) => ( // Use StepResult type
+                    <li key={idx} className="bg-white rounded shadow p-3 flex flex-col md:flex-row md:items-center md:justify-between"> {/* Use index as key if step.id is not available */}
+                      <div className="flex-grow">
+                        <span className="font-medium text-gray-700">Endpoint:</span> <span className="text-indigo-600 break-all">{step.endpoint}</span>
+                      </div>
+                      <div className="flex gap-x-4 gap-y-1 mt-1 md:mt-0 md:ml-4 flex-shrink-0"> {/* Adjusted gap and margin */}
+                        <span><strong>Static Issues:</strong> {step.staticIssueCount}</span>
+                        <span><strong>Passed:</strong> {step.passed ? <span className="text-green-600 font-bold">Yes</span> : <span className="text-red-600 font-bold">No</span>}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 mt-2">No step results available.</p>
+            )}
+            {/* Optional: Display timestamp if available in your API response */}
+            {/* <div className="text-xs text-gray-400 mt-2">Timestamp: {analyzeResult.data.timestamp}</div> */}
+          </div>
+        ) : (
+          <div className="text-gray-500">No analysis result.</div>
         )}
       </Modal>
 

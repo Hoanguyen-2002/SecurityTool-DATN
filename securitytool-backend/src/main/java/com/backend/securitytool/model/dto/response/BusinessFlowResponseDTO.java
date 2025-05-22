@@ -1,5 +1,6 @@
 package com.backend.securitytool.model.dto.response;
 
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
