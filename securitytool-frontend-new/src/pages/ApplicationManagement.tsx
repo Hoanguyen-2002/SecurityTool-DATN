@@ -20,7 +20,6 @@ const ApplicationManagement: React.FC = () => {
     }
   });
 
-  const [appErrors, setAppErrors] = useState<{ [key: number]: string | null }>({});
   const [addModalError, setAddModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
 
@@ -55,14 +54,21 @@ const ApplicationManagement: React.FC = () => {
   const deleteMut: UseMutationResult<void, Error, number, unknown> = useMutation<void, Error, number>({
     mutationFn: deleteApplication,
     onMutate: (appId) => {
-      setAppErrors(prev => ({ ...prev, [appId]: null }));
+      // Optimistically update the UI or set loading states if needed
+      // For instance, you might want to show a spinner on the specific item being deleted
+      // setAppErrors(prev => ({ ...prev, [appId]: null })); // Example: clearing previous error for this app
     },
     onSuccess: (data, appId) => {
       qc.invalidateQueries({ queryKey: ['applications'] });
-      setAppErrors(prev => ({ ...prev, [appId]: null }));
+      // Optionally, clear any specific app errors if they were being managed
+      // setAppErrors(prev => ({ ...prev, [appId]: null })); 
     },
     onError: (err, appId) => {
-      setAppErrors(prev => ({ ...prev, [appId]: err.message || 'Failed to delete application.' }));
+      // Here you could set an error message specific to the app that failed to delete
+      // For example, if you had a way to display errors per item:
+      // setAppErrors(prev => ({ ...prev, [appId]: err.message || 'Failed to delete application.' }));
+      // For now, we'll rely on a general error message or toast notification if implemented elsewhere.
+      console.error(`Failed to delete application ${appId}:`, err);
     }
   });
 
@@ -80,6 +86,13 @@ const ApplicationManagement: React.FC = () => {
   // State for delete confirmation modal
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
   const [appToDeleteId, setAppToDeleteId] = useState<number | null>(null);
+
+  const maskAuthInfo = (authInfo: string | undefined | null): string => {
+    if (!authInfo || authInfo.length <= 3) {
+      return authInfo || 'N/A';
+    }
+    return `${authInfo.substring(0, 3)}****`;
+  };
 
   const handleAdd = () => {
     setNewAppName('');
@@ -127,7 +140,7 @@ const ApplicationManagement: React.FC = () => {
     if (actualId === undefined || actualId === null || isNaN(Number(actualId))) {
       console.error('Cannot edit application: ID is missing or invalid from the app object.', app);
       // Optionally set a page-level error or a specific error for this app item if needed
-      setAppErrors(prev => ({ ...prev, [app.appId]: 'Cannot edit: Application ID is invalid.'}));
+      // setAppErrors(prev => ({ ...prev, [app.appId]: 'Cannot edit: Application ID is invalid.'}));
       return;
     }
 
@@ -220,20 +233,16 @@ const ApplicationManagement: React.FC = () => {
         <div className="space-y-4"> {/* Changed from grid to vertical list */}
           {applications.map(app => (
             <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-              <div className="p-6 flex justify-between items-center"> {/* MODIFIED for horizontal layout */}
-                <div> {/* Wrapper for app details */}
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
-                  <p className="text-sm text-gray-500 mb-1 truncate">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a></p>
-                  
-                  {appErrors[app.appId] && (
-                    <div className="mt-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-                      <p>Error: {appErrors[app.appId]}</p>
-                    </div>
-                  )}
+              <div className="p-6 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">{app.appName}</h2>
+                  <p className="text-sm text-gray-600">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
+                  {/* Always render the SonarQube Auth info, maskAuthInfo will handle N/A */}
+                  <p className="text-sm text-gray-600">SonarQube Auth: {maskAuthInfo(app.authInfo)}</p>
                 </div>
 
-                <div className="flex space-x-2"> {/* MODIFIED for horizontal buttons */}
-                  <button 
+                <div className="flex space-x-2">
+                  <button
                     onClick={() => handleEdit(app)}
                     className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
                   >
