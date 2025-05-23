@@ -287,7 +287,13 @@ const Reports: React.FC = () => {
             }
             const appSpecificError = appErrors[app.appId];
             const currentReport = appReports[app.appId];
-
+            // Only show if report exists, has a valid resultId, and there is no error indicating not found/deleted
+            if (!currentReport || currentReport.resultId === undefined || currentReport.resultId === null) {
+              return null;
+            }
+            if (appSpecificError && /not found|incomplete|deleted|cannot be loaded/i.test(appSpecificError)) {
+              return null;
+            }
             return (
               <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
                 <div className="p-6 flex justify-between items-center"> {/* Changed items-start to items-center */}
@@ -425,7 +431,16 @@ const Reports: React.FC = () => {
                     </p>
                     <p><strong>Description:</strong> {issue.description}</p>
                     {issue.remediation && <p><strong>Remediation:</strong> {issue.remediation}</p>}
-                    <p><strong>Status:</strong> {issue.status}</p>
+                    <p><strong>Status:</strong> 
+                      <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
+                        issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
+                        issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        issue.severity.toLowerCase() === 'low' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {issue.status}
+                      </span>
+                    </p>
                     {issue.endpointId && <p className="text-xs text-gray-500">Endpoint ID: {issue.endpointId}</p>}
                   </li>
                 ))}

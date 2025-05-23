@@ -213,14 +213,38 @@ public class ZapScannerServiceImpl implements ZapScannerService {
                 issue.setResult(scanResult);
                 issue.setAppId(scanResult.getApp().getId()); // Set appId from the scan result's app
                 issue.setIssueType("Zap");
-                issue.setSeverity(alert.path("risk").asText());
+                String risk = alert.path("risk").asText();
+                issue.setSeverity(risk);
+                issue.setStatus(mapZapRiskToStatus(risk));
                 issue.setDescription(alert.path("description").asText());
                 String solution = alert.path("solution").asText();
                 solution = standardizeSolution(solution, MAX_SOLUTION_LENGTH);
                 issue.setSolution(solution);
-                issue.setStatus("Open");
                 securityIssueRepository.save(issue);
             }
+        }
+    }
+
+    /**
+     * Map ZAP risk level to business status
+     */
+    private String mapZapRiskToStatus(String risk) {
+        if (risk == null) return "Review & Monitor";
+        switch (risk.trim().toLowerCase()) {
+            case "3":
+            case "high":
+                return "Fix immediately";
+            case "2":
+            case "medium":
+                return "Fix as soon as possible";
+            case "1":
+            case "low":
+                return "Plan fix";
+            case "0":
+            case "informational":
+                return "Review & Monitor";
+            default:
+                return "Review & Monitor";
         }
     }
 

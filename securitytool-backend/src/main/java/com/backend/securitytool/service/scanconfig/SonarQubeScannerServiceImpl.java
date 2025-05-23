@@ -178,7 +178,23 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
         return scanResultMapper.toResponseDTO(savedResult);
     }
 
-    // Add this new private method to handle security issue extraction
+    private String getStatusForSeverity(String severity) {
+        if (severity == null) return "Review & Monitor";
+        switch (severity.trim().toLowerCase()) {
+            case "high":
+                return "Fix immediately";
+            case "medium":
+                return "Fix as soon as possible";
+            case "low":
+                return "Plan fix";
+            case "info":
+            case "informational":
+                return "Review & Monitor";
+            default:
+                return "Review & Monitor";
+        }
+    }
+
     private void saveSecurityIssues(String responseBody, ScanResult scanResult) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(responseBody);
@@ -196,9 +212,10 @@ public class SonarQubeScannerServiceImpl implements SonarQubeScannerService {
                     issue.setResult(scanResult);
                     issue.setAppId(scanResult.getApp().getId()); // Set appId from the scan result's app
                     issue.setIssueType("SonarQube");
-                    issue.setSeverity(getSeverityForMetric(metric));
+                    String severity = getSeverityForMetric(metric);
+                    issue.setSeverity(severity);
+                    issue.setStatus(getStatusForSeverity(severity));
                     issue.setDescription(formatDescription(metric, value));
-                    issue.setStatus("Open");
                     issue.setSolution(formatSolution(metric));
 
                     securityIssueRepository.save(issue);

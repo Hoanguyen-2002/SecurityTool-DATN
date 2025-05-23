@@ -516,14 +516,51 @@ const ScanConfig: React.FC = () => {
                       {scan.summary && (
                         <div className="mt-1">
                           <p className="font-semibold">Summary:</p>
-                          <ul className="list-disc list-inside ml-4 text-xs text-gray-700 space-y-0.5">
-                            {scan.summary.split(',').map((item: string) => item.trim()).map((s: string) => {
-                              const parts = s.split(':');
-                              const key = parts[0];
-                              const value = parts.slice(1).join(':');
-                              return <li key={key}><span className="font-medium">{key}:</span> {value}</li>;
-                            })}
-                          </ul>
+                          {historyModalContent.scanType === 'sonar' ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-700 mt-1">
+                              {scan.summary.split(',').map((item: string, index: number) => {
+                                const trimmedItem = item.trim();
+                                if (!trimmedItem) return null;
+                                const colonIndex = trimmedItem.indexOf(':');
+                                let keyPart: string;
+                                let valuePart: string;
+                                if (colonIndex === -1) {
+                                  keyPart = trimmedItem;
+                                  valuePart = '';
+                                } else {
+                                  keyPart = trimmedItem.substring(0, colonIndex);
+                                  valuePart = trimmedItem.substring(colonIndex + 1);
+                                }
+                                const cleanedKey = keyPart.trim().replace(/"/g, '');
+                                const cleanedValue = valuePart.trim().replace(/"/g, '').replace(/;/g, '');
+                                if ((!cleanedKey && !cleanedValue) || (!cleanedKey && valuePart.trim() === '')) return null;
+                                return (
+                                  <div key={index} className="flex items-center">
+                                    <span className="font-medium text-gray-800 mr-1">{cleanedKey}{cleanedValue ? ':' : ''}</span>
+                                    <span className={
+                                      cleanedValue.trim().toLowerCase() === 'good' ? 'text-green-700 font-semibold' :
+                                      cleanedValue.trim().toLowerCase() === 'bad' ? 'text-red-700 font-semibold' :
+                                      'text-gray-700'
+                                    }>{cleanedValue}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {scan.summary.split(',').map((item: string, index: number) => {
+                                const trimmedItem = item.trim();
+                                if (!trimmedItem) return null;
+                                // Remove quotes and semicolons
+                                const cleaned = trimmedItem.replace(/"/g, '').replace(/;/g, '');
+                                return (
+                                  <span key={index} className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium shadow-sm">
+                                    {cleaned}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       )}
                     </li>

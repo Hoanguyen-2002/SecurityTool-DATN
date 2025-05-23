@@ -20,6 +20,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
 
+    private static final Set<String> ECOMMERCE_HAPPY_PATH_ENDPOINTS = Set.of(
+            "/api/v1/products",      // Example: View products
+            "/api/v1/cart",          // Example: View cart
+            "/api/v1/checkout",      // Example: Initiate checkout
+            "/api/v1/auth/login",    // Example: User login
+            "/api/v1/auth/register"  // Example: User registration
+    );
+
     private final BusinessFlowRepository businessFlowRepository;
     private final ScanResultRepository scanResultRepository;
     private final BusinessFlowMapper businessFlowMapper;
@@ -78,18 +86,35 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
         Map<String, List<SecurityIssue>> issueMap = issues.stream()
                 .filter(issue -> issue.getEndpoint() != null && issue.getEndpoint().getPath() != null)
                 .collect(Collectors.groupingBy(issue -> issue.getEndpoint().getPath()));
+
         List<BusinessFlowStepResultDTO> stepResults = new ArrayList<>();
         int totalStaticIssues = 0;
         int passedSteps = 0;
-        for (String endpoint : requestDTO.getApiEndpoints()) {
+        List<String> endpoints = requestDTO.getApiEndpoints();
+        for (String endpoint : endpoints) {
             int staticCount = issueMap.getOrDefault(endpoint, Collections.emptyList()).size();
             boolean passed = staticCount == 0;
             if (passed) passedSteps++;
             totalStaticIssues += staticCount;
             stepResults.add(new BusinessFlowStepResultDTO(endpoint, staticCount, passed));
         }
-        int totalSteps = requestDTO.getApiEndpoints().size();
-        boolean overallPassed = passedSteps == totalSteps;
+        int totalSteps = endpoints.size();
+        boolean overallPassed = (passedSteps == totalSteps) && (totalStaticIssues == 0);
+
+        // Calculate happy path progress for ECOMMERCE_HAPPY_PATH_ENDPOINTS
+        int happyTotal = 0;
+        int happyPassed = 0;
+        for (String happyEndpoint : ECOMMERCE_HAPPY_PATH_ENDPOINTS) {
+            happyTotal++;
+            int staticCount = issueMap.getOrDefault(happyEndpoint, Collections.emptyList()).size();
+            boolean present = endpoints.contains(happyEndpoint);
+            boolean passed = present && staticCount == 0;
+            if (passed) happyPassed++;
+        }
+        // You can log or return these values as needed, here we just print for demonstration
+        System.out.println("[E-COMMERCE HAPPY PATH PROGRESS]");
+        System.out.println("Happy path endpoints present: " + happyPassed + "/" + happyTotal);
+
         return new BusinessFlowAnalysisResponseDTO(
                 requestDTO.getFlowName(),
                 requestDTO.getFlowDescription(),

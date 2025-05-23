@@ -7,6 +7,27 @@ import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
 import { ApplicationResponseDTO } from '../types/application';
 import { AppDashboardStatsDTO } from '../types/dashboard';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 const Dashboard: React.FC = () => {
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
@@ -45,6 +66,52 @@ const Dashboard: React.FC = () => {
     setIsStatsModalOpen(false);
     setSelectedApp(null);
   };
+
+  const prepareChartData = (stats: AppDashboardStatsDTO) => {
+    const scanTypeData = {
+      labels: ['SonarQube Scans', 'ZAP Scans'],
+      datasets: [
+        {
+          label: 'Number of Scans',
+          data: [stats.staticScanCount, stats.dynamicScanCount],
+          backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
+          borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    const severityLabels = Object.keys(stats.severityDistribution);
+    const severityValues = Object.values(stats.severityDistribution);
+    
+    const severityBackgroundColors = severityLabels.map(label => {
+        switch (label.toLowerCase()) {
+            case 'high': return 'rgba(255, 99, 132, 0.6)'; // Red
+            case 'medium': return 'rgba(255, 206, 86, 0.6)'; // Yellow
+            case 'low': return 'rgba(75, 192, 192, 0.6)'; // Green/Teal
+            case 'informational': return 'rgba(153, 102, 255, 0.6)'; // Purple
+            default: return 'rgba(201, 203, 207, 0.6)'; // Grey for others
+        }
+    });
+    const severityBorderColors = severityBackgroundColors.map(color => color.replace('0.6', '1'));
+
+
+    const severityData = {
+      labels: severityLabels.map(label => label.charAt(0).toUpperCase() + label.slice(1)), // Capitalize labels
+      datasets: [
+        {
+          label: 'Issue Severity',
+          data: severityValues,
+          backgroundColor: severityBackgroundColors,
+          borderColor: severityBorderColors,
+          borderWidth: 1,
+        },
+      ],
+    };
+    
+    return { scanTypeData, severityData };
+  };
+
 
   if (appsLoading) return <Loading />;
   if (appsIsError) return <ErrorDisplay message={(appsError as any)?.message || 'Failed to load applications'} />;
@@ -88,47 +155,87 @@ const Dashboard: React.FC = () => {
             title={`Statistics for ${selectedApp.appName}`}
             showConfirmButton={false}
             cancelButtonText="Close"
-            maxWidthClass="max-w-lg"
+            maxWidthClass="max-w-2xl" // Changed to max-w-2xl for more space for charts
           >
             {appStatsLoading && <Loading />}
             {appStatsIsError && <ErrorDisplay message={(appStatsError as any)?.message || 'Failed to load statistics for this application'} />}
             {appStats && !appStatsLoading && !appStatsIsError && (
-              <div className="space-y-4 p-1">
-                <div className="p-3 bg-blue-100 rounded-md shadow-sm">
-                  <p className="text-sm text-blue-700">
-                    <strong>SonarQube Scans:</strong> 
-                    <span className="font-bold text-blue-800 ml-2">{appStats.staticScanCount}</span>
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-md shadow-sm">
-                  <p className="text-sm text-green-700">
-                    <strong>Zap Scans:</strong> 
-                    <span className="font-bold text-green-800 ml-2">{appStats.dynamicScanCount}</span>
-                  </p>
-                </div>
-                <div className="p-3 bg-purple-100 rounded-md shadow-sm">
-                  <p className="text-sm text-purple-700">
-                    <strong>Total Issues:</strong> 
-                    <span className="font-bold text-purple-800 ml-2">{appStats.totalIssues}</span>
-                  </p>
-                </div>
+              <div className="space-y-6 p-1"> {/* Increased space-y for better separation */}
                 
-                <div className="p-3 bg-gray-50 rounded-md shadow-sm">
-                  <h4 className="text-md font-semibold mb-2 text-gray-700">Severity Distribution:</h4>
+                {/* Original Stats - kept for reference or if charts fail */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="p-3 bg-blue-100 rounded-md shadow-sm text-center">
+                    <p className="text-sm text-blue-700 font-semibold">SonarQube Scans</p>
+                    <p className="text-2xl font-bold text-blue-800">{appStats.staticScanCount}</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-md shadow-sm text-center">
+                    <p className="text-sm text-green-700 font-semibold">ZAP Scans</p>
+                    <p className="text-2xl font-bold text-green-800">{appStats.dynamicScanCount}</p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-md shadow-sm text-center">
+                    <p className="text-sm text-purple-700 font-semibold">Total Issues</p>
+                    <p className="text-2xl font-bold text-purple-800">{appStats.totalIssues}</p>
+                  </div>
+                </div>
+
+                {(() => {
+                  const { scanTypeData, severityData } = prepareChartData(appStats);
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Scan Types</h4>
+                        {appStats.staticScanCount > 0 || appStats.dynamicScanCount > 0 ? (
+                           <Bar 
+                             data={scanTypeData} 
+                             options={{
+                               responsive: true,
+                               plugins: { legend: { display: false }, title: { display: false } } 
+                             }}
+                           />
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">No scan data available for chart.</p>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Issue Severity Distribution</h4>
+                        {Object.keys(appStats.severityDistribution).length > 0 && appStats.totalIssues > 0 ? (
+                          <div className="max-w-xs mx-auto"> {/* Constrain doughnut chart size */}
+                            <Doughnut 
+                              data={severityData} 
+                              options={{ 
+                                responsive: true, 
+                                maintainAspectRatio: true,
+                                plugins: { 
+                                  legend: { position: 'top' as const }, 
+                                  title: { display: false } 
+                                } 
+                              }} 
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">No severity data available for chart.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                {/* Detailed Severity List - can be kept or removed based on preference */}
+                <div className="p-3 bg-gray-50 rounded-md shadow-sm mt-6">
+                  <h4 className="text-md font-semibold mb-2 text-gray-700">Severity Breakdown:</h4>
                   {appStats.severityDistribution && Object.keys(appStats.severityDistribution).length > 0 ? (
                     <ul className="space-y-1 text-sm">
-                      {['High', 'Medium', 'Low', 'Informational'] // Use capitalized keys to match API response
+                      {['High', 'Medium', 'Low', 'Informational'] 
                         .filter(level => appStats.severityDistribution[level] !== undefined && appStats.severityDistribution[level] !== null)
-                        .map((severityKey) => { // severityKey will be 'High', 'Medium', etc.
-                        const count = appStats.severityDistribution[severityKey]; // Access with capitalized key
+                        .map((severityKey) => { 
+                        const count = appStats.severityDistribution[severityKey]; 
                         let textColor = 'text-gray-600';
-                        // Comparisons for styling use toLowerCase(), which is robust
                         if (severityKey.toLowerCase() === 'high') textColor = 'text-red-600 font-semibold';
                         else if (severityKey.toLowerCase() === 'medium') textColor = 'text-yellow-600 font-semibold';
                         else if (severityKey.toLowerCase() === 'low') textColor = 'text-green-600';
                         else if (severityKey.toLowerCase() === 'informational') textColor = 'text-blue-500';
                         
-                        let bgColor = 'bg-gray-100'; // Default background
+                        let bgColor = 'bg-gray-100'; 
                         if (severityKey.toLowerCase() === 'high') bgColor = 'bg-red-50';
                         else if (severityKey.toLowerCase() === 'medium') bgColor = 'bg-yellow-50';
                         else if (severityKey.toLowerCase() === 'low') bgColor = 'bg-green-50';
@@ -136,7 +243,6 @@ const Dashboard: React.FC = () => {
 
                         return (
                           <li key={severityKey} className={`flex justify-between items-center p-1.5 rounded ${bgColor}`}>
-                            {/* Display text is lowercased then capitalized by CSS class */}
                             <span className={`capitalize ${textColor}`}>{severityKey.toLowerCase()}</span>
                             <span className={`font-bold ${textColor}`}>{count}</span>
                           </li>
