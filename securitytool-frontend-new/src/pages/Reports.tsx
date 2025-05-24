@@ -5,7 +5,6 @@ import { getReport } from '../api/reportApi';
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
-import Layout from '../components/Layout';
 import { ApplicationResponseDTO } from '../types/application';
 import { ReportResponseDTO, SecurityIssueResponseDTO } from '../types/report';
 
@@ -209,7 +208,6 @@ const Reports: React.FC = () => {
       issue.issueType,
       issue.severity,
       `"${issue.description?.replace(/"/g, '\'') || ''}"`,
-      `"${issue.remediation?.replace(/"/g, '\'') || ''}"`,
       `"${issue.solution?.replace(/"/g, '\'') || ''}"`,
       issue.status,
       issue.createdAt,
@@ -423,19 +421,25 @@ const Reports: React.FC = () => {
                       <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
                         issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
                         issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        issue.severity.toLowerCase() === 'low' ? 'bg-blue-100 text-blue-700' :
+                        issue.severity.toLowerCase() === 'low' ? 'bg-teal-100 text-teal-700' :
+                        issue.severity.toLowerCase() === 'informational' ? 'bg-blue-100 text-blue-700' :
                         'bg-gray-100 text-gray-700'
                       }`}>
                         {issue.severity}
                       </span>
                     </p>
                     <p><strong>Description:</strong> {issue.description}</p>
-                    {issue.remediation && <p><strong>Remediation:</strong> {issue.remediation}</p>}
+                    {issue.reference && (
+                      <p><strong>Reference:</strong> <a href={issue.reference} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">
+    {issue.reference.length > 60 ? `${issue.reference.slice(0, 50)}...${issue.reference.slice(-10)}` : issue.reference}
+  </a></p>
+                    )}
                     <p><strong>Status:</strong> 
                       <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
                         issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
                         issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        issue.severity.toLowerCase() === 'low' ? 'bg-blue-100 text-blue-700' :
+                        issue.severity.toLowerCase() === 'low' ? 'bg-teal-100 text-teal-700' :
+                        issue.severity.toLowerCase() === 'informational' ? 'bg-blue-100 text-blue-700' :
                         'bg-gray-100 text-gray-700'
                       }`}>
                         {issue.status}

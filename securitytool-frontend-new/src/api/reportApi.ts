@@ -45,7 +45,7 @@ export const getReport = async (resultId: number): Promise<ReportResponseDTO> =>
         issueType: apiIssue.issueType,
         severity: apiIssue.severity,
         description: apiIssue.description,
-        remediation: apiIssue.remediation,
+        reference: apiIssue.reference, // Add reference field
         solution: apiIssue.solution, // Added new field
         status: apiIssue.status,
         createdAt: apiIssue.createdAt || new Date(0).toISOString(), // Default for null createdAt

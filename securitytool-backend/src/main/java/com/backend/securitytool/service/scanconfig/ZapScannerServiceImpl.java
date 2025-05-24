@@ -199,7 +199,7 @@ public class ZapScannerServiceImpl implements ZapScannerService {
 
     /**
      * Save all alerts from ZAP response as SecurityIssue entities (no top 5 limit).
-     * Extract only risk, description, and solution fields.
+     * Extract only risk, description, solution, and reference fields.
      * Standardize solution before saving.
      */
     private void saveAllZapAlertsToSecurityIssues(String zapResponse, ScanResult scanResult) throws IOException {
@@ -220,6 +220,8 @@ public class ZapScannerServiceImpl implements ZapScannerService {
                 String solution = alert.path("solution").asText();
                 solution = standardizeSolution(solution, MAX_SOLUTION_LENGTH);
                 issue.setSolution(solution);
+                // Lưu trường reference từ alert
+                issue.setReference(alert.path("reference").asText());
                 securityIssueRepository.save(issue);
             }
         }
@@ -287,4 +289,3 @@ public class ZapScannerServiceImpl implements ZapScannerService {
         return scanResponses;
     }
 }
-

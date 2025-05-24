@@ -15,7 +15,7 @@ public class ReportExporter {
                     .append(escapeCsvField(issue.getIssueType())).append(",")
                     .append(escapeCsvField(issue.getSeverity())).append(",")
                     .append(escapeCsvField(issue.getDescription())).append(",")
-                    .append(escapeCsvField(issue.getRemediation())).append(",")
+                    .append(escapeCsvField(issue.getReference())).append(",")
                     .append(escapeCsvField(issue.getStatus())).append("\n");
         }
 

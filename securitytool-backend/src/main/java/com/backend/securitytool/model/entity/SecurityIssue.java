@@ -38,8 +38,8 @@ public class SecurityIssue {
     private String description;
 
     @Lob
-    @Column(name = "remediation")
-    private String remediation;
+    @Column(name = "reference",columnDefinition = "LONGTEXT")
+    private String reference;
 
     @Lob
     @Column(name = "solution", columnDefinition = "LONGTEXT")

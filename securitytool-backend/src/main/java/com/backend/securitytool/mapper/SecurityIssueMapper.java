@@ -5,7 +5,6 @@ import com.backend.securitytool.model.entity.SecurityIssue;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-
 @Mapper(componentModel = "spring")
 public interface SecurityIssueMapper {
 
@@ -13,7 +12,7 @@ public interface SecurityIssueMapper {
     @Mapping(source = "issueType", target = "issueType")
     @Mapping(source = "severity", target = "severity")
     @Mapping(source = "description", target = "description")
-    @Mapping(source = "remediation", target = "remediation")
+    @Mapping(source = "reference", target = "reference") // đổi từ remediation sang reference
     @Mapping(source = "solution", target = "solution")
     @Mapping(source = "status", target = "status")
     @Mapping(source = "result.id", target = "resultId")
