@@ -7,7 +7,7 @@ import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
 import { ApplicationResponseDTO } from '../types/application';
 import { AppDashboardStatsDTO } from '../types/dashboard';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,6 +18,7 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels'; // Import the plugin
 
 ChartJS.register(
   CategoryScale,
@@ -26,7 +27,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  ChartDataLabels // Register the plugin
 );
 
 const Dashboard: React.FC = () => {
@@ -68,6 +70,8 @@ const Dashboard: React.FC = () => {
   };
 
   const prepareChartData = (stats: AppDashboardStatsDTO) => {
+    // scanTypeData is no longer used, so its definition can be removed or commented out.
+    /*
     const scanTypeData = {
       labels: ['SonarQube Scans', 'ZAP Scans'],
       datasets: [
@@ -80,6 +84,7 @@ const Dashboard: React.FC = () => {
         },
       ],
     };
+    */
 
     const severityLabels = Object.keys(stats.severityDistribution);
     const severityValues = Object.values(stats.severityDistribution);
@@ -109,7 +114,7 @@ const Dashboard: React.FC = () => {
       ],
     };
     
-    return { scanTypeData, severityData };
+    return { severityData };
   };
 
 
@@ -179,9 +184,11 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {(() => {
-                  const { scanTypeData, severityData } = prepareChartData(appStats);
+                  // const { scanTypeData, severityData } = prepareChartData(appStats); // Old line
+                  const { severityData } = prepareChartData(appStats); // Corrected: only severityData is needed
                   return (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-1 gap-6"> {/* Changed to single column for Doughnut chart only */}
+                      {/* Bar chart section removed
                       <div>
                         <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Scan Types</h4>
                         {appStats.staticScanCount > 0 || appStats.dynamicScanCount > 0 ? (
@@ -196,6 +203,7 @@ const Dashboard: React.FC = () => {
                           <p className="text-sm text-gray-500 text-center py-4">No scan data available for chart.</p>
                         )}
                       </div>
+                      */}
                       <div>
                         <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Issue Severity Distribution</h4>
                         {Object.keys(appStats.severityDistribution).length > 0 && appStats.totalIssues > 0 ? (
@@ -207,7 +215,44 @@ const Dashboard: React.FC = () => {
                                 maintainAspectRatio: true,
                                 plugins: { 
                                   legend: { position: 'top' as const }, 
-                                  title: { display: false } 
+                                  title: { display: false },
+                                  tooltip: {
+                                    callbacks: {
+                                      label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                          label += ': ';
+                                        }
+                                        // Ensure context.parsed is a number and data values are numbers for sum
+                                        if (context.parsed !== null && typeof context.parsed === 'number') {
+                                          const datasetData = context.dataset.data as number[];
+                                          const total = datasetData.reduce((acc: number, val: number | null) => acc + (Number(val) || 0), 0);
+                                          const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) + '%' : '0%';
+                                          label += (context.raw as number) + ' (' + percentage + ')';
+                                        }
+                                        return label;
+                                      }
+                                    }
+                                  },
+                                  datalabels: { // Configuration for chartjs-plugin-datalabels
+                                    formatter: (value, context) => {
+                                      // Ensure value is a number and data values are numbers for sum
+                                      const currentValue = Number(value) || 0;
+                                      const datasetData = context.chart.data.datasets[0].data as number[];
+                                      const total = datasetData.reduce((acc: number, val: number | null) => acc + (Number(val) || 0), 0);
+                                      const percentage = total > 0 ? ((currentValue / total) * 100).toFixed(1) + '%' : '0%';
+                                      return percentage;
+                                    },
+                                    color: '#fff',
+                                    font: {
+                                      weight: 'bold' as const
+                                    },
+                                    // backgroundColor: function(context) { // Optional: for label background
+                                    //   return context.dataset.backgroundColor;
+                                    // },
+                                    // borderRadius: 4,
+                                    // padding: 6
+                                  }
                                 } 
                               }} 
                             />
