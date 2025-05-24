@@ -429,11 +429,13 @@ const Reports: React.FC = () => {
                       </span>
                     </p>
                     <p><strong>Description:</strong> {issue.description}</p>
-                    {issue.reference && (
-                      <p><strong>Reference:</strong> <a href={issue.reference} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">
-    {issue.reference.length > 60 ? `${issue.reference.slice(0, 50)}...${issue.reference.slice(-10)}` : issue.reference}
-  </a></p>
-                    )}
+                    <p><strong>Reference:</strong> {issue.reference ? (
+                      <a href={issue.reference} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">
+                        {issue.reference.length > 60 ? `${issue.reference.slice(0, 50)}...${issue.reference.slice(-10)}` : issue.reference}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">N/A</span>
+                    )}</p>
                     <p><strong>Status:</strong> 
                       <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
                         issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
