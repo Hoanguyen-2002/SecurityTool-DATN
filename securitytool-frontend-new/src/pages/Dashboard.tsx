@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
             case 'high': return 'rgba(255, 99, 132, 0.6)'; // Red
             case 'medium': return 'rgba(255, 206, 86, 0.6)'; // Yellow
             case 'low': return 'rgba(75, 192, 192, 0.6)'; // Green/Teal
-            case 'informational': return 'rgba(153, 102, 255, 0.6)'; // Purple
+            case 'informational': return 'rgba(59, 130, 246, 0.6)'; // Blue (Tailwind blue-500)
             default: return 'rgba(201, 203, 207, 0.6)'; // Grey for others
         }
     });
