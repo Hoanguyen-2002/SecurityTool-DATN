@@ -482,6 +482,7 @@ const ScanConfig: React.FC = () => {
           showConfirmButton={false}
           showCancelButton={true}
           cancelButtonText="Close"
+          maxWidthClass="max-w-2xl" // Changed from default to make it wider
         >
           <div className="max-h-96 overflow-y-auto">
             {historyModalContent.isLoading && <Loading />}
@@ -517,48 +518,73 @@ const ScanConfig: React.FC = () => {
                         <div className="mt-1">
                           <p className="font-semibold">Summary:</p>
                           {historyModalContent.scanType === 'sonar' ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-700 mt-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1"> {/* Adjusted gap */}
                               {scan.summary.split(',').map((item: string, index: number) => {
                                 const trimmedItem = item.trim();
                                 if (!trimmedItem) return null;
+                                
                                 const colonIndex = trimmedItem.indexOf(':');
-                                let keyPart: string;
-                                let valuePart: string;
-                                if (colonIndex === -1) {
-                                  keyPart = trimmedItem;
-                                  valuePart = '';
+                                let labelPart: string;
+                                let statusPart: string;
+
+                                if (colonIndex !== -1) {
+                                  labelPart = trimmedItem.substring(0, colonIndex).trim();
+                                  statusPart = trimmedItem.substring(colonIndex + 1).trim();
+                                  if (statusPart === "") { // Treat empty value as N/A
+                                    statusPart = 'N/A';
+                                  }
                                 } else {
-                                  keyPart = trimmedItem.substring(0, colonIndex);
-                                  valuePart = trimmedItem.substring(colonIndex + 1);
+                                  labelPart = trimmedItem; // No colon, whole item is the label
+                                  statusPart = 'N/A';    // Status is N/A
                                 }
-                                const cleanedKey = keyPart.trim().replace(/"/g, '');
-                                const cleanedValue = valuePart.trim().replace(/"/g, '').replace(/;/g, '');
-                                if ((!cleanedKey && !cleanedValue) || (!cleanedKey && valuePart.trim() === '')) return null;
+                                
+                                const lowerStatusPart = statusPart.toLowerCase();
+                                const statusClass = lowerStatusPart === 'good'
+                                  ? 'bg-green-100 text-green-700'
+                                  : lowerStatusPart === 'bad'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-gray-100 text-gray-700'; // Default to gray for 'N/A' or others
+                                
                                 return (
-                                  <div key={index} className="flex items-center">
-                                    <span className="font-medium text-gray-800 mr-1">{cleanedKey}{cleanedValue ? ':' : ''}</span>
-                                    <span className={
-                                      cleanedValue.trim().toLowerCase() === 'good' ? 'text-green-700 font-semibold' :
-                                      cleanedValue.trim().toLowerCase() === 'bad' ? 'text-red-700 font-semibold' :
-                                      'text-gray-700'
-                                    }>{cleanedValue}</span>
+                                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg shadow hover:shadow-md transition-shadow duration-200">
+                                    <span className="font-medium text-gray-700 text-xs truncate mr-2" title={labelPart}>{labelPart.replace(/_/g, ' ')}:</span>
+                                    <span className={`px-2.5 py-1 ${statusClass} rounded-full text-xs font-semibold`}>
+                                      {statusPart}
+                                    </span>
                                   </div>
                                 );
                               })}
                             </div>
                           ) : (
                             <div className="flex flex-wrap gap-2 mt-1">
-                              {scan.summary.split(',').map((item: string, index: number) => {
-                                const trimmedItem = item.trim();
-                                if (!trimmedItem) return null;
-                                // Remove quotes and semicolons
-                                const cleaned = trimmedItem.replace(/"/g, '').replace(/;/g, '');
-                                return (
-                                  <span key={index} className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium shadow-sm">
-                                    {cleaned}
-                                  </span>
-                                );
-                              })}
+                              {(() => {
+                                const zapBadgeColors = [
+                                  'bg-red-100 text-red-700 hover:bg-red-200',
+                                  'bg-orange-100 text-orange-700 hover:bg-orange-200',
+                                  'bg-yellow-100 text-yellow-700 hover:bg-yellow-200',
+                                  'bg-rose-100 text-rose-700 hover:bg-rose-200',
+                                  'bg-pink-100 text-pink-700 hover:bg-pink-200',
+                                  'bg-amber-100 text-amber-700 hover:bg-amber-200', // Added amber
+                                  'bg-lime-100 text-lime-700 hover:bg-lime-200' // Added lime for variety, can be adjusted
+                                ];
+                                const summaryItems = scan.summary.split(',');
+
+                                return summaryItems.map((item: string, index: number) => {
+                                  const trimmedItem = item.trim();
+                                  if (!trimmedItem) return null;
+                                  const cleaned = trimmedItem.replace(/"/g, '').replace(/;/g, '');
+                                  const colorClass = zapBadgeColors[index % zapBadgeColors.length];
+                                  return (
+                                    <span 
+                                      key={index} 
+                                      className={`px-3 py-1.5 ${colorClass} rounded-full text-xs font-medium shadow-sm transition-all duration-150 ease-in-out cursor-default`}
+                                      title={cleaned}
+                                    >
+                                      {cleaned}
+                                    </span>
+                                  );
+                                });
+                              })()}
                             </div>
                           )}
                         </div>
