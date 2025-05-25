@@ -389,7 +389,7 @@ const ApplicationManagement: React.FC = () => {
               </div>
               <div className="mb-4">
                 <label htmlFor="editAuthInfo" className="block text-sm font-medium text-gray-700">SonarQube Authentication Info (Optional)</label>
-                <textarea id="editAuthInfo" value={editAuthInfo} onChange={e => setEditAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., API Key, Token, etc."></textarea>
+                <textarea id="editAuthInfo" value={editAuthInfo} onChange={e => setEditAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Sonarqube authentication key"></textarea>
               </div>
             </div>
           )}
