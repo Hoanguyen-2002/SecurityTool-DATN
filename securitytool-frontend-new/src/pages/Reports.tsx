@@ -446,7 +446,7 @@ const Reports: React.FC = () => {
           showConfirmButton={false}
           showCancelButton={true}
           cancelButtonText="Close"
-          maxWidthClass="max-w-2xl"
+          maxWidthClass="max-w-4xl"
         >
           {issuesModalContent.isLoading && <Loading />}
           {issuesModalContent.error && <ErrorDisplay message={issuesModalContent.error} />}
