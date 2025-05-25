@@ -10,7 +10,7 @@ interface SidebarItem {
 const items: SidebarItem[] = [
   { label: 'Dashboard', path: '/dashboard' },
   { label: 'Applications', path: '/applications' },
-  { label: 'Modules', path: '/modules', isPending: true },
+  // { label: 'Modules', path: '/modules', isPending: true },
   { label: 'Scan Config', path: '/scan-config' },
   { label: 'Business Flow Analyzer', path: '/flow-analyzer' },
   { label: 'Reports', path: '/reports' }
