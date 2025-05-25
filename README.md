@@ -28,20 +28,23 @@ This document walks you through:
    ```bash
    docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-ccommunity
     ````
-
-## 2. Install and Run Owasp Zap
-1. **Run below command on IntelliJ IDEA to test project by SonarQube**
+2. **Run below command on IntelliJ IDEA to test project by SonarQube**
 
 ```bash
    mvn clean verify sonar:sonar -Dsonar.host.url=http://localhost:9000" "-Dsonar.projectKey=Bookstore-ecommerce" "-Dsonar.login=sqp_ba790b7c22ad4edf5eba0a855e80c7b8255ab659" -DskipTests
 ```
+## 2. Install and Run Owasp Zap
 
-2. **Run Owasp Zap image on docker**
+1. **Run Owasp Zap image on docker**
+
+```bash
+docker pull zaproxy/zap-stable
+```
 
 ```bash 
 docker run -d -u zap -p 8080:8080 --name zap-stable zaproxy/zap-stable zap-x.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true -config api.addrs.addr.name=".*" -config api.addrs.addr.regex=true
 ```
-3. **Verify ZAP API** 
+2. **Verify ZAP API** 
 ```bash 
 curl http://localhost:8080/JSON/core/view/version 
 ```
