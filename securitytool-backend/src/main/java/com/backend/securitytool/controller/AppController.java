@@ -33,6 +33,18 @@ public class AppController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<CommonResponse<List<ApplicationResponseDTO>>> searchAppsByName(@RequestParam String appName) {
+        List<ApplicationResponseDTO> apps = appManagementService.searchAppsByName(appName);
+        CommonResponse<List<ApplicationResponseDTO>> response = new CommonResponse<>(
+                "success",
+                "Applications retrieved successfully",
+                apps,
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
     @PostMapping
     public ResponseEntity<CommonResponse<ApplicationResponseDTO>> addApp(@RequestBody ApplicationRequestDTO appDTO) {
         ApplicationResponseDTO app = appManagementService.addApp(appDTO);

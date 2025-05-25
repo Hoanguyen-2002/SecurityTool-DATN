@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchApplications } from '../api/applicationApi';
+import { fetchApplications, searchApplications } from '../api/applicationApi';
 import { triggerZapScan, triggerSonarScan, getSonarScansForApplication, getZapScansForApplication } from '../api/scanConfigApi';
 import { associateScanWithApp } from '../api/reportApi';
 import Loading from '../components/Loading';
@@ -54,6 +54,11 @@ const ScanConfig: React.FC = () => {
     error: string | null;
     appId: number;
   } | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<ApplicationResponseDTO[] | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentApp) {
@@ -307,30 +312,76 @@ const ScanConfig: React.FC = () => {
     // setLoadingAllZapScans(prev => ({ ...prev, [appId]: false }));
   };
 
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSearching(true);
+    setSearchError(null);
+    try {
+      if (!searchTerm.trim()) {
+        setSearchResults(null);
+        setSearching(false);
+        return;
+      }
+      const results = await searchApplications(searchTerm.trim());
+      setSearchResults(results.map(app => ({ ...app, appId: Number((app as any).id) })));
+    } catch (err: any) {
+      setSearchError(err.message || 'Search failed.');
+      setSearchResults(null);
+    } finally {
+      setSearching(false);
+    }
+  };
+
   if (isLoading) return <Loading />;
   if (isError && !applications) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Scan Configuration</h1>
-        {/* Optional: A button to refresh all application data or global settings */}
+      <div className="flex items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mr-4">Scan Configuration</h1>
+        <form onSubmit={handleSearch} className="flex items-center">
+          <div className="flex rounded-full shadow-sm bg-white border border-gray-300">
+            <span className="flex items-center pl-3 pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
+            </span>
+            <input
+              type="text"
+              className="pl-2 pr-2 py-2 border-0 rounded-full focus:outline-none focus:border-gray-300 w-56 bg-transparent"
+              placeholder="Search by Application name"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold flex items-center transition-colors hover:bg-blue-600 focus:outline-none border-0 shadow-none"
+              disabled={searching}
+            >
+              <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
+              Search
+            </button>
+          </div>
+          {searchTerm && (
+            <button
+              type="button"
+              className="ml-2 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 rounded-full border border-gray-200 bg-gray-100"
+              onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}
+            >
+              Clear
+            </button>
+          )}
+        </form>
       </div>
+      {searchError && <div className="mb-2"><ErrorDisplay message={searchError} /></div>}
 
-      {isError && applications && 
-        <div className="mb-4">
-          <ErrorDisplay message={error?.message || 'There was an issue fetching applications, but showing cached data.'} />
-        </div>
-      }
       {errorState && 
         <div className="mb-4">
           <ErrorDisplay message={errorState} />
         </div>
       }
 
-      {applications && applications.length > 0 ? (
+      {(searchResults !== null ? searchResults : applications) && (searchResults !== null ? searchResults : applications)!.length > 0 ? (
         <div className="space-y-4"> 
-          {applications.map(app => {
+          {(searchResults !== null ? searchResults : applications)!.map(app => {
             if (!app || app.appId === undefined || app.appId === null || isNaN(Number(app.appId))) {
               console.warn('Skipping rendering application due to missing or invalid appId:', app);
               return null; // Skip rendering this app if appId is invalid

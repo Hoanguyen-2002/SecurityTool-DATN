@@ -77,7 +77,6 @@ public class AppManagementServiceImpl implements AppManagementService{
         return applicationMapper.toResponseDTO(updatedApp);
     }
 
-
     @CacheEvict(value = "apps", allEntries = true)
     public void deleteApp(Integer id) {
         logger.debug("Deleting application with ID: {}", id);
@@ -85,5 +84,14 @@ public class AppManagementServiceImpl implements AppManagementService{
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.APPLICATION_NOT_FOUND + id));
         repository.delete(app);
         logger.info("Application deleted successfully: {}", id);
+    }
+
+    @Override
+    public List<ApplicationResponseDTO> searchAppsByName(String appName) {
+        logger.debug("Searching applications by name: {}", appName);
+        List<TargetApplication> apps = repository.findByAppNameContainingIgnoreCase(appName);
+        return apps.stream()
+                .map(applicationMapper::toResponseDTO)
+                .collect(Collectors.toList());
     }
 }

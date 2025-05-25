@@ -10,4 +10,5 @@ public interface AppManagementService {
     ApplicationResponseDTO addApp(ApplicationRequestDTO dto);
     ApplicationResponseDTO updateApp(Integer id, ApplicationRequestDTO dto);
     void deleteApp(Integer id);
+    List<ApplicationResponseDTO> searchAppsByName(String appName);
 }

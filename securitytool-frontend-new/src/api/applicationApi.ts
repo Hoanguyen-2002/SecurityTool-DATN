@@ -24,3 +24,8 @@ export const updateApplication = async (
 export const deleteApplication = async (appId: number): Promise<void> => {
     await instance.delete(`/apps/${appId}`);
   };
+
+export const searchApplications = async (appName: string): Promise<ApplicationResponseDTO[]> => {
+    const res = await instance.get(`/apps/search?appName=${encodeURIComponent(appName)}`);
+    return res.data.data;
+  };
