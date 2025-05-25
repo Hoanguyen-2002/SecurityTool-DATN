@@ -359,8 +359,8 @@ const ApplicationManagement: React.FC = () => {
             <input type="text" id="newAppUrl" value={newAppUrl} onChange={e => setNewAppUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
           </div>
           <div>
-            <label htmlFor="newAuthInfo" className="block text-sm font-medium text-gray-700">Authentication Info (Optional)</label>
-            <textarea id="newAuthInfo" value={newAuthInfo} onChange={e => setNewAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., API Key, Token, etc."></textarea>
+            <label htmlFor="newAuthInfo" className="block text-sm font-medium text-gray-700">SonarQube Authentication Info (Optional)</label>
+            <textarea id="newAuthInfo" value={newAuthInfo} onChange={e => setNewAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Sonarqube authentication key"></textarea>
           </div>
         </div>
         {addModalError && <ErrorDisplay message={addModalError} />}
