@@ -49,6 +49,8 @@ const Reports: React.FC = () => {
   const [searchResults, setSearchResults] = useState<ApplicationResponseDTO[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  const [severityFilter, setSeverityFilter] = useState('');
+
   useEffect(() => {
     if (Object.keys(appReports).length > 0 || localStorage.getItem(APP_REPORTS_STORAGE_KEY)) {
       localStorage.setItem(APP_REPORTS_STORAGE_KEY, JSON.stringify(appReports));
@@ -444,61 +446,70 @@ const Reports: React.FC = () => {
           showConfirmButton={false}
           showCancelButton={true}
           cancelButtonText="Close"
-          maxWidthClass="max-w-2xl" // Increased width for this specific modal instance
+          maxWidthClass="max-w-2xl"
         >
           {issuesModalContent.isLoading && <Loading />}
           {issuesModalContent.error && <ErrorDisplay message={issuesModalContent.error} />}
           {!issuesModalContent.isLoading && !issuesModalContent.error && (
             issuesModalContent.issues && issuesModalContent.issues.length > 0 ? (
-              <ul className="space-y-3 max-h-96 overflow-y-auto">
-                {issuesModalContent.issues.map((issue) => (
-                  <li key={issue.issueId} className="p-3 bg-gray-50 rounded border border-gray-200">
-                    <p><strong>Issue ID:</strong> <span className="font-mono text-xs bg-gray-200 px-1 rounded">{issue.issueId}</span></p>
-                    <p><strong>Type:</strong> 
-                      <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${ 
-                        issue.issueType?.toLowerCase() === 'sonarqube' ? 'bg-blue-100 text-blue-700' : 
-                        issue.issueType?.toLowerCase() === 'zap' ? 'bg-green-100 text-green-700' : 
-                        'bg-gray-100 text-gray-700' 
-                      }`}>
-                        {issue.issueType}
-                      </span>
-                    </p>
-                    <p><strong>Severity:</strong> 
-                      <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
-                        issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
-                        issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        issue.severity.toLowerCase() === 'low' ? 'bg-teal-100 text-teal-700' :
-                        issue.severity.toLowerCase() === 'informational' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {issue.severity}
-                      </span>
-                    </p>
-                    <p><strong>Description:</strong> {issue.description}</p>
-                    <p><strong>Reference:</strong> {issue.reference ? (
-                      <a href={issue.reference} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all">
-                        {issue.reference.length > 60 ? `${issue.reference.slice(0, 50)}...${issue.reference.slice(-10)}` : issue.reference}
-                      </a>
-                    ) : (
-                      <span className="text-gray-400">N/A</span>
-                    )}</p>
-                    <p><strong>Status:</strong> 
-                      <span className={`font-medium ml-1 px-2 py-0.5 rounded-full text-xs ${
-                        issue.severity.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' :
-                        issue.severity.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        issue.severity.toLowerCase() === 'low' ? 'bg-teal-100 text-teal-700' :
-                        issue.severity.toLowerCase() === 'informational' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {issue.status}
-                      </span>
-                    </p>
-                    {issue.endpointId && <p className="text-xs text-gray-500">Endpoint ID: {issue.endpointId}</p>}
-                  </li>
-                ))}
-              </ul>
+              <>
+                {/* Severity Filter */}
+                <div className="mb-4 flex items-center space-x-2">
+                  <label htmlFor="severityFilter" className="text-sm font-medium text-gray-700">Filter by Severity:</label>
+                  <select
+                    id="severityFilter"
+                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+                    value={severityFilter}
+                    onChange={e => setSeverityFilter(e.target.value)}
+                  >
+                    <option value="">All</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                    <option value="Informational">Informational</option>
+                  </select>
+                </div>
+                <ul className="space-y-3 max-h-96 overflow-y-auto">
+                  {(() => {
+                    const filtered = issuesModalContent.issues.filter(issue => !severityFilter || (issue.severity && issue.severity.toLowerCase() === severityFilter.toLowerCase()));
+                    if (filtered.length === 0) {
+                      return <li className="text-gray-500 italic px-2">No issues found for this severity level.</li>;
+                    }
+                    return filtered.map((issue) => (
+                      <li key={issue.issueId} className="bg-gray-50 rounded p-3 border border-gray-200">
+                        <div className="mb-1 font-semibold text-gray-800">Issue ID: <span className="font-mono text-xs bg-gray-200 px-1 rounded">{issue.issueId}</span></div>
+                        <div className="mb-1"><span className="font-semibold">Type:</span> <span className="inline-block px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">{issue.issueType}</span></div>
+                        <div className="mb-1"><span className="font-semibold">Severity:</span> <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${issue.severity === 'Critical' ? 'bg-red-200 text-red-800' : issue.severity === 'High' ? 'bg-orange-200 text-orange-800' : issue.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : issue.severity === 'Low' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{issue.severity}</span></div>
+                        <div className="mb-1"><span className="font-semibold">Description:</span> {issue.description}</div>
+                        {/* Only show Reference if not SonarQube */}
+                        {issue.issueType === 'Zap' && issue.reference ? (
+                          <div className="mb-1">
+                            <span className="font-semibold">Reference:</span>
+                            <ul className="list-disc list-inside border-l-4 border-blue-200 bg-blue-50 px-3 py-2 mt-1 rounded space-y-1 ml-2">
+                              {issue.reference.split(/\s+/).map((ref, idx) =>
+                                /^https?:\/\//.test(ref) ? (
+                                  <li key={idx}>
+                                    <a href={ref} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline break-all">
+                                      {ref}
+                                    </a>
+                                  </li>
+                                ) : (
+                                  <li key={idx} className="text-gray-700">{ref}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        ) : issue.issueType !== 'SonarQube' && (
+                          <div className="mb-1"><span className="font-semibold">Reference:</span> {issue.reference || 'N/A'}</div>
+                        )}
+                        <div className="mb-1"><span className="font-semibold">Status:</span> <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${issue.severity === 'Critical' ? 'bg-red-200 text-red-800' : issue.severity === 'High' ? 'bg-orange-200 text-orange-800' : issue.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : issue.severity === 'Low' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{issue.status}</span></div>
+                      </li>
+                    ));
+                  })()}
+                </ul>
+              </>
             ) : (
-              <p className="mt-4 text-sm text-gray-500">No security issues found in this report.</p>
+              <p className="text-sm text-gray-500 mt-2">No issues found for this report.</p>
             )
           )}
         </Modal>
