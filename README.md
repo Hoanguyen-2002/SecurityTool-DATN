@@ -14,7 +14,8 @@ This document walks you through:
 - **Docker** installed and running  
 - **Java** (JDK 17+) and **Maven** installed  
 - Free ports **9000** (SonarQube) and **8080** (ZAP) on your host
-
+- Run ```yarn install``` to install node modules and ```yarn start``` to run front-end
+- Back-end run on 8081 port
 ---
 
 ## 1. Install & Run SonarQube
