@@ -35,6 +35,17 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
 
     @Override
     public BusinessFlowResponseDTO createFlow(BusinessFlowRequestDTO requestDTO) {
+        // Validate resultId is SonarQube scan result
+        if (requestDTO.getResultId() != null) {
+            var scanResultOpt = scanResultRepository.findById(requestDTO.getResultId());
+            if (scanResultOpt.isEmpty()) {
+                throw new RuntimeException("Scan result not found");
+            }
+            var scanResult = scanResultOpt.get();
+            if (!"static".equalsIgnoreCase(scanResult.getScanType())) {
+                throw new RuntimeException("Only SonarQube scan result is allowed for business flow. Please provide a valid SonarQube scan result id.");
+            }
+        }
         BusinessFlow entity = businessFlowMapper.toEntity(requestDTO);
         if (requestDTO.getAppId() != null) {
             entity.setApp(businessFlowMapper.toEntity(requestDTO).getApp());
@@ -48,6 +59,17 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
         Optional<BusinessFlow> optional = businessFlowRepository.findById(id);
         if (optional.isEmpty()) {
             throw new RuntimeException("Business flow not found");
+        }
+        // Validate resultId is SonarQube scan result
+        if (requestDTO.getResultId() != null) {
+            var scanResultOpt = scanResultRepository.findById(requestDTO.getResultId());
+            if (scanResultOpt.isEmpty()) {
+                throw new RuntimeException("Scan result not found");
+            }
+            var scanResult = scanResultOpt.get();
+            if (!"static".equalsIgnoreCase(scanResult.getScanType())) {
+                throw new RuntimeException("Only SonarQube scan result is allowed for business flow. Please provide a valid SonarQube scan result id.");
+            }
         }
         BusinessFlow entity = optional.get();
         entity.setFlowName(requestDTO.getFlowName());

@@ -39,27 +39,38 @@ const FlowAnalyzer: React.FC = () => {
   const [searchResults, setSearchResults] = useState<ApplicationResponseDTO[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  const [addFlowResultIdError, setAddFlowResultIdError] = useState<string | null>(null);
+  const [editFlowResultIdError, setEditFlowResultIdError] = useState<string | null>(null);
+
   const addFlowMutation = useMutation<BusinessFlowResponseDTO, Error, NewFlowPayload>({
     mutationFn: createFlow,
     onSuccess: () => {
       setIsAddFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
     },
-    onError: (error) => {
-      // Consider setting an error state for the modal to display
-      alert(`Failed to add flow: ${error.message}`);
+    onError: (error: any) => {
+      // Show error below input instead of alert
+      if (error?.response?.status === 404 || error?.response?.status === 500) {
+        setAddFlowResultIdError('Result ID not found.');
+      } else {
+        setAddFlowResultIdError(error.message || 'Failed to add flow.');
+      }
     }
   });
 
   const updateFlowMutation = useMutation<BusinessFlowResponseDTO, Error, BusinessFlowResponseDTO>({
     mutationFn: updateFlow,
     onSuccess: () => {
-      // alert('Flow updated successfully!'); // Consider toast
       setIsEditFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
     },
-    onError: (error) => {
-      alert(`Failed to update flow: ${error.message}`);
+    onError: (error: any) => {
+      // Show error below input instead of alert
+      if (error?.response?.status === 404 || error?.response?.status === 500) {
+        setEditFlowResultIdError('Result ID not found.');
+      } else {
+        setEditFlowResultIdError(error.message || 'Failed to update flow.');
+      }
     }
   });
 
@@ -449,11 +460,25 @@ const FlowAnalyzer: React.FC = () => {
               name="resultId"
               id="resultId"
               value={newFlowData.resultId}
-              onChange={handleNewFlowInputChange}
+              onChange={e => {
+                handleNewFlowInputChange(e);
+                // Validation: ZAP scan result IDs are not allowed
+                const val = e.target.value;
+                if (val && isNaN(Number(val))) {
+                  setAddFlowResultIdError('Only SonarQube scan result IDs are allowed.');
+                } else if (val && String(val).toLowerCase().includes('zap')) {
+                  setAddFlowResultIdError('ZAP scan result IDs are not allowed.');
+                } else {
+                  setAddFlowResultIdError(null);
+                }
+              }}
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
               placeholder="Enter scan result ID"
               min={0}
             />
+            {addFlowResultIdError && (
+              <div className="text-red-600 text-xs mt-1">{addFlowResultIdError}</div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">API Endpoints</label>
@@ -613,17 +638,31 @@ const FlowAnalyzer: React.FC = () => {
                     />
                 </div>
                 <div>
-                    <label htmlFor="editResultId" className="block text-sm font-semibold text-gray-700 mb-1">Related Scan Result ID</label>
+                    <label htmlFor="editResultId" className="block text-sm font-semibold text-gray-700 mb-1">SonarQube Scan Result ID</label>
                     <input
                         type="number"
                         name="resultId"
                         id="editResultId"
                         value={editingFlowData.resultId}
-                        onChange={handleEditFlowInputChange}
+                        onChange={e => {
+                          handleEditFlowInputChange(e);
+                          // Validation: ZAP scan result IDs are not allowed
+                          const val = e.target.value;
+                          if (val && isNaN(Number(val))) {
+                            setEditFlowResultIdError('Only SonarQube scan result IDs are allowed.');
+                          } else if (val && String(val).toLowerCase().includes('zap')) {
+                            setEditFlowResultIdError('ZAP scan result IDs are not allowed.');
+                          } else {
+                            setEditFlowResultIdError(null);
+                          }
+                        }}
                         className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                         placeholder="Enter scan result ID"
                         min={0}
-                    />
+                      />
+                      {editFlowResultIdError && (
+                        <div className="text-red-600 text-xs mt-1">{editFlowResultIdError}</div>
+                      )}
                 </div>
                 <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">API Endpoints</label>
@@ -658,7 +697,6 @@ const FlowAnalyzer: React.FC = () => {
                     </button>
                 </div>
             </div>
-            {updateFlowMutation.isError && <ErrorDisplay message={(updateFlowMutation.error as Error)?.message || 'Failed to update flow.'} />}
         </Modal>
       )}
 
