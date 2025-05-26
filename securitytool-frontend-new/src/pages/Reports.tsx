@@ -209,13 +209,15 @@ const Reports: React.FC = () => {
   const convertIssuesToCsv = (issues: SecurityIssueResponseDTO[]): string => {
     if (!issues || issues.length === 0) return "";
 
-    const header = ["Issue ID", "Issue Type", "Severity", "Description", "Remediation", "Solution", "Status", "Created At", "Endpoint ID"];
+    // Corrected Header: "Remediation" is replaced by "Reference"
+    const header = ["Issue ID", "Issue Type", "Severity", "Description", "Reference", "Solution", "Status", "Created At", "Endpoint ID"];
     const rows = issues.map(issue => [
       issue.issueId,
       issue.issueType,
       issue.severity,
-      `"${issue.description?.replace(/"/g, '\'') || ''}"`,
-      `"${issue.solution?.replace(/"/g, '\'') || ''}"`,
+      `"${issue.description?.replace(/"/g, '""') || ''}"`,
+      `"${issue.reference?.replace(/"/g, '""') || ''}"`, // Data from issue.reference
+      `"${issue.solution?.replace(/"/g, '""') || ''}"`,   // Data from issue.solution
       issue.status,
       issue.createdAt,
       issue.endpointId || 'N/A'
