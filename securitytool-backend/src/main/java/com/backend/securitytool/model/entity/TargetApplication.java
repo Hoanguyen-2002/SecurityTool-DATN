@@ -39,6 +39,10 @@ public class TargetApplication {
     @Column(name = "created_at")
     private Instant createdAt = Instant.now();
 
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "updated_at")
+    private Instant updatedAt = Instant.now();
+
     @OneToMany(mappedBy = "app")
     private Set<ApiEndpoint> apiEndpoints;
 

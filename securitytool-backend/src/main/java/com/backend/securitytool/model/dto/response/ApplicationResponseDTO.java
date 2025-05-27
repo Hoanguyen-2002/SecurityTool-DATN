@@ -15,4 +15,5 @@ public class ApplicationResponseDTO {
     private String authInfo;
     private String scanStatus;
     private Instant createdAt;
+    private Instant updatedAt;
 }

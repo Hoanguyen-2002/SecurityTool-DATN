@@ -21,6 +21,7 @@ public interface ApplicationMapper {
     TargetApplication toEntity(ApplicationRequestDTO dto);
 
     @Mapping(source = "createdAt", target = "createdAt")
+    @Mapping(source = "updatedAt", target = "updatedAt")
     ApplicationResponseDTO toResponseDTO(TargetApplication entity);
 
     @Mapping(target = "id", ignore = true)
@@ -29,5 +30,6 @@ public interface ApplicationMapper {
     @Mapping(target = "scanConfigurations", ignore = true)
     @Mapping(target = "scanResults", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDTO(ApplicationRequestDTO dto, @MappingTarget TargetApplication entity);
 }

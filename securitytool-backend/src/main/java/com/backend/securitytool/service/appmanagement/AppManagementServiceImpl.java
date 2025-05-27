@@ -72,7 +72,7 @@ public class AppManagementServiceImpl implements AppManagementService{
                 app.setAuthInfo(dto.getAuthInfo()); // Set authInfo directly without encryption
             }
         }
-
+        app.setUpdatedAt(java.time.Instant.now()); // Update the updatedAt field
         TargetApplication updatedApp = repository.save(app);
         return applicationMapper.toResponseDTO(updatedApp);
     }
