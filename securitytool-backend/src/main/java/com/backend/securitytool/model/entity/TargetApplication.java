@@ -43,6 +43,12 @@ public class TargetApplication {
     @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 
+    @Column(name = "description", length = 1024)
+    private String description;
+
+    @Column(name = "tech_stack", length = 256)
+    private String techStack;
+
     @OneToMany(mappedBy = "app")
     private Set<ApiEndpoint> apiEndpoints;
 

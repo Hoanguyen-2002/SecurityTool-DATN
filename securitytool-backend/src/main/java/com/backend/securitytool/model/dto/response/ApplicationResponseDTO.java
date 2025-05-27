@@ -16,4 +16,6 @@ public class ApplicationResponseDTO {
     private String scanStatus;
     private Instant createdAt;
     private Instant updatedAt;
+    private String description;
+    private String techStack;
 }

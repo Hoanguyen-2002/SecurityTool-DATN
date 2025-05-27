@@ -23,6 +23,12 @@ const ApplicationManagement: React.FC = () => {
   const [addModalError, setAddModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
 
+  // Add state for error messages
+  const [addNameError, setAddNameError] = useState('');
+  const [addUrlError, setAddUrlError] = useState('');
+  const [editNameError, setEditNameError] = useState('');
+  const [editUrlError, setEditUrlError] = useState('');
+
   const createMut = useMutation<ApplicationResponseDTO, Error, ApplicationRequestDTO>({
     mutationFn: createApplication,
     onSuccess: (createdApp) => {
@@ -31,6 +37,8 @@ const ApplicationManagement: React.FC = () => {
       setNewAppName('');
       setNewAppUrl('');
       setNewAuthInfo('');
+      setNewDescription('');
+      setNewTechStack('');
       setAddModalError(null);
     },
     onError: (err) => {
@@ -76,12 +84,16 @@ const ApplicationManagement: React.FC = () => {
   const [newAppName, setNewAppName] = useState('');
   const [newAppUrl, setNewAppUrl] = useState('');
   const [newAuthInfo, setNewAuthInfo] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newTechStack, setNewTechStack] = useState('');
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<ApplicationResponseDTO | null>(null);
   const [editAppName, setEditAppName] = useState('');
   const [editAppUrl, setEditAppUrl] = useState('');
   const [editAuthInfo, setEditAuthInfo] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editTechStack, setEditTechStack] = useState('');
 
   // State for delete confirmation modal
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
@@ -103,38 +115,41 @@ const ApplicationManagement: React.FC = () => {
     setNewAppName('');
     setNewAppUrl('');
     setNewAuthInfo('');
+    setNewDescription('');
+    setNewTechStack('');
     setAddModalError(null); // Clear previous errors
     setIsAddModalOpen(true);
   };
 
   const handleAddSubmit = () => {
-    setAddModalError(null); // Clear previous error before new attempt
-    if (newAppUrl.endsWith('/')) {
-      setAddModalError('Application URL should not end with a trailing slash (/).');
-      return;
-    }
+    setAddModalError(null);
+    setAddNameError('');
+    setAddUrlError('');
+    let hasError = false;
     if (!newAppName.trim()) {
-      setAddModalError('Application Name cannot be empty.');
-      return;
+      setAddNameError('Application Name is required.');
+      hasError = true;
     }
     if (!newAppUrl.trim()) {
-      setAddModalError('Application URL cannot be empty.');
-      return;
+      setAddUrlError('Application URL is required.');
+      hasError = true;
     }
-
-    if (newAppName && newAppUrl) {
-      const payload: ApplicationRequestDTO = {
-        appName: newAppName,
-        appUrl: newAppUrl,
-      };
-      
-      if (newAuthInfo) {
-        payload.authInfo = newAuthInfo;
-      }
-      
-      createMut.mutate(payload);
-      // No longer closing modal or resetting fields here, moved to onSuccess of createMut
+    if (newAppUrl.endsWith('/')) {
+      setAddUrlError('Application URL should not end with a trailing slash (/).');
+      hasError = true;
     }
+    if (hasError) return;
+    const payload: ApplicationRequestDTO = {
+      appName: newAppName,
+      appUrl: newAppUrl,
+      basePath: undefined,
+      authInfo: newAuthInfo,
+      description: newDescription,
+      techStack: newTechStack,
+    };
+    
+    createMut.mutate(payload);
+    // No longer closing modal or resetting fields here, moved to onSuccess of createMut
   };
 
   const handleEdit = (app: ApplicationResponseDTO) => {
@@ -158,39 +173,42 @@ const ApplicationManagement: React.FC = () => {
     setEditAppName(conformantAppForEditing.appName);
     setEditAppUrl(conformantAppForEditing.appUrl);
     setEditAuthInfo(conformantAppForEditing.authInfo || '');
+    setEditDescription(conformantAppForEditing.description || '');
+    setEditTechStack(conformantAppForEditing.techStack || '');
     setEditModalError(null); // Clear previous errors
     setIsEditModalOpen(true);
   };
 
   const handleEditSubmit = () => {
-    setEditModalError(null); // Clear previous error
-    if (editingApp) {
-      if (!editAppName.trim()) {
-        setEditModalError("Application Name cannot be empty.");
-        return;
-      }
-      if (!editAppUrl.trim()) {
-        setEditModalError("Application URL cannot be empty.");
-        return;
-      }
-      if (editAppUrl.endsWith('/')) {
-        setEditModalError('Application URL should not end with a trailing slash (/).');
-        return;
-      }
-
-      const payload: ApplicationRequestDTO = {
-        appName: editAppName,
-        appUrl: editAppUrl,
-        authInfo: editAuthInfo, 
-      };
-
-      console.log('Submitting edit with payload:', payload);
-      updateMut.mutate({ id: editingApp.appId, payload });
-      // No longer closing modal or resetting fields here, moved to onSuccess of updateMut
-    } else {
-      console.error('No application selected for editing.');
-      setEditModalError('No application selected for editing. Please close and try again.');
+    setEditModalError(null);
+    setEditNameError('');
+    setEditUrlError('');
+    let hasError = false;
+    if (!editAppName.trim()) {
+      setEditNameError('Application Name is required.');
+      hasError = true;
     }
+    if (!editAppUrl.trim()) {
+      setEditUrlError('Application URL is required.');
+      hasError = true;
+    }
+    if (editAppUrl.endsWith('/')) {
+      setEditUrlError('Application URL should not end with a trailing slash (/).');
+      hasError = true;
+    }
+    if (!editingApp || hasError) return;
+    const payload: ApplicationRequestDTO = {
+      appName: editAppName,
+      appUrl: editAppUrl,
+      basePath: undefined,
+      authInfo: editAuthInfo,
+      description: editDescription,
+      techStack: editTechStack,
+    };
+
+    console.log('Submitting edit with payload:', payload);
+    updateMut.mutate({ id: editingApp.appId, payload });
+    // No longer closing modal or resetting fields here, moved to onSuccess of updateMut
   };
 
   // Opens the delete confirmation modal
@@ -292,15 +310,18 @@ const ApplicationManagement: React.FC = () => {
               <div className="p-6 flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">{app.appName}</h2>
+                  <p className="text-base font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-1 mb-2 inline-block shadow-sm">Created: {new Date(app.createdAt).toLocaleString()} &nbsp;|&nbsp; Updated: {new Date(app.updatedAt).toLocaleString()}</p>
                   <p className="text-sm text-gray-600">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
-                  {/* Always render the SonarQube Auth info, maskAuthInfo will handle N/A */}
                   <p className="text-sm text-gray-600">SonarQube Auth: {maskAuthInfo(app.authInfo)}</p>
+                  <p className="text-sm text-gray-600">Description: {app.description ? app.description : 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Tech Stack: {app.techStack ? app.techStack : 'N/A'}</p>
                 </div>
 
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(app)}
-                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center justify-center" // Removed w-full
+                    type="button"
+                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center justify-center"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
@@ -351,16 +372,30 @@ const ApplicationManagement: React.FC = () => {
       >
         <div className="space-y-3">
           <div>
-            <label htmlFor="newAppName" className="block text-sm font-medium text-gray-700">Application Name</label>
+            <label htmlFor="newAppName" className="block text-sm font-medium text-gray-700">
+              Application Name <span className="text-red-500">*</span>
+            </label>
             <input type="text" id="newAppName" value={newAppName} onChange={e => setNewAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter application name" required />
+            {addNameError && <p className="text-xs text-red-500 mt-1">{addNameError}</p>}
           </div>
           <div>
-            <label htmlFor="newAppUrl" className="block text-sm font-medium text-gray-700">Application URL</label>
+            <label htmlFor="newAppUrl" className="block text-sm font-medium text-gray-700">
+              Application URL <span className="text-red-500">*</span>
+            </label>
             <input type="text" id="newAppUrl" value={newAppUrl} onChange={e => setNewAppUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
+            {addUrlError && <p className="text-xs text-red-500 mt-1">{addUrlError}</p>}
           </div>
           <div>
-            <label htmlFor="newAuthInfo" className="block text-sm font-medium text-gray-700">SonarQube Authentication Info (Optional)</label>
+            <label htmlFor="newAuthInfo" className="block text-sm font-medium text-gray-700">SonarQube Authentication Info</label>
             <textarea id="newAuthInfo" value={newAuthInfo} onChange={e => setNewAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Sonarqube authentication key"></textarea>
+          </div>
+          <div>
+            <label htmlFor="newDescription" className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea id="newDescription" value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Describe the application"></textarea>
+          </div>
+          <div>
+            <label htmlFor="newTechStack" className="block text-sm font-medium text-gray-700">Tech Stack</label>
+            <input type="text" id="newTechStack" value={newTechStack} onChange={e => setNewTechStack(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., React, Node.js, MongoDB" />
           </div>
         </div>
         {addModalError && <ErrorDisplay message={addModalError} />}
@@ -380,16 +415,30 @@ const ApplicationManagement: React.FC = () => {
           {editingApp && ( // Add this check to ensure editingApp is not null
             <div>
               <div className="mb-4">
-                <label htmlFor="editAppName" className="block text-sm font-medium text-gray-700">Application Name</label>
+                <label htmlFor="editAppName" className="block text-sm font-medium text-gray-700">
+                  Application Name <span className="text-red-500">*</span>
+                </label>
                 <input type="text" id="editAppName" value={editAppName} onChange={e => setEditAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required />
+                {editNameError && <p className="text-xs text-red-500 mt-1">{editNameError}</p>}
               </div>
               <div className="mb-4">
-                <label htmlFor="editAppUrl" className="block text-sm font-medium text-gray-700">Application URL</label>
+                <label htmlFor="editAppUrl" className="block text-sm font-medium text-gray-700">
+                  Application URL <span className="text-red-500">*</span>
+                </label>
                 <input type="text" id="editAppUrl" value={editAppUrl} onChange={e => setEditAppUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
+                {editUrlError && <p className="text-xs text-red-500 mt-1">{editUrlError}</p>}
               </div>
               <div className="mb-4">
-                <label htmlFor="editAuthInfo" className="block text-sm font-medium text-gray-700">SonarQube Authentication Info (Optional)</label>
+                <label htmlFor="editAuthInfo" className="block text-sm font-medium text-gray-700">SonarQube Authentication Info</label>
                 <textarea id="editAuthInfo" value={editAuthInfo} onChange={e => setEditAuthInfo(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Sonarqube authentication key"></textarea>
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editDescription" className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea id="editDescription" value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={2} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Describe the application"></textarea>
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editTechStack" className="block text-sm font-medium text-gray-700">Tech Stack</label>
+                <input type="text" id="editTechStack" value={editTechStack} onChange={e => setEditTechStack(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., React, Node.js, MongoDB" />
               </div>
             </div>
           )}

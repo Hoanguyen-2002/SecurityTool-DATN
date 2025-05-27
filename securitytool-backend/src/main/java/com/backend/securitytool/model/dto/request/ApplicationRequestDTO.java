@@ -10,4 +10,6 @@ public class ApplicationRequestDTO {
     private String appUrl;
     private String basePath;
     private String authInfo;
+    private String description;
+    private String techStack;
 }
