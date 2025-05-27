@@ -187,15 +187,17 @@ const Dashboard: React.FC = () => {
         {(searchResults !== null ? searchResults : apps) && (searchResults !== null ? searchResults : apps)!.length > 0 ? (
           <ul className="space-y-4">
             {(searchResults !== null ? searchResults : apps)!.map(app => (
-              <li key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out"> {/* Enhanced card style */}
+              <li key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h3> {/* Updated style */}
+                    <h3 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h3>
                     <p className="text-sm text-gray-500">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
+                    {/* General Issue Statistics (always visible) */}
+                    <AppStatsInline appId={app.appId} />
                   </div>
                   <button 
                     onClick={() => openStatsModal(app)} 
-                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors text-sm font-medium flex items-center" // Added rounded-md and flex items-center
+                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors text-sm font-medium flex items-center"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -211,21 +213,20 @@ const Dashboard: React.FC = () => {
           <p className="text-gray-500">No applications found.</p>
         )}
 
+        {/* Modal for detailed statistics */}
         {selectedApp && (
           <Modal
             isOpen={isStatsModalOpen}
             onClose={closeStatsModal}
-            title={`Statistics for ${selectedApp.appName}`}
+            title={`Detailed Statistics for ${selectedApp.appName}`}
             showConfirmButton={false}
             cancelButtonText="Close"
-            maxWidthClass="max-w-2xl" // Changed to max-w-2xl for more space for charts
+            maxWidthClass="max-w-2xl"
           >
             {appStatsLoading && <Loading />}
             {appStatsIsError && <ErrorDisplay message={(appStatsError as any)?.message || 'Failed to load statistics for this application'} />}
             {appStats && !appStatsLoading && !appStatsIsError && (
-              <div className="space-y-6 p-1"> {/* Increased space-y for better separation */}
-                
-                {/* Original Stats - kept for reference or if charts fail */}
+              <div className="space-y-6 p-1">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="p-3 bg-blue-100 rounded-md shadow-sm text-center">
                     <p className="text-sm text-blue-700 font-semibold">SonarQube Scans</p>
@@ -236,36 +237,19 @@ const Dashboard: React.FC = () => {
                     <p className="text-2xl font-bold text-green-800">{appStats.dynamicScanCount}</p>
                   </div>
                   <div className="p-3 bg-purple-100 rounded-md shadow-sm text-center">
-                    <p className="text-sm text-purple-700 font-semibold">Total Issues</p>
+                    <p className="text-sm text-purple-700 font-semibold">Total Severity Issues</p>
                     <p className="text-2xl font-bold text-purple-800">{appStats.totalIssues}</p>
                   </div>
                 </div>
-
+                {/* More detailed chart and breakdown */}
                 {(() => {
-                  // const { scanTypeData, severityData } = prepareChartData(appStats); // Old line
-                  const { severityData } = prepareChartData(appStats); // Corrected: only severityData is needed
+                  const { severityData } = prepareChartData(appStats);
                   return (
-                    <div className="grid grid-cols-1 lg:grid-cols-1 gap-6"> {/* Changed to single column for Doughnut chart only */}
-                      {/* Bar chart section removed
-                      <div>
-                        <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Scan Types</h4>
-                        {appStats.staticScanCount > 0 || appStats.dynamicScanCount > 0 ? (
-                           <Bar 
-                             data={scanTypeData} 
-                             options={{
-                               responsive: true,
-                               plugins: { legend: { display: false }, title: { display: false } } 
-                             }}
-                           />
-                        ) : (
-                          <p className="text-sm text-gray-500 text-center py-4">No scan data available for chart.</p>
-                        )}
-                      </div>
-                      */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <div>
                         <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Issue Severity Distribution</h4>
                         {Object.keys(appStats.severityDistribution).length > 0 && appStats.totalIssues > 0 ? (
-                          <div className="max-w-xs mx-auto"> {/* Constrain doughnut chart size */}
+                          <div className="max-w-xs mx-auto">
                             <Doughnut 
                               data={severityData} 
                               options={{ 
@@ -281,7 +265,6 @@ const Dashboard: React.FC = () => {
                                         if (label) {
                                           label += ': ';
                                         }
-                                        // Ensure context.parsed is a number and data values are numbers for sum
                                         if (context.parsed !== null && typeof context.parsed === 'number') {
                                           const datasetData = context.dataset.data as number[];
                                           const total = datasetData.reduce((acc: number, val: number | null) => acc + (Number(val) || 0), 0);
@@ -292,9 +275,8 @@ const Dashboard: React.FC = () => {
                                       }
                                     }
                                   },
-                                  datalabels: { // Configuration for chartjs-plugin-datalabels
+                                  datalabels: {
                                     formatter: (value, context) => {
-                                      // Ensure value is a number and data values are numbers for sum
                                       const currentValue = Number(value) || 0;
                                       const datasetData = context.chart.data.datasets[0].data as number[];
                                       const total = datasetData.reduce((acc: number, val: number | null) => acc + (Number(val) || 0), 0);
@@ -302,14 +284,7 @@ const Dashboard: React.FC = () => {
                                       return percentage;
                                     },
                                     color: '#fff',
-                                    font: {
-                                      weight: 'bold' as const
-                                    },
-                                    // backgroundColor: function(context) { // Optional: for label background
-                                    //   return context.dataset.backgroundColor;
-                                    // },
-                                    // borderRadius: 4,
-                                    // padding: 6
+                                    font: { weight: 'bold' as const }
                                   }
                                 } 
                               }} 
@@ -319,43 +294,40 @@ const Dashboard: React.FC = () => {
                           <p className="text-sm text-gray-500 text-center py-4">No severity data available for chart.</p>
                         )}
                       </div>
+                      <div>
+                        <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Severity Breakdown</h4>
+                        {appStats.severityDistribution && Object.keys(appStats.severityDistribution).length > 0 ? (
+                          <ul className="space-y-1 text-sm">
+                            {['High', 'Medium', 'Low', 'Informational'] 
+                              .filter(level => appStats.severityDistribution[level] !== undefined && appStats.severityDistribution[level] !== null)
+                              .map((severityKey) => { 
+                              const count = appStats.severityDistribution[severityKey]; 
+                              let textColor = 'text-gray-600';
+                              if (severityKey.toLowerCase() === 'high') textColor = 'text-red-600 font-semibold';
+                              else if (severityKey.toLowerCase() === 'medium') textColor = 'text-yellow-600 font-semibold';
+                              else if (severityKey.toLowerCase() === 'low') textColor = 'text-green-600';
+                              else if (severityKey.toLowerCase() === 'informational') textColor = 'text-blue-500';
+                              let bgColor = 'bg-gray-100'; 
+                              if (severityKey.toLowerCase() === 'high') bgColor = 'bg-red-50';
+                              else if (severityKey.toLowerCase() === 'medium') bgColor = 'bg-yellow-50';
+                              else if (severityKey.toLowerCase() === 'low') bgColor = 'bg-green-50';
+                              else if (severityKey.toLowerCase() === 'informational') bgColor = 'bg-blue-50';
+                              return (
+                                <li key={severityKey} className={`flex justify-between items-center p-1.5 rounded ${bgColor}`}>
+                                  <span className={`capitalize ${textColor}`}>{severityKey.toLowerCase()}</span>
+                                  <span className={`font-bold ${textColor}`}>{count}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-gray-500">No severity data available.</p>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
-                
-                {/* Detailed Severity List - can be kept or removed based on preference */}
-                <div className="p-3 bg-gray-50 rounded-md shadow-sm mt-6">
-                  <h4 className="text-md font-semibold mb-2 text-gray-700">Severity Breakdown:</h4>
-                  {appStats.severityDistribution && Object.keys(appStats.severityDistribution).length > 0 ? (
-                    <ul className="space-y-1 text-sm">
-                      {['High', 'Medium', 'Low', 'Informational'] 
-                        .filter(level => appStats.severityDistribution[level] !== undefined && appStats.severityDistribution[level] !== null)
-                        .map((severityKey) => { 
-                        const count = appStats.severityDistribution[severityKey]; 
-                        let textColor = 'text-gray-600';
-                        if (severityKey.toLowerCase() === 'high') textColor = 'text-red-600 font-semibold';
-                        else if (severityKey.toLowerCase() === 'medium') textColor = 'text-yellow-600 font-semibold';
-                        else if (severityKey.toLowerCase() === 'low') textColor = 'text-green-600';
-                        else if (severityKey.toLowerCase() === 'informational') textColor = 'text-blue-500';
-                        
-                        let bgColor = 'bg-gray-100'; 
-                        if (severityKey.toLowerCase() === 'high') bgColor = 'bg-red-50';
-                        else if (severityKey.toLowerCase() === 'medium') bgColor = 'bg-yellow-50';
-                        else if (severityKey.toLowerCase() === 'low') bgColor = 'bg-green-50';
-                        else if (severityKey.toLowerCase() === 'informational') bgColor = 'bg-blue-50';
-
-                        return (
-                          <li key={severityKey} className={`flex justify-between items-center p-1.5 rounded ${bgColor}`}>
-                            <span className={`capitalize ${textColor}`}>{severityKey.toLowerCase()}</span>
-                            <span className={`font-bold ${textColor}`}>{count}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-500">No severity data available.</p>
-                  )}
-                </div>
+                {/* Removed Other Details section as requested */}
               </div>
             )}
           </Modal>
@@ -363,5 +335,47 @@ const Dashboard: React.FC = () => {
       </div>
   );
 };
+
+// Helper component to show inline stats below each app
+function AppStatsInline({ appId }: { appId: number }) {
+  const { data: stats, isLoading, isError } = useQuery<AppDashboardStatsDTO, Error>({
+    queryKey: ['appDashboardStats', appId],
+    queryFn: () => fetchAppDashboardStats(appId),
+  });
+  if (isLoading) return <div className="mt-2 text-xs text-gray-400">Loading stats...</div>;
+  if (isError) return <div className="mt-2 text-xs text-red-500">Failed to load stats</div>;
+  if (!stats) return null;
+  const severityOrder = ['High', 'Medium', 'Low', 'Informational'];
+  const colorMap: Record<string, string> = {
+    High: 'bg-red-400',
+    Medium: 'bg-yellow-400',
+    Low: 'bg-green-400',
+    Informational: 'bg-blue-300',
+  };
+  return (
+    <div className="mt-2 flex flex-col gap-1">
+      <div className="flex gap-4 text-xs text-gray-700 flex-wrap">
+        <span>Total Severity Issues: <span className="font-bold">{stats.totalIssues}</span></span>
+        {severityOrder.map(sev => (
+          <span key={sev} className="capitalize flex items-center gap-1">
+            <span className={`inline-block w-3 h-3 rounded ${colorMap[sev] || 'bg-gray-300'}`}></span>
+            {sev}: <span className="font-bold">{stats.severityDistribution[sev] || 0}</span>
+          </span>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1 mt-2">
+        {severityOrder.map(sev => {
+          const count = stats.severityDistribution[sev] || 0;
+          return (
+            <div key={sev} className="flex items-center h-5">
+              <div className={`rounded ${colorMap[sev] || 'bg-gray-300'}`} style={{ height: '12px', width: `${count > 0 ? Math.max(12, count * 14) : 12}px` }} title={`${sev}: ${count}`}></div>
+              <span className="ml-2 text-xs text-gray-700 font-bold">{count}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default Dashboard;

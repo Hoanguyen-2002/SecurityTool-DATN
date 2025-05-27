@@ -338,7 +338,7 @@ const ScanConfig: React.FC = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mr-4">Scan Configuration</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mr-4">Scan Tools</h1>
         <form onSubmit={handleSearch} className="flex items-center">
           <div className="flex rounded-full shadow-sm bg-white border border-gray-300">
             <span className="flex items-center pl-3 pointer-events-none">
