@@ -75,6 +75,31 @@ const ScanConfig: React.FC = () => {
     }
   }, [scanResults]);
 
+  // On initial load, fetch all scan histories for all applications to populate last scan dates
+  useEffect(() => {
+    if (applications && applications.length > 0) {
+      applications.forEach(app => {
+        if (app.appId) {
+          if (!allSonarScans[app.appId]) {
+            getSonarScansForApplication(app.appId).then(scans => {
+              setAllSonarScans(prev => ({ ...prev, [app.appId]: scans && scans.length > 0 ? scans : [] }));
+            }).catch(() => {
+              setAllSonarScans(prev => ({ ...prev, [app.appId]: [] }));
+            });
+          }
+          if (!allZapScans[app.appId]) {
+            getZapScansForApplication(app.appId).then(scans => {
+              setAllZapScans(prev => ({ ...prev, [app.appId]: scans && scans.length > 0 ? scans : [] }));
+            }).catch(() => {
+              setAllZapScans(prev => ({ ...prev, [app.appId]: [] }));
+            });
+          }
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applications]);
+
   const openModal = (app: ApplicationResponseDTO, scanType: 'sonar' | 'zap') => {
     if (app.appId === undefined || app.appId === null || isNaN(Number(app.appId))) {
       setErrorState(`Cannot configure scan for application "${app.appName}": The Application ID is missing or invalid. Received: ${app.appId}`);
@@ -332,6 +357,13 @@ const ScanConfig: React.FC = () => {
     }
   };
 
+  // Helper to get latest scan date from scan history (same as popup)
+  const getLatestScanDateFromHistory = (scans: any[] | undefined) => {
+    if (!scans || scans.length === 0) return null;
+    const latest = scans.reduce((a, b) => new Date(a.scanDate) > new Date(b.scanDate) ? a : b);
+    return latest.scanDate;
+  };
+
   if (isLoading) return <Loading />;
   if (isError && !applications) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
@@ -390,15 +422,31 @@ const ScanConfig: React.FC = () => {
             const isLoadingSonar = loadingStates[`sonar-${app.appId}`];
             const isLoadingZap = loadingStates[`zap-${app.appId}`];
 
+            // Get latest SonarQube and ZAP scan dates from scan history data (same as popup)
+            const sonarScans = allSonarScans[app.appId];
+            const zapScans = allZapScans[app.appId];
+            const latestSonarDate = getLatestScanDateFromHistory(sonarScans || undefined);
+            const latestZapDate = getLatestScanDateFromHistory(zapScans || undefined);
+
             return (
               <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
                 <div className="p-6">
-                  <div className="flex justify-between items-start"> {/* Changed items-center to items-start for better alignment if details are multi-line */}
-                    <div> {/* Wrapper for app details */}
+                  <div className="flex justify-between items-start">
+                    <div>
                       <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
                       <p className="text-sm text-gray-500 truncate">
                         URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
                       </p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded shadow-sm text-sm">
+                          <span className="font-medium text-indigo-700">SonarQube Last Scan:</span>
+                          <span className="font-semibold text-indigo-900">{latestSonarDate ? new Date(latestSonarDate).toLocaleString() : 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-red-50 px-3 py-1 rounded shadow-sm text-sm">
+                          <span className="font-medium text-red-700">ZAP Last Scan:</span>
+                          <span className="font-semibold text-red-900">{latestZapDate ? new Date(latestZapDate).toLocaleString() : 'N/A'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex-shrink-0 flex flex-col space-y-2 ml-4"> {/* Added ml-4 for spacing */}
@@ -533,9 +581,10 @@ const ScanConfig: React.FC = () => {
           showConfirmButton={false}
           showCancelButton={true}
           cancelButtonText="Close"
-          maxWidthClass="max-w-2xl" // Changed from default to make it wider
+          maxWidthClass="max-w-4xl" // Increased from max-w-2xl to max-w-4xl for a bigger popup
         >
-          <div className="max-h-96 overflow-y-auto">
+          {/* Increased max height for more content */}
+          <div className="max-h-[700px] overflow-y-auto">
             {historyModalContent.isLoading && <Loading />}
             {historyModalContent.error && <ErrorDisplay message={historyModalContent.error} />}
             {!historyModalContent.isLoading && !historyModalContent.error && historyModalContent.data && (
@@ -638,6 +687,14 @@ const ScanConfig: React.FC = () => {
                               })()}
                             </div>
                           )}
+                        </div>
+                      )}
+                      {!scan.summary && (
+                        <div className="mt-1">
+                          <p className="font-semibold">Summary:</p>
+                          <div className="bg-green-50 text-green-700 px-3 py-2 rounded text-sm font-medium inline-block mt-1">
+                            No noticeable issue found
+                          </div>
                         </div>
                       )}
                     </li>

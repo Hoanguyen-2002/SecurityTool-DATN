@@ -341,7 +341,7 @@ const FlowAnalyzer: React.FC = () => {
   if (appsIsError) return <ErrorDisplay message={(appsError as Error)?.message || 'Failed to load applications'} />;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen"> {/* Added bg-gray-50 and min-h-screen */}
+    <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mr-4">Business Flow Analyzer</h1>
         <form onSubmit={handleSearch} className="flex items-center">
@@ -382,11 +382,34 @@ const FlowAnalyzer: React.FC = () => {
       {(searchResults !== null ? searchResults : apps) && (searchResults !== null ? searchResults : apps)!.length > 0 ? (
         <div className="space-y-4">
           {(searchResults !== null ? searchResults : apps)!.map(app => (
-            <div key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out"> {/* Enhanced card style */}
+            <div key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
               <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h2> {/* Updated style */}
+                <div className="flex-grow mr-4">
+                  <h2 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h2>
                   <p className="text-sm text-gray-500">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a></p>
+                  {/* Flows for this app */}
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-500">
+                      Flows:
+                      {allBusinessFlows && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 && (
+                        <span className="text-sm text-gray-500"> {allBusinessFlows.filter(f => f.appId === app.appId).length}</span>
+                      )}
+                    </span>
+                    {allBusinessFlows && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 ? (
+                      <ul className="flex flex-col gap-1 ml-6 mt-1">
+                        {allBusinessFlows.filter(f => f.appId === app.appId).map(flow => (
+                          <li key={flow.id} className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium shadow-sm hover:bg-indigo-200 transition-colors cursor-default">
+                              <svg className="w-4 h-4 mr-1 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              {flow.flowName}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-gray-400 italic ml-2">N/A</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex space-x-2">
                   <button 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAppDashboardStats } from '../api/dashboardApi';
 import { fetchApplications, searchApplications } from '../api/applicationApi';
@@ -94,22 +94,6 @@ const Dashboard: React.FC = () => {
   };
 
   const prepareChartData = (stats: AppDashboardStatsDTO) => {
-    // scanTypeData is no longer used, so its definition can be removed or commented out.
-    /*
-    const scanTypeData = {
-      labels: ['SonarQube Scans', 'ZAP Scans'],
-      datasets: [
-        {
-          label: 'Number of Scans',
-          data: [stats.staticScanCount, stats.dynamicScanCount],
-          backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
-          borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
-          borderWidth: 1,
-        },
-      ],
-    };
-    */
-
     const severityLabels = Object.keys(stats.severityDistribution);
     const severityValues = Object.values(stats.severityDistribution);
     
@@ -249,12 +233,17 @@ const Dashboard: React.FC = () => {
                       <div>
                         <h4 className="text-lg font-semibold mb-3 text-gray-700 text-center">Issue Severity Distribution</h4>
                         {Object.keys(appStats.severityDistribution).length > 0 && appStats.totalIssues > 0 ? (
-                          <div className="max-w-xs mx-auto">
+                          <div className="max-w-xs mx-auto mb-6"> {/* Added mb-6 for spacing below the chart */}
                             <Doughnut 
                               data={severityData} 
                               options={{ 
                                 responsive: true, 
                                 maintainAspectRatio: true,
+                                animation: {
+                                  animateRotate: true,
+                                  animateScale: true,
+                                  duration: 1200 // 1.2s for smoothness
+                                },
                                 plugins: { 
                                   legend: { position: 'top' as const }, 
                                   title: { display: false },
@@ -342,6 +331,23 @@ function AppStatsInline({ appId }: { appId: number }) {
     queryKey: ['appDashboardStats', appId],
     queryFn: () => fetchAppDashboardStats(appId),
   });
+  const barRefs = useRef<(HTMLDivElement | null)[]>([]);
+  useEffect(() => {
+    if (!stats) return;
+    const severityOrder = ['High', 'Medium', 'Low', 'Informational'];
+    severityOrder.forEach((sev, idx) => {
+      const count = stats.severityDistribution[sev] || 0;
+      const bar = barRefs.current[idx];
+      if (bar) {
+        bar.style.transition = 'none';
+        bar.style.width = '12px';
+        setTimeout(() => {
+          bar.style.transition = 'width 1s cubic-bezier(0.4,0,0.2,1)';
+          bar.style.width = `${count > 0 ? Math.max(12, count * 14) : 12}px`;
+        }, 50);
+      }
+    });
+  }, [stats]);
   if (isLoading) return <div className="mt-2 text-xs text-gray-400">Loading stats...</div>;
   if (isError) return <div className="mt-2 text-xs text-red-500">Failed to load stats</div>;
   if (!stats) return null;
@@ -355,21 +361,21 @@ function AppStatsInline({ appId }: { appId: number }) {
   return (
     <div className="mt-2 flex flex-col gap-1">
       <div className="flex gap-4 text-xs text-gray-700 flex-wrap">
-        <span>Total Severity Issues: <span className="font-bold">{stats.totalIssues}</span></span>
-        {severityOrder.map(sev => (
-          <span key={sev} className="capitalize flex items-center gap-1">
-            <span className={`inline-block w-3 h-3 rounded ${colorMap[sev] || 'bg-gray-300'}`}></span>
-            {sev}: <span className="font-bold">{stats.severityDistribution[sev] || 0}</span>
-          </span>
-        ))}
+        <span className="text-sm text-gray-500">Total Severity Issues: <span className="font-semibold">{stats.totalIssues}</span></span>
       </div>
       <div className="flex flex-col gap-1 mt-2">
-        {severityOrder.map(sev => {
+        {severityOrder.map((sev, idx) => {
           const count = stats.severityDistribution[sev] || 0;
           return (
-            <div key={sev} className="flex items-center h-5">
-              <div className={`rounded ${colorMap[sev] || 'bg-gray-300'}`} style={{ height: '12px', width: `${count > 0 ? Math.max(12, count * 14) : 12}px` }} title={`${sev}: ${count}`}></div>
-              <span className="ml-2 text-xs text-gray-700 font-bold">{count}</span>
+            <div key={sev} className="flex items-center h-6"> {/* Reduced height for smaller bars */}
+              <span className={`w-20 text-sm font-semibold capitalize text-gray-700 mr-2 text-left`}>{sev}</span> {/* Slightly smaller label */}
+              <div
+                ref={el => { barRefs.current[idx] = el || null; }}
+                className={`rounded ${colorMap[sev] || 'bg-gray-300'}`}
+                style={{ height: '14px', width: '12px', transition: 'width 1s cubic-bezier(0.4,0,0.2,1)' }}
+                title={`${count}`}
+              ></div>
+              <span className="ml-2 text-sm text-gray-700 font-semibold">{count}</span> {/* Slightly smaller count */}
             </div>
           );
         })}
