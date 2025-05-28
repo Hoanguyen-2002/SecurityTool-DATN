@@ -311,10 +311,12 @@ const ApplicationManagement: React.FC = () => {
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">{app.appName}</h2>
                   <p className="text-base font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-1 mb-2 inline-block shadow-sm">Created: {new Date(app.createdAt).toLocaleString()} &nbsp;|&nbsp; Updated: {new Date(app.updatedAt).toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
-                  <p className="text-sm text-gray-600">SonarQube Auth: {maskAuthInfo(app.authInfo)}</p>
-                  <p className="text-sm text-gray-600">Description: {app.description ? app.description : 'N/A'}</p>
-                  <p className="text-sm text-gray-600">Tech Stack: {app.techStack ? app.techStack : 'N/A'}</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    <span className="block">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline-offset-2 transition-colors duration-150">{app.appUrl}</a></span>
+                    <span className="block mt-1"><span className="font-semibold text-gray-700">SonarQube Auth:</span> <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-800 font-mono tracking-wider">{maskAuthInfo(app.authInfo)}</span></span>
+                    <span className="block mt-1"><span className="font-semibold text-gray-700">Description:</span> <span className="text-gray-700">{app.description ? app.description : 'N/A'}</span></span>
+                    <span className="block mt-1"><span className="font-semibold text-gray-700">Tech Stack:</span> <span className="text-gray-800">{app.techStack ? app.techStack : 'N/A'}</span></span>
+                  </p>
                 </div>
 
                 <div className="flex space-x-2">

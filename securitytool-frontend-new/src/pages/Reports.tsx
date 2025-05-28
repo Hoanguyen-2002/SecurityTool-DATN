@@ -7,6 +7,7 @@ import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
 import { ApplicationResponseDTO } from '../types/application';
 import { ReportResponseDTO, SecurityIssueResponseDTO } from '../types/report';
+import { Bar } from 'react-chartjs-2';
 
 const APP_REPORTS_STORAGE_KEY = 'appReportsData'; // Key for localStorage
 
@@ -31,7 +32,6 @@ const Reports: React.FC = () => {
     return storedReports ? JSON.parse(storedReports) : {};
   });
   const [loading, setLoading] = useState(false); // Used for Load Report and Download CSV actions
-  const [pageLevelError, setPageLevelError] = useState<string | null>(null); // For general errors displayed on the page
   const [appErrors, setAppErrors] = useState<Record<number, string | null>>({}); // New state for app-specific errors
 
   const [isIssuesModalOpen, setIsIssuesModalOpen] = useState(false);
@@ -50,6 +50,12 @@ const Reports: React.FC = () => {
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const [severityFilter, setSeverityFilter] = useState('');
+
+  // Add state for compare modal and selected scan result for comparison
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  const [compareScanId, setCompareScanId] = useState('');
+  const [compareError, setCompareError] = useState<string | null>(null);
+  const [compareReport, setCompareReport] = useState<ReportResponseDTO | null>(null);
 
   useEffect(() => {
     if (Object.keys(appReports).length > 0 || localStorage.getItem(APP_REPORTS_STORAGE_KEY)) {
@@ -84,7 +90,6 @@ const Reports: React.FC = () => {
   const handleOpenLoadReportModal = (appId: number) => {
     setSelectedAppId(appId);
     setScanResultId(''); // Clear previous scanResultId input
-    setPageLevelError(null); // Clear general page errors
     setAppErrors(prev => ({ ...prev, [appId]: null })); // Clear specific app error for this app
     setIsLoadReportModalOpen(true);
   };
@@ -93,13 +98,11 @@ const Reports: React.FC = () => {
     const idNum = Number(scanResultId);
 
     if (!selectedAppId) {
-      setPageLevelError("An internal error occurred: No application selected.");
       setIsLoadReportModalOpen(false);
       return;
     }
 
     setAppErrors(prev => ({ ...prev, [selectedAppId!]: null }));
-    setPageLevelError(null);
 
     if (!(idNum > 0)) {
       alert('Please enter a valid Scan Result ID.');
@@ -183,8 +186,6 @@ const Reports: React.FC = () => {
       if (selectedAppId) {
         setAppErrors(prev => ({ ...prev, [selectedAppId!]: errorMessage }));
         setAppReports(prev => ({ ...prev, [selectedAppId!]: null }));
-      } else {
-        setPageLevelError(errorMessage);
       }
       setIssuesModalContent({
         title: `Error Loading Report for ${appName}`,
@@ -236,7 +237,6 @@ const Reports: React.FC = () => {
     const appName = app ? app.appName : 'report';
 
     setAppErrors(prev => ({ ...prev, [appId]: null }));
-    setPageLevelError(null);
     setLoading(true);
 
     try {
@@ -282,6 +282,55 @@ const Reports: React.FC = () => {
       setSearchResults(null);
     } finally {
       setSearching(false);
+    }
+  };
+
+  // Helper: get scan type from issues
+  function getScanType(issues: any[]): string | null {
+    if (!issues || issues.length === 0) return null;
+    if (issues.some((i: any) => i.issueType === 'SonarQube')) return 'SonarQube';
+    if (issues.some((i: any) => i.issueType === 'Zap')) return 'Zap';
+    return null;
+  }
+
+  // Helper: get severity distribution as array for chart
+  function getSeverityArray(severityDistribution: any) {
+    const order = ['High', 'Medium', 'Low', 'Informational'];
+    return order.map(key => severityDistribution?.[key] || 0);
+  }
+
+  // Open compare modal
+  const openCompareModal = () => {
+    setCompareScanId('');
+    setCompareError(null);
+    setCompareReport(null);
+    setIsCompareModalOpen(true);
+  };
+
+  // Handle compare submit
+  const handleCompareSubmit = async () => {
+    setCompareError(null);
+    setCompareReport(null);
+    if (!compareScanId) {
+      setCompareError('Please enter a scan result ID to compare.');
+      return;
+    }
+    const currentReport = appReports[selectedAppId!];
+    if (!currentReport) {
+      setCompareError('No scan result loaded to compare with.');
+      return;
+    }
+    try {
+      const data = await getReport(Number(compareScanId));
+      if (!data || !data.issues) throw new Error('Scan result not found.');
+      const type1 = getScanType(data.issues);
+      const type2 = getScanType(currentReport.issues);
+      if (!type1 || !type2 || type1 !== type2) throw new Error('Scan types do not match.');
+      if (!data.summary || !data.summary.bySeverity) throw new Error('No severity data in this scan result.');
+      setCompareReport(data);
+      setIsCompareModalOpen(false); // Close the modal after compare
+    } catch (e: any) {
+      setCompareError(e.message || 'Failed to load scan result for comparison.');
     }
   };
 
@@ -350,11 +399,180 @@ const Reports: React.FC = () => {
                     <p className="text-sm text-gray-500 mb-3 truncate">
                       URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
                     </p>
-
-                    {appSpecificError && (
-                      <div className="mt-2 p-2 bg-red-50 text-red-700 rounded-md text-sm">
-                        <p>Error: {appSpecificError}</p>
-                      </div>
+                    <div className="flex flex-row gap-4 items-start">
+                      {/* Severity Distribution Bar Chart for loaded scan result */}
+                      {(() => {
+                        const report = appReports[app.appId];
+                        if (!report || !report.summary || !report.summary.bySeverity) return null;
+                        const scanType = getScanType(report.issues);
+                        return (
+                          <div className="flex-1 max-w-md bg-gradient-to-br from-blue-50 to-white rounded-lg shadow p-4">
+                            <h4 className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+                              Severity Distribution <span className="ml-1 text-blue-400">({scanType || 'Unknown'})</span>
+                              <span className="ml-2 text-[11px] text-blue-500 font-normal">Scan ID: {report.resultId}</span>
+                            </h4>
+                            <Bar
+                              data={{
+                                labels: ['High', 'Medium', 'Low', 'Informational'],
+                                datasets: [
+                                  {
+                                    label: `Scan ID: ${report.resultId}`,
+                                    data: getSeverityArray(report.summary.bySeverity),
+                                    backgroundColor: [
+                                      'rgba(239,68,68,0.7)', // High - red
+                                      'rgba(251,191,36,0.7)', // Medium - yellow
+                                      'rgba(34,197,94,0.7)', // Low - green
+                                      'rgba(59,130,246,0.4)', // Informational - blue
+                                    ],
+                                    borderRadius: 0,
+                                    borderSkipped: false,
+                                    barPercentage: 0.95,
+                                    categoryPercentage: 0.85,
+                                  },
+                                ],
+                              }}
+                              options={{
+                                responsive: true,
+                                plugins: {
+                                  legend: { display: false },
+                                  title: { display: false },
+                                  tooltip: {
+                                    backgroundColor: '#fff',
+                                    titleColor: '#1e293b',
+                                    bodyColor: '#334155',
+                                    borderColor: '#e0e7ef',
+                                    borderWidth: 1,
+                                    padding: 10,
+                                    cornerRadius: 8,
+                                    displayColors: false,
+                                  },
+                                  datalabels: {
+                                    display: false,
+                                  },
+                                },
+                                indexAxis: 'y',
+                                scales: {
+                                  x: {
+                                    beginAtZero: true,
+                                    ticks: { precision: 0, font: { size: 15 }, color: '#64748b' },
+                                    grid: { color: '#e0e7ef' },
+                                  },
+                                  y: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 15 }, color: '#64748b' },
+                                  },
+                                },
+                              }}
+                              // @ts-ignore
+                              plugins={['datalabels']}
+                              height={140}
+                            />
+                          </div>
+                        );
+                      })()}
+                      {/* Comparison Bar Chart (if compareReport is set and this app is selected) */}
+                      {(selectedAppId === app.appId && compareReport) && (() => {
+                        const report1 = appReports[app.appId];
+                        const report2 = compareReport;
+                        if (!report1 || !report2) return null;
+                        const type1 = getScanType(report1.issues);
+                        const type2 = getScanType(report2.issues);
+                        if (!type1 || !type2 || type1 !== type2) return null;
+                        if (!report1.summary || !report1.summary.bySeverity || !report2.summary || !report2.summary.bySeverity) return null;
+                        return (
+                          <div className="flex-1 max-w-md bg-gradient-to-br from-green-50 to-white rounded-lg shadow p-4">
+                            <h4 className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                              <span>Severity Comparison</span>
+                              <span className="ml-2 font-normal text-green-500">({type1})</span>
+                            </h4>
+                            <Bar
+                              data={{
+                                labels: ['High', 'Medium', 'Low', 'Informational'],
+                                datasets: [
+                                  {
+                                    label: `Scan ID: ${report1.resultId}`,
+                                    data: getSeverityArray(report1.summary.bySeverity),
+                                    backgroundColor: [
+                                      'rgba(239,68,68,0.85)',
+                                      'rgba(251,191,36,0.85)',
+                                      'rgba(34,197,94,0.85)',
+                                      'rgba(59,130,246,0.5)',
+                                    ],
+                                    borderRadius: 0,
+                                    borderSkipped: false,
+                                    barPercentage: 0.95,
+                                    categoryPercentage: 0.85,
+                                  },
+                                  {
+                                    label: `Scan ID: ${report2.resultId}`,
+                                    data: getSeverityArray(report2.summary.bySeverity),
+                                    backgroundColor: [
+                                      'rgba(239,68,68,0.35)',
+                                      'rgba(251,191,36,0.35)',
+                                      'rgba(34,197,94,0.35)',
+                                      'rgba(59,130,246,0.15)',
+                                    ],
+                                    borderRadius: 0,
+                                    borderSkipped: false,
+                                    barPercentage: 0.95,
+                                    categoryPercentage: 0.85,
+                                  },
+                                ],
+                              }}
+                              options={{
+                                responsive: true,
+                                plugins: {
+                                  legend: {
+                                    position: 'top',
+                                    labels: { font: { size: 13 }, color: '#166534' },
+                                  },
+                                  title: { display: false },
+                                  tooltip: {
+                                    backgroundColor: '#fff',
+                                    titleColor: '#166534',
+                                    bodyColor: '#334155',
+                                    borderColor: '#bbf7d0',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    cornerRadius: 10,
+                                    displayColors: true,
+                                  },
+                                  datalabels: {
+                                    display: false,
+                                  },
+                                },
+                                indexAxis: 'y',
+                                scales: {
+                                  x: {
+                                    beginAtZero: true,
+                                    ticks: { precision: 0, font: { size: 15 }, color: '#166534' },
+                                    grid: { color: '#bbf7d0' },
+                                  },
+                                  y: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 15 }, color: '#166534' },
+                                  },
+                                },
+                              }}
+                              // @ts-ignore
+                              plugins={['datalabels']}
+                              height={140}
+                            />
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    {/* Compare Scan Result Button */}
+                    {appReports[app.appId] && (
+                      <button
+                        type="button"
+                        className="mt-2 px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium"
+                        onClick={() => { setSelectedAppId(app.appId); setIsCompareModalOpen(true); setCompareScanId(''); setCompareError(null); setCompareReport(null); }}
+                      >
+                        Compare Scan Result
+                      </button>
                     )}
                   </div>
 
@@ -420,7 +638,6 @@ const Reports: React.FC = () => {
         onConfirm={handleLoadReportSubmit}
         title="Load Report"
       >
-        {/* Modal content is now cleaner, no specific error/loading for submission here */}
         <div className="mb-2">
           <label htmlFor="scanResultId" className="block text-sm font-medium text-gray-700">Scan Result ID</label>
           <input
@@ -430,8 +647,31 @@ const Reports: React.FC = () => {
             onChange={(e) => setScanResultId(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             required
+            placeholder="Enter scan result ID..."
           />
         </div>
+      </Modal>
+      {/* Compare Modal */}
+      <Modal
+        isOpen={isCompareModalOpen}
+        onClose={() => setIsCompareModalOpen(false)}
+        onConfirm={handleCompareSubmit}
+        title="Compare Scan Results"
+        confirmButtonText="Compare"
+      >
+        <div className="mb-2">
+          <label htmlFor="compareScanId" className="block text-sm font-medium text-gray-700">Scan Result ID to Compare</label>
+          <input
+            type="number"
+            id="compareScanId"
+            value={compareScanId}
+            onChange={e => setCompareScanId(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            required
+            placeholder="Enter scan result ID to compare..."
+          />
+        </div>
+        {compareError && <div className="text-red-600 text-sm mb-2">{compareError}</div>}
       </Modal>
 
       {/* Modal for Displaying Security Issues */}
@@ -448,72 +688,74 @@ const Reports: React.FC = () => {
           showConfirmButton={false}
           showCancelButton={true}
           cancelButtonText="Close"
-          maxWidthClass="max-w-4xl"
+          maxWidthClass="max-w-5xl"
         >
-          {issuesModalContent.isLoading && <Loading />}
-          {issuesModalContent.error && <ErrorDisplay message={issuesModalContent.error} />}
-          {!issuesModalContent.isLoading && !issuesModalContent.error && (
-            issuesModalContent.issues && issuesModalContent.issues.length > 0 ? (
-              <>
-                {/* Severity Filter */}
-                <div className="mb-4 flex items-center space-x-2">
-                  <label htmlFor="severityFilter" className="text-sm font-medium text-gray-700">Filter by Severity:</label>
-                  <select
-                    id="severityFilter"
-                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
-                    value={severityFilter}
-                    onChange={e => setSeverityFilter(e.target.value)}
-                  >
-                    <option value="">All</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                    <option value="Informational">Informational</option>
-                  </select>
-                </div>
-                <ul className="space-y-3 max-h-96 overflow-y-auto">
-                  {(() => {
-                    const filtered = issuesModalContent.issues.filter(issue => !severityFilter || (issue.severity && issue.severity.toLowerCase() === severityFilter.toLowerCase()));
-                    if (filtered.length === 0) {
-                      return <li className="text-gray-500 italic px-2">No issues found for this severity level.</li>;
-                    }
-                    return filtered.map((issue) => (
-                      <li key={issue.issueId} className="bg-gray-50 rounded p-3 border border-gray-200">
-                        <div className="mb-1 font-semibold text-gray-800">Issue ID: <span className="font-mono text-xs bg-gray-200 px-1 rounded">{issue.issueId}</span></div>
-                        <div className="mb-1"><span className="font-semibold">Type:</span> <span className="inline-block px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">{issue.issueType}</span></div>
-                        <div className="mb-1"><span className="font-semibold">Severity:</span> <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${issue.severity === 'Critical' ? 'bg-red-200 text-red-800' : issue.severity === 'High' ? 'bg-orange-200 text-orange-800' : issue.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : issue.severity === 'Low' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{issue.severity}</span></div>
-                        <div className="mb-1"><span className="font-semibold">Description:</span> {issue.description}</div>
-                        {/* Only show Reference if not SonarQube */}
-                        {issue.issueType === 'Zap' && issue.reference ? (
-                          <div className="mb-1">
-                            <span className="font-semibold">Reference:</span>
-                            <ul className="list-disc list-inside border-l-4 border-blue-200 bg-blue-50 px-3 py-2 mt-1 rounded space-y-1 ml-2">
-                              {issue.reference.split(/\s+/).map((ref, idx) =>
-                                /^https?:\/\//.test(ref) ? (
-                                  <li key={idx}>
-                                    <a href={ref} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline break-all">
-                                      {ref}
-                                    </a>
-                                  </li>
-                                ) : (
-                                  <li key={idx} className="text-gray-700">{ref}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                        ) : issue.issueType !== 'SonarQube' && (
-                          <div className="mb-1"><span className="font-semibold">Reference:</span> {issue.reference || 'N/A'}</div>
-                        )}
-                        <div className="mb-1"><span className="font-semibold">Status:</span> <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${issue.severity === 'Critical' ? 'bg-red-200 text-red-800' : issue.severity === 'High' ? 'bg-orange-200 text-orange-800' : issue.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : issue.severity === 'Low' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{issue.status}</span></div>
-                      </li>
-                    ));
-                  })()}
-                </ul>
-              </>
-            ) : (
-              <p className="text-sm text-gray-500 mt-2">No issues found for this report.</p>
-            )
-          )}
+          <div className="h-[720px] w-full flex flex-col">
+            {issuesModalContent.isLoading && <Loading />}
+            {issuesModalContent.error && <ErrorDisplay message={issuesModalContent.error} />}
+            {!issuesModalContent.isLoading && !issuesModalContent.error && (
+              issuesModalContent.issues && issuesModalContent.issues.length > 0 ? (
+                <>
+                  {/* Severity Filter */}
+                  <div className="mb-4 flex items-center space-x-2">
+                    <label htmlFor="severityFilter" className="text-sm font-medium text-gray-700">Filter by Severity:</label>
+                    <select
+                      id="severityFilter"
+                      className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+                      value={severityFilter}
+                      onChange={e => setSeverityFilter(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                      <option value="Informational">Informational</option>
+                    </select>
+                  </div>
+                  <ul className="space-y-3 flex-1 overflow-y-auto">
+                    {(() => {
+                      const filtered = issuesModalContent.issues.filter(issue => !severityFilter || (issue.severity && issue.severity.toLowerCase() === severityFilter.toLowerCase()));
+                      if (filtered.length === 0) {
+                        return <li className="text-gray-500 italic px-2">No issues found for this severity level.</li>;
+                      }
+                      return filtered.map((issue) => (
+                        <li key={issue.issueId} className="bg-gray-50 rounded p-3 border border-gray-200">
+                          <div className="mb-1 font-semibold text-gray-800">Issue ID: <span className="font-mono text-xs bg-gray-200 px-1 rounded">{issue.issueId}</span></div>
+                          <div className="mb-1"><span className="font-semibold">Type:</span> <span className="inline-block px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">{issue.issueType}</span></div>
+                          <div className="mb-1"><span className="font-semibold">Severity:</span> <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${issue.severity === 'Critical' ? 'bg-red-200 text-red-800' : issue.severity === 'High' ? 'bg-orange-200 text-orange-800' : issue.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : issue.severity === 'Low' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{issue.severity}</span></div>
+                          <div className="mb-1"><span className="font-semibold">Description:</span> {issue.description}</div>
+                          {/* Only show Reference if not SonarQube */}
+                          {issue.issueType === 'Zap' && issue.reference ? (
+                            <div className="mb-1">
+                              <span className="font-semibold">Reference:</span>
+                              <ul className="list-disc list-inside border-l-4 border-blue-200 bg-blue-50 px-3 py-2 mt-1 rounded space-y-1 ml-2">
+                                {issue.reference.split(/\s+/).map((ref, idx) =>
+                                  /^https?:\/\//.test(ref) ? (
+                                    <li key={idx}>
+                                      <a href={ref} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline break-all">
+                                        {ref}
+                                      </a>
+                                    </li>
+                                  ) : (
+                                    <li key={idx} className="text-gray-700">{ref}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          ) : issue.issueType !== 'SonarQube' && (
+                            <div className="mb-1"><span className="font-semibold">Reference:</span> {issue.reference || 'N/A'}</div>
+                          )}
+                          <div className="mb-1"><span className="font-semibold">Status:</span> <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${issue.severity === 'Critical' ? 'bg-red-200 text-red-800' : issue.severity === 'High' ? 'bg-orange-200 text-orange-800' : issue.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' : issue.severity === 'Low' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{issue.status}</span></div>
+                        </li>
+                      ));
+                    })()}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500 mt-2">No issues found for this report.</p>
+              )
+            )}
+          </div>
         </Modal>
       )}
     </div>
