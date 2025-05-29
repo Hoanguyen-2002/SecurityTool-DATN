@@ -11,6 +11,8 @@ import Modal from '../components/Modal';
 const FlowAnalyzer: React.FC = () => {
   const queryClient = useQueryClient();
   const analysisStartTimeRef = useRef<number | null>(null); // Ref for analysis start time
+  // Success modal state for edit flow
+  const [showEditSuccessModal, setShowEditSuccessModal] = useState(false);
 
   const [isAddFlowModalOpen, setIsAddFlowModalOpen] = useState(false);
   const [isViewFlowsModalOpen, setIsViewFlowsModalOpen] = useState(false);
@@ -192,9 +194,10 @@ const FlowAnalyzer: React.FC = () => {
   const openEditModal = (flow: BusinessFlowResponseDTO) => {
     setEditingFlowData({
         ...flow,
-        apiEndpoints: flow.apiEndpoints && flow.apiEndpoints.length > 0 ? flow.apiEndpoints : [''] // Ensure apiEndpoints is at least [''] for the form
+        apiEndpoints: flow.apiEndpoints && flow.apiEndpoints.length > 0 ? flow.apiEndpoints : ['']
     });
     setIsEditFlowModalOpen(true);
+    setIsViewFlowsModalOpen(false); // Hide view flows modal when editing
   };
 
   const closeEditModal = () => {
@@ -274,14 +277,20 @@ const FlowAnalyzer: React.FC = () => {
   const handleEditFlowSubmit = () => {
     if (!editingFlowData) return;
     const resultIdAsNumber = Number(editingFlowData.resultId);
-    if (isNaN(resultIdAsNumber)) { // Check if resultId is a valid number
+    if (isNaN(resultIdAsNumber)) {
         alert("Result ID must be a valid number.");
         return;
     }
     updateFlowMutation.mutate({
         ...editingFlowData,
-        resultId: resultIdAsNumber, // Ensure resultId is a number
+        resultId: resultIdAsNumber,
         apiEndpoints: editingFlowData.apiEndpoints?.filter(ep => ep.trim() !== '') || []
+    }, {
+      onSuccess: () => {
+        setIsEditFlowModalOpen(false);
+        setIsViewFlowsModalOpen(true); // Show view flows modal again after successful save
+        setShowEditSuccessModal(true); // Show success popup
+      }
     });
   };
 
@@ -735,6 +744,19 @@ const FlowAnalyzer: React.FC = () => {
             </div>
         </Modal>
       )}
+
+      {/* Success Modal for Edit Flow */}
+      <Modal
+        isOpen={showEditSuccessModal}
+        onClose={() => setShowEditSuccessModal(false)}
+        title="Success"
+        showConfirmButton={true}
+        confirmButtonText="OK"
+        onConfirm={() => setShowEditSuccessModal(false)}
+        showCancelButton={false}
+      >
+        <p>Flow successfully changed!</p>
+      </Modal>
 
       {/* Confirm Delete Modal */}
       <Modal
