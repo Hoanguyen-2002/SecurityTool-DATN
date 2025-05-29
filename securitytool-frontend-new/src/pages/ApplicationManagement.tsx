@@ -311,19 +311,30 @@ const ApplicationManagement: React.FC = () => {
               <div className="p-6 flex justify-between items-center">
                 <div>
                   {/* Combine name and URL */}
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
                     {app.appName}:&nbsp;
-                    <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline-offset-2 transition-colors duration-150">
+                    <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">
                       {app.appUrl}
                     </a>
                   </h2>
-                  <p className="text-base font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-1 mb-2 inline-block shadow-sm">Created: {new Date(app.createdAt).toLocaleString()} &nbsp;|&nbsp; Updated: {new Date(app.updatedAt).toLocaleString()}</p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {/* Removed separate URL line */}
-                    <span className="block mt-1"><span className="font-semibold text-gray-700">SonarQube Auth:</span> <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-800 font-mono tracking-wider">{maskAuthInfo(app.authInfo)}</span></span>
-                    <span className="block mt-1"><span className="font-semibold text-gray-700">Description:</span> <span className="text-gray-700">{app.description ? app.description : 'N/A'}</span></span>
-                    <span className="block mt-1"><span className="font-semibold text-gray-700">Tech Stack:</span> <span className="text-gray-800">{app.techStack ? app.techStack : 'N/A'}</span></span>
+                  <p className="text-base font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-1 mb-2 inline-block shadow-sm">
+                    Created: {new Date(app.createdAt).toLocaleString()} &nbsp;|&nbsp; Updated: {new Date(app.updatedAt).toLocaleString()}
                   </p>
+                  {/* Colorful and prettier info, each on its own line */}
+                  <div className="flex flex-col gap-2 mt-2">
+                    <div className="inline-flex items-center bg-yellow-50 border border-yellow-200 rounded px-3 py-1 w-fit">
+                      <span className="font-semibold text-yellow-700 mr-1">SonarQube Auth:</span>
+                      <span className="bg-yellow-100 px-2 py-0.5 rounded text-yellow-800 font-mono tracking-wider">{maskAuthInfo(app.authInfo)}</span>
+                    </div>
+                    <div className="inline-flex items-center bg-green-50 border border-green-200 rounded px-3 py-1 w-fit">
+                      <span className="font-semibold text-green-700 mr-1">Description:</span>
+                      <span className="text-green-900">{app.description ? app.description : <span className="italic text-gray-400">N/A</span>}</span>
+                    </div>
+                    <div className="inline-flex items-center bg-blue-50 border border-blue-200 rounded px-3 py-1 w-fit">
+                      <span className="font-semibold text-blue-700 mr-1">Tech Stack:</span>
+                      <span className="text-blue-900">{app.techStack ? app.techStack : <span className="italic text-gray-400">N/A</span>}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex space-x-2">

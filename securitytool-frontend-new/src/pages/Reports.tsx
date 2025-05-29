@@ -392,10 +392,7 @@ const Reports: React.FC = () => {
             }
             const appSpecificError = appErrors[app.appId];
             const currentReport = appReports[app.appId];
-            // Only show if report exists, has a valid resultId, and there is no error indicating not found/deleted
-            if (!currentReport || currentReport.resultId === undefined || currentReport.resultId === null) {
-              return null;
-            }
+            // Only hide if error indicates not found/deleted
             if (appSpecificError && /not found|incomplete|deleted|cannot be loaded/i.test(appSpecificError)) {
               return null;
             }
@@ -409,173 +406,179 @@ const Reports: React.FC = () => {
                       <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
                     </h2>
                     {/* Removed separate URL line */}
-                    <div className="flex flex-row gap-4 items-start">
-                      {/* Severity Distribution Bar Chart for loaded scan result */}
-                      {(() => {
-                        const report = appReports[app.appId];
-                        if (!report || !report.summary || !report.summary.bySeverity) return null;
-                        const scanType = getScanType(report.issues);
-                        return (
-                          <div className="flex-1 max-w-md bg-gradient-to-br from-blue-50 to-white rounded-lg shadow p-4">
-                            <h4 className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-2">
-                              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
-                              Severity Distribution <span className="ml-1 text-blue-400">({scanType || 'Unknown'})</span>
-                              <span className="ml-2 text-[11px] text-blue-500 font-normal">Scan ID: {report.resultId}</span>
-                            </h4>
-                            <Bar
-                              data={{
-                                labels: ['High', 'Medium', 'Low', 'Informational'],
-                                datasets: [
-                                  {
-                                    label: `Scan ID: ${report.resultId}`,
-                                    data: getSeverityArray(report.summary.bySeverity),
-                                    backgroundColor: [
-                                      'rgba(239,68,68,0.7)', // High - red
-                                      'rgba(251,191,36,0.7)', // Medium - yellow
-                                      'rgba(34,197,94,0.7)', // Low - green
-                                      'rgba(59,130,246,0.4)', // Informational - blue
-                                    ],
-                                    borderRadius: 0,
-                                    borderSkipped: false,
-                                    barPercentage: 0.95,
-                                    categoryPercentage: 0.85,
+                    {currentReport && currentReport.resultId !== undefined && currentReport.resultId !== null ? (
+                      <div className="flex flex-row gap-4 items-start">
+                        {/* Severity Distribution Bar Chart for loaded scan result */}
+                        {(() => {
+                          const report = appReports[app.appId];
+                          if (!report || !report.summary || !report.summary.bySeverity) return null;
+                          const scanType = getScanType(report.issues);
+                          return (
+                            <div className="flex-1 max-w-md bg-gradient-to-br from-blue-50 to-white rounded-lg shadow p-4">
+                              <h4 className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
+                                Severity Distribution <span className="ml-1 text-blue-400">({scanType || 'Unknown'})</span>
+                                <span className="ml-2 text-[11px] text-blue-500 font-normal">Scan ID: {report.resultId}</span>
+                              </h4>
+                              <Bar
+                                data={{
+                                  labels: ['High', 'Medium', 'Low', 'Informational'],
+                                  datasets: [
+                                    {
+                                      label: `Scan ID: ${report.resultId}`,
+                                      data: getSeverityArray(report.summary.bySeverity),
+                                      backgroundColor: [
+                                        'rgba(239,68,68,0.7)', // High - red
+                                        'rgba(251,191,36,0.7)', // Medium - yellow
+                                        'rgba(34,197,94,0.7)', // Low - green
+                                        'rgba(59,130,246,0.4)', // Informational - blue
+                                      ],
+                                      borderRadius: 0,
+                                      borderSkipped: false,
+                                      barPercentage: 0.95,
+                                      categoryPercentage: 0.85,
+                                    },
+                                  ],
+                                }}
+                                options={{
+                                  responsive: true,
+                                  plugins: {
+                                    legend: { display: false },
+                                    title: { display: false },
+                                    tooltip: {
+                                      backgroundColor: '#fff',
+                                      titleColor: '#1e293b',
+                                      bodyColor: '#334155',
+                                      borderColor: '#e0e7ef',
+                                      borderWidth: 1,
+                                      padding: 10,
+                                      cornerRadius: 8,
+                                      displayColors: false,
+                                    },
+                                    datalabels: {
+                                      display: false,
+                                    },
                                   },
-                                ],
-                              }}
-                              options={{
-                                responsive: true,
-                                plugins: {
-                                  legend: { display: false },
-                                  title: { display: false },
-                                  tooltip: {
-                                    backgroundColor: '#fff',
-                                    titleColor: '#1e293b',
-                                    bodyColor: '#334155',
-                                    borderColor: '#e0e7ef',
-                                    borderWidth: 1,
-                                    padding: 10,
-                                    cornerRadius: 8,
-                                    displayColors: false,
+                                  indexAxis: 'y',
+                                  scales: {
+                                    x: {
+                                      beginAtZero: true,
+                                      ticks: { precision: 0, font: { size: 15 }, color: '#64748b' },
+                                      grid: { color: '#e0e7ef' },
+                                    },
+                                    y: {
+                                      grid: { display: false },
+                                      ticks: { font: { size: 15 }, color: '#64748b' },
+                                    },
                                   },
-                                  datalabels: {
-                                    display: false,
+                                }}
+                                // @ts-ignore
+                                plugins={['datalabels']}
+                                height={140}
+                              />
+                            </div>
+                          );
+                        })()}
+                        {/* Comparison Bar Chart (if compareReport is set and this app is selected) */}
+                        {(selectedAppId === app.appId && compareReport) && (() => {
+                          const report1 = appReports[app.appId];
+                          const report2 = compareReport;
+                          if (!report1 || !report2) return null;
+                          const type1 = getScanType(report1.issues);
+                          const type2 = getScanType(report2.issues);
+                          if (!type1 || !type2 || type1 !== type2) return null;
+                          if (!report1.summary || !report1.summary.bySeverity || !report2.summary || !report2.summary.bySeverity) return null;
+                          return (
+                            <div className="flex-1 max-w-md bg-gradient-to-br from-green-50 to-white rounded-lg shadow p-4">
+                              <h4 className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                                <span>Severity Comparison</span>
+                                <span className="ml-2 font-normal text-green-500">({type1})</span>
+                              </h4>
+                              <Bar
+                                data={{
+                                  labels: ['High', 'Medium', 'Low', 'Informational'],
+                                  datasets: [
+                                    {
+                                      label: `Scan ID: ${report1.resultId}`,
+                                      data: getSeverityArray(report1.summary.bySeverity),
+                                      backgroundColor: [
+                                        'rgba(239,68,68,0.85)',
+                                        'rgba(251,191,36,0.85)',
+                                        'rgba(34,197,94,0.85)',
+                                        'rgba(59,130,246,0.5)',
+                                      ],
+                                      borderRadius: 0,
+                                      borderSkipped: false,
+                                      barPercentage: 0.95,
+                                      categoryPercentage: 0.85,
+                                    },
+                                    {
+                                      label: `Scan ID: ${report2.resultId}`,
+                                      data: getSeverityArray(report2.summary.bySeverity),
+                                      backgroundColor: [
+                                        'rgba(239,68,68,0.35)',
+                                        'rgba(251,191,36,0.35)',
+                                        'rgba(34,197,94,0.35)',
+                                        'rgba(59,130,246,0.15)',
+                                      ],
+                                      borderRadius: 0,
+                                      borderSkipped: false,
+                                      barPercentage: 0.95,
+                                      categoryPercentage: 0.85,
+                                    },
+                                  ],
+                                }}
+                                options={{
+                                  responsive: true,
+                                  plugins: {
+                                    legend: {
+                                      position: 'top',
+                                      labels: { font: { size: 13 }, color: '#166534' },
+                                    },
+                                    title: { display: false },
+                                    tooltip: {
+                                      backgroundColor: '#fff',
+                                      titleColor: '#166534',
+                                      bodyColor: '#334155',
+                                      borderColor: '#bbf7d0',
+                                      borderWidth: 1,
+                                      padding: 12,
+                                      cornerRadius: 10,
+                                      displayColors: true,
+                                    },
+                                    datalabels: {
+                                      display: false,
+                                    },
                                   },
-                                },
-                                indexAxis: 'y',
-                                scales: {
-                                  x: {
-                                    beginAtZero: true,
-                                    ticks: { precision: 0, font: { size: 15 }, color: '#64748b' },
-                                    grid: { color: '#e0e7ef' },
+                                  indexAxis: 'y',
+                                  scales: {
+                                    x: {
+                                      beginAtZero: true,
+                                      ticks: { precision: 0, font: { size: 15 }, color: '#166534' },
+                                      grid: { color: '#bbf7d0' },
+                                    },
+                                    y: {
+                                      grid: { display: false },
+                                      ticks: { font: { size: 15 }, color: '#166534' },
+                                    },
                                   },
-                                  y: {
-                                    grid: { display: false },
-                                    ticks: { font: { size: 15 }, color: '#64748b' },
-                                  },
-                                },
-                              }}
-                              // @ts-ignore
-                              plugins={['datalabels']}
-                              height={140}
-                            />
-                          </div>
-                        );
-                      })()}
-                      {/* Comparison Bar Chart (if compareReport is set and this app is selected) */}
-                      {(selectedAppId === app.appId && compareReport) && (() => {
-                        const report1 = appReports[app.appId];
-                        const report2 = compareReport;
-                        if (!report1 || !report2) return null;
-                        const type1 = getScanType(report1.issues);
-                        const type2 = getScanType(report2.issues);
-                        if (!type1 || !type2 || type1 !== type2) return null;
-                        if (!report1.summary || !report1.summary.bySeverity || !report2.summary || !report2.summary.bySeverity) return null;
-                        return (
-                          <div className="flex-1 max-w-md bg-gradient-to-br from-green-50 to-white rounded-lg shadow p-4">
-                            <h4 className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-2">
-                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                              <span>Severity Comparison</span>
-                              <span className="ml-2 font-normal text-green-500">({type1})</span>
-                            </h4>
-                            <Bar
-                              data={{
-                                labels: ['High', 'Medium', 'Low', 'Informational'],
-                                datasets: [
-                                  {
-                                    label: `Scan ID: ${report1.resultId}`,
-                                    data: getSeverityArray(report1.summary.bySeverity),
-                                    backgroundColor: [
-                                      'rgba(239,68,68,0.85)',
-                                      'rgba(251,191,36,0.85)',
-                                      'rgba(34,197,94,0.85)',
-                                      'rgba(59,130,246,0.5)',
-                                    ],
-                                    borderRadius: 0,
-                                    borderSkipped: false,
-                                    barPercentage: 0.95,
-                                    categoryPercentage: 0.85,
-                                  },
-                                  {
-                                    label: `Scan ID: ${report2.resultId}`,
-                                    data: getSeverityArray(report2.summary.bySeverity),
-                                    backgroundColor: [
-                                      'rgba(239,68,68,0.35)',
-                                      'rgba(251,191,36,0.35)',
-                                      'rgba(34,197,94,0.35)',
-                                      'rgba(59,130,246,0.15)',
-                                    ],
-                                    borderRadius: 0,
-                                    borderSkipped: false,
-                                    barPercentage: 0.95,
-                                    categoryPercentage: 0.85,
-                                  },
-                                ],
-                              }}
-                              options={{
-                                responsive: true,
-                                plugins: {
-                                  legend: {
-                                    position: 'top',
-                                    labels: { font: { size: 13 }, color: '#166534' },
-                                  },
-                                  title: { display: false },
-                                  tooltip: {
-                                    backgroundColor: '#fff',
-                                    titleColor: '#166534',
-                                    bodyColor: '#334155',
-                                    borderColor: '#bbf7d0',
-                                    borderWidth: 1,
-                                    padding: 12,
-                                    cornerRadius: 10,
-                                    displayColors: true,
-                                  },
-                                  datalabels: {
-                                    display: false,
-                                  },
-                                },
-                                indexAxis: 'y',
-                                scales: {
-                                  x: {
-                                    beginAtZero: true,
-                                    ticks: { precision: 0, font: { size: 15 }, color: '#166534' },
-                                    grid: { color: '#bbf7d0' },
-                                  },
-                                  y: {
-                                    grid: { display: false },
-                                    ticks: { font: { size: 15 }, color: '#166534' },
-                                  },
-                                },
-                              }}
-                              // @ts-ignore
-                              plugins={['datalabels']}
-                              height={140}
-                            />
-                          </div>
-                        );
-                      })()}
-                    </div>
+                                }}
+                                // @ts-ignore
+                                plugins={['datalabels']}
+                                height={140}
+                              />
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="flex flex-row gap-4 items-center mt-2">
+                        <span className="text-gray-400 italic">No scan result loaded for this application.</span>
+                      </div>
+                    )}
                     {/* Compare Scan Result Button */}
-                    {appReports[app.appId] && (
+                    {currentReport && currentReport.issues && (
                       <button
                         type="button"
                         className="mt-2 px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium"
@@ -585,12 +588,11 @@ const Reports: React.FC = () => {
                       </button>
                     )}
                   </div>
-
                   {/* MODIFIED for horizontal buttons on the right, smaller buttons */}
                   <div className="flex-shrink-0 flex flex-row space-x-2 items-center">
                     <button 
                       onClick={() => handleOpenLoadReportModal(app.appId)} 
-                      className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap" // Changed text-xs to text-sm
+                      className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap"
                       title="Load Report by Scan ID"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
@@ -604,9 +606,9 @@ const Reports: React.FC = () => {
                         className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap"
                         title={`View Loaded Report (ID: ${currentReport.resultId})`}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor"> {/* Adjusted icon size to h-4 w-4 */}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 0 0z" clipRule="evenodd" />
                         </svg>
                         View Report (ID: {currentReport.resultId})
                       </button>
@@ -616,7 +618,7 @@ const Reports: React.FC = () => {
                             onClick={() => downloadCsv(app.appId)} 
                             disabled={loading && selectedAppId === app.appId}
                             className={`px-3 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap 
-                                        ${loading && selectedAppId === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`} // Changed text-xs to text-sm
+                                        ${loading && selectedAppId === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`}
                             title="Download Issues as CSV"
                         >
                         {loading && selectedAppId === app.appId ? (
