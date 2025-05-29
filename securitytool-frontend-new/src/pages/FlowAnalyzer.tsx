@@ -203,6 +203,7 @@ const FlowAnalyzer: React.FC = () => {
   const closeEditModal = () => {
     setEditingFlowData(null);
     setIsEditFlowModalOpen(false);
+    setIsViewFlowsModalOpen(true); // Show view flows modal again when cancel is clicked
   };
 
   // Function to open the confirm delete modal
