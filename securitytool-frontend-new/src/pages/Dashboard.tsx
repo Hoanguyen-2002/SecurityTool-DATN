@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAppDashboardStats } from '../api/dashboardApi';
-import { fetchApplications, searchApplications } from '../api/applicationApi';
+import { fetchApplications, searchApplications, PaginatedApplications } from '../api/applicationApi';
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
@@ -32,6 +32,12 @@ ChartJS.register(
 );
 
 const Dashboard: React.FC = () => {
+  // Pagination state
+  const [page, setPage] = useState<number>(0);
+  const [pageSize] = useState<number>(5);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
+
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState<ApplicationResponseDTO | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,18 +45,22 @@ const Dashboard: React.FC = () => {
   const [searchResults, setSearchResults] = useState<ApplicationResponseDTO[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const { data: apps, isLoading: appsLoading, isError: appsIsError, error: appsError } = 
-    useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
-      queryKey: ['applications'], 
-      queryFn: fetchApplications,
-      select: (fetchedData: any[]) => {
-        if (!fetchedData) return [];
-        return fetchedData.map(app => ({
-          ...app,
-          appId: Number(app.id),
-        }));
-      }
+  // Fetch paginated applications
+  const { data: paginatedApps, isLoading: appsLoading, isError: appsIsError, error: appsError } = 
+    useQuery<PaginatedApplications, Error>({
+      queryKey: ['applications', page, pageSize],
+      queryFn: () => fetchApplications(page, pageSize),
+      staleTime: 5000,
     });
+  useEffect(() => {
+    if (paginatedApps) {
+      setTotalPages(paginatedApps.totalPages);
+      setTotalElements(paginatedApps.totalElement);
+    }
+  }, [paginatedApps]);
+  const apps: ApplicationResponseDTO[] = paginatedApps && Array.isArray((paginatedApps as any).content)
+    ? (paginatedApps as any).content.map((app: any) => ({ ...app, appId: Number(app.id) }))
+    : [];
 
   const { 
     data: appStats,
@@ -130,7 +140,7 @@ const Dashboard: React.FC = () => {
   if (appsIsError) return <ErrorDisplay message={(appsError as any)?.message || 'Failed to load applications'} />;
 
   return (
-      <div className="p-6 bg-gray-50 min-h-screen"> {/* Added bg-gray-50 and min-h-screen for consistency */}
+      <div className="p-6 bg-gray-50 min-h-screen">
         <div className="flex items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mr-4">Application Dashboard</h1>
           <form onSubmit={handleSearch} className="flex items-center">
@@ -196,6 +206,18 @@ const Dashboard: React.FC = () => {
         ) : (
           <p className="text-gray-500">No applications found.</p>
         )}
+
+        {/* Pagination Controls */}
+        <div className="flex justify-between items-center my-4">
+          <div>
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
+            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
+            <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+          </div>
+          <div>
+            <span className="text-sm text-gray-600">Total: {totalElements}</span>
+          </div>
+        </div>
 
         {/* Modal for detailed statistics */}
         {selectedApp && (

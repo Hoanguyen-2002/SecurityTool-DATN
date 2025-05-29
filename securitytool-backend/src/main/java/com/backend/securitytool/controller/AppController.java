@@ -5,6 +5,7 @@ import com.backend.securitytool.constants.ApiConstants;
 import com.backend.securitytool.model.dto.request.ApplicationRequestDTO;
 import com.backend.securitytool.model.dto.response.CommonResponse;
 import com.backend.securitytool.model.dto.response.ApplicationResponseDTO;
+import com.backend.securitytool.model.dto.response.PagedApplicationResponseDTO;
 import com.backend.securitytool.service.appmanagement.AppManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,12 +23,15 @@ public class AppController {
     private final AppManagementService appManagementService;
 
     @GetMapping
-    public ResponseEntity<CommonResponse<List<ApplicationResponseDTO>>> getAllApps() {
-        List<ApplicationResponseDTO> apps = appManagementService.getApps();
-        CommonResponse<List<ApplicationResponseDTO>> response = new CommonResponse<>(
+    public ResponseEntity<CommonResponse<PagedApplicationResponseDTO>> getAllApps(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        PagedApplicationResponseDTO pagedApps = appManagementService.getApps(page, size);
+        CommonResponse<PagedApplicationResponseDTO> response = new CommonResponse<>(
                 "success",
                 "Applications retrieved successfully",
-                apps,
+                pagedApps,
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(response, HttpStatus.OK);

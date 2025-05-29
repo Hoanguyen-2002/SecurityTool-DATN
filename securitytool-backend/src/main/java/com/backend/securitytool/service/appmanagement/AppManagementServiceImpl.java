@@ -6,6 +6,7 @@ import com.backend.securitytool.exception.ResourceNotFoundException;
 import com.backend.securitytool.mapper.ApplicationMapper;
 import com.backend.securitytool.model.dto.request.ApplicationRequestDTO;
 import com.backend.securitytool.model.dto.response.ApplicationResponseDTO;
+import com.backend.securitytool.model.dto.response.PagedApplicationResponseDTO;
 import com.backend.securitytool.model.entity.TargetApplication;
 import com.backend.securitytool.util.EncryptionUtil;
 import com.backend.securitytool.repository.TargetApplicationRepository;
@@ -16,6 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,12 +42,20 @@ public class AppManagementServiceImpl implements AppManagementService{
     }
 
     @Cacheable("apps")
-    public List<ApplicationResponseDTO> getApps() {
-        logger.debug("Fetching all applications from database");
-        List<TargetApplication> apps = repository.findAll();
-        return apps.stream()
+    public PagedApplicationResponseDTO getApps(int page, int size) {
+        logger.debug("Fetching applications from database with pagination: page={}, size={}", page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<TargetApplication> appPage = repository.findAll(pageable);
+        List<ApplicationResponseDTO> content = appPage.getContent().stream()
                 .map(applicationMapper::toResponseDTO)
                 .collect(Collectors.toList());
+        return new PagedApplicationResponseDTO(
+                content,
+                appPage.getNumber()+1,
+                appPage.getSize(),
+                appPage.getTotalElements(),
+                appPage.getTotalPages()
+        );
     }
 
     @CacheEvict(value = "apps", allEntries = true)

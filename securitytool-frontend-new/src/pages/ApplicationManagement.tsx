@@ -1,24 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
-import { fetchApplications, createApplication, updateApplication, deleteApplication, searchApplications } from '../api/applicationApi';
+import { fetchApplications, createApplication, updateApplication, deleteApplication, searchApplications, PaginatedApplications } from '../api/applicationApi';
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
 import { ApplicationRequestDTO, ApplicationResponseDTO } from '../types/application';
 
 const ApplicationManagement: React.FC = () => {
+  // Pagination state
+  const [page, setPage] = useState<number>(0);
+  const [pageSize] = useState<number>(5);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
   const qc = useQueryClient();
-  const { data: applications, isLoading, isError, error } = useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
-    queryKey: ['applications'],
-    queryFn: fetchApplications,
-    select: (fetchedData: any[]) => {
-      if (!fetchedData) return [];
-      return fetchedData.map(app => ({
-        ...app,
-        appId: Number((app as any).id), // Ensure mapping from id to appId as a number
-      }));
-    }
+  // Fetch paginated applications
+  const { data: paginatedApps, isLoading, isError, error } = useQuery<PaginatedApplications, Error>({
+    queryKey: ['applications', page, pageSize],
+    queryFn: () => fetchApplications(page, pageSize),
   });
+  useEffect(() => {
+    if (paginatedApps) {
+      setTotalPages(paginatedApps.totalPages);
+      setTotalElements(paginatedApps.totalElement);
+    }
+  }, [paginatedApps]);
+  const applications: ApplicationResponseDTO[] = paginatedApps && Array.isArray((paginatedApps as any).content)
+    ? (paginatedApps as any).content.map((app: any) => ({ ...app, appId: Number(app.id) }))
+    : [];
 
   const [addModalError, setAddModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
@@ -232,6 +240,7 @@ const ApplicationManagement: React.FC = () => {
     setAppToDeleteId(null);
   };
 
+  // Search handler for paginated API
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSearching(true);
@@ -242,8 +251,9 @@ const ApplicationManagement: React.FC = () => {
         setSearching(false);
         return;
       }
+      // Use searchApplications (not paginated, returns all matches)
       const results = await searchApplications(searchTerm.trim());
-      setSearchResults(results.map(app => ({ ...app, appId: Number((app as any).id) })));
+      setSearchResults(results.map(app => ({ ...app, appId: app.appId ?? Number((app as any).id) })));
     } catch (err: any) {
       setSearchError(err.message || 'Search failed.');
       setSearchResults(null);
@@ -262,9 +272,6 @@ const ApplicationManagement: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-800 mr-4">Application Management</h1>
           <form onSubmit={handleSearch} className="flex items-center">
             <div className="flex rounded-full shadow-sm bg-white border border-gray-300">
-              <span className="flex items-center pl-3 pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
-              </span>
               <input
                 type="text"
                 className="pl-2 pr-2 py-2 border-0 rounded-full focus:outline-none focus:border-gray-300 w-56 bg-transparent"
@@ -277,21 +284,15 @@ const ApplicationManagement: React.FC = () => {
                 className="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold flex items-center transition-colors hover:bg-blue-600 focus:outline-none border-0 shadow-none"
                 disabled={searching}
               >
-                <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
+                Search
               </button>
             </div>
             {searchTerm && (
-              <button
-                type="button"
-                className="ml-2 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 rounded-full border border-gray-200 bg-gray-100"
-                onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}
-              >
-                Clear
-              </button>
+              <button type="button" className="ml-2 text-gray-400 hover:text-gray-600" onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}>Clear</button>
             )}
           </form>
         </div>
-        <button 
+        <button
           onClick={handleAdd}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors text-base font-semibold flex items-center"
         >
@@ -303,7 +304,7 @@ const ApplicationManagement: React.FC = () => {
       </div>
       {searchError && <div className="mb-2"><ErrorDisplay message={searchError} /></div>}
 
-      {applications && applications.length > 0 ? (
+      {(searchResults !== null ? searchResults : applications) && (searchResults !== null ? searchResults : applications)!.length > 0 ? (
         <div className="space-y-4">
           {(searchResults !== null ? searchResults : applications)!.map(app => (
             <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
@@ -362,6 +363,18 @@ const ApplicationManagement: React.FC = () => {
       ) : (
         <p className="text-gray-500">No applications found. Click "Add New Application" to get started.</p>
       )}
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center my-4">
+        <div>
+          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
+          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
+          <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+        </div>
+        <div>
+          <span className="text-sm text-gray-600">Total: {totalElements}</span>
+        </div>
+      </div>
 
       {/* Add Application Modal */}
       <Modal 

@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useRef } from 'react'; // Added useRef
+import React, { useState, useMemo, useRef, useEffect } from 'react'; // Added useRef
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFlow, getFlows, updateFlow, deleteFlow, analyzeBusinessFlow } from '../api/flowApi';
-import { fetchApplications, searchApplications } from '../api/applicationApi';
+import { fetchApplications, searchApplications, PaginatedApplications } from '../api/applicationApi';
 import { ApplicationResponseDTO } from '../types/application';
 import { NewFlowPayload, BusinessFlowResponseDTO, AnalyzeFlowApiResponse, FlowAnalysisRequestDTO, StepResult } from '../types/flow'; // Added StepResult, removed AnalyzeFlowData
 import Loading from '../components/Loading';
@@ -41,6 +41,12 @@ const FlowAnalyzer: React.FC = () => {
 
   const [addFlowResultIdError, setAddFlowResultIdError] = useState<string | null>(null);
   const [editFlowResultIdError, setEditFlowResultIdError] = useState<string | null>(null);
+
+  // Pagination state
+  const [page, setPage] = useState<number>(0);
+  const [pageSize] = useState<number>(5);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
 
   const addFlowMutation = useMutation<BusinessFlowResponseDTO, Error, NewFlowPayload>({
     mutationFn: createFlow,
@@ -124,18 +130,20 @@ const FlowAnalyzer: React.FC = () => {
     },
   });
 
-  const { data: apps, isLoading: appsLoading, isError: appsIsError, error: appsError } = 
-    useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({ 
-      queryKey: ['applications'], 
-      queryFn: fetchApplications, 
-      select: (fetchedData: any[]) => {
-        if (!fetchedData) return [];
-        return fetchedData.map(app => ({
-          ...app,
-          appId: Number((app as any).id), 
-        }));
-      }
+  const { data: paginatedApps, isLoading: appsLoading, isError: appsIsError, error: appsError } = 
+    useQuery<PaginatedApplications, Error>({
+      queryKey: ['applications', page, pageSize],
+      queryFn: () => fetchApplications(page, pageSize),
     });
+  useEffect(() => {
+    if (paginatedApps) {
+      setTotalPages(paginatedApps.totalPages);
+      setTotalElements(paginatedApps.totalElement);
+    }
+  }, [paginatedApps]);
+  const apps: ApplicationResponseDTO[] = paginatedApps && Array.isArray((paginatedApps as any).content)
+    ? (paginatedApps as any).content.map((app: any) => ({ ...app, appId: Number(app.id) }))
+    : [];
 
   const {
     data: allBusinessFlows,
@@ -812,6 +820,17 @@ const FlowAnalyzer: React.FC = () => {
         )}
       </Modal>
 
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center my-4">
+        <div>
+          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
+          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
+          <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+        </div>
+        <div>
+          <span className="text-sm text-gray-600">Total: {totalElements}</span>
+        </div>
+      </div>
     </div>
   );
 };

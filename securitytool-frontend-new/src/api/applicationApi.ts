@@ -1,8 +1,20 @@
 import instance from './axiosInstance';
 import { ApplicationRequestDTO, ApplicationResponseDTO } from '../types/application';
 
-export const fetchApplications = async (): Promise<ApplicationResponseDTO[]> => {
-  const res = await instance.get('/apps');
+// New paginated fetchApplications
+export interface PaginatedApplications {
+  content: ApplicationResponseDTO[];
+  pageNo: number;
+  pageSize: number;
+  totalElement: number;
+  totalPages: number;
+}
+
+export const fetchApplications = async (
+  page: number = 0,
+  size: number = 5
+): Promise<PaginatedApplications> => {
+  const res = await instance.get(`/apps?page=${page}&size=${size}`);
   return res.data.data;
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchApplications, searchApplications } from '../api/applicationApi';
+import { fetchApplications, searchApplications, PaginatedApplications } from '../api/applicationApi';
 import { triggerZapScan, triggerSonarScan, getSonarScansForApplication, getZapScansForApplication } from '../api/scanConfigApi';
 import { associateScanWithApp } from '../api/reportApi';
 import Loading from '../components/Loading';
@@ -13,17 +13,29 @@ const SCAN_RESULTS_STORAGE_KEY = 'scanResultsData'; // Key for localStorage
 
 const ScanConfig: React.FC = () => {
   const queryClient = useQueryClient();
-  const { data: applications, isLoading, isError, error } = useQuery<ApplicationResponseDTO[], Error, ApplicationResponseDTO[]>({
-    queryKey: ['applications'],
-    queryFn: fetchApplications,
-    select: (fetchedData: any[]) => {
-      if (!fetchedData) return [];
-      return fetchedData.map(app => ({
-        ...app,
-        appId: Number((app as any).id),
-      }));
+  // Pagination state
+  const [page, setPage] = useState<number>(0);
+  const [pageSize] = useState<number>(5);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
+
+  // Fetch paginated applications
+  const { data: paginatedApps, isLoading, isError, error } = useQuery<PaginatedApplications, Error>({
+      queryKey: ['applications', page, pageSize],
+      queryFn: () => fetchApplications(page, pageSize),
+      // keepPreviousData: true, // Removed because it's not a valid option in this version
+    });
+
+  useEffect(() => {
+    if (paginatedApps) {
+      setTotalPages(paginatedApps.totalPages);
+      setTotalElements(paginatedApps.totalElement);
     }
-  });
+  }, [paginatedApps]);
+  const applications: ApplicationResponseDTO[] = paginatedApps && Array.isArray(paginatedApps.content)
+    ? paginatedApps.content.map((app: any) => ({ ...app, appId: Number(app.id) }))
+    : [];
+
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const [errorState, setErrorState] = useState<string | null>(null); // For general page-level errors
   const [appErrors, setAppErrors] = useState<Record<string, string | null>>({}); // For app-specific errors
@@ -514,6 +526,18 @@ const ScanConfig: React.FC = () => {
       ) : (
         <p className="text-center text-gray-500 mt-10">No applications found. Please add an application first via Application Management.</p>
       )}
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center my-4">
+        <div>
+          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
+          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
+          <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+        </div>
+        <div>
+          <span className="text-sm text-gray-600">Total: {totalElements}</span>
+        </div>
+      </div>
 
       {/* Modals (Add/Edit Scan Config, Success, History) */}
       {currentApp && (
