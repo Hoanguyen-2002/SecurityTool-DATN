@@ -63,13 +63,44 @@ const Reports: React.FC = () => {
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [compareScanId, setCompareScanId] = useState('');
   const [compareError, setCompareError] = useState<string | null>(null);
-  const [compareReport, setCompareReport] = useState<ReportResponseDTO | null>(null);
+  const [compareReport, setCompareReport] = useState<ReportResponseDTO | null>(() => {
+    // Persist compareReport in localStorage
+    try {
+      const stored = localStorage.getItem('compareReportData');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [compareAppId, setCompareAppId] = useState<number | null>(() => {
+    // Persist compareAppId in localStorage
+    try {
+      const stored = localStorage.getItem('compareAppId');
+      return stored ? Number(stored) : null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     if (Object.keys(appReports).length > 0 || localStorage.getItem(APP_REPORTS_STORAGE_KEY)) {
       localStorage.setItem(APP_REPORTS_STORAGE_KEY, JSON.stringify(appReports));
     }
   }, [appReports]);
+
+  // Persist compareReport and compareAppId to localStorage whenever they change
+  useEffect(() => {
+    if (compareReport) {
+      localStorage.setItem('compareReportData', JSON.stringify(compareReport));
+    } else {
+      localStorage.removeItem('compareReportData');
+    }
+    if (compareAppId !== null && compareAppId !== undefined) {
+      localStorage.setItem('compareAppId', String(compareAppId));
+    } else {
+      localStorage.removeItem('compareAppId');
+    }
+  }, [compareReport, compareAppId]);
 
   const openDetailedReportView = (appId: number, resultId: string | number) => {
     const app = applications?.find(a => a.appId === appId);
@@ -123,23 +154,17 @@ const Reports: React.FC = () => {
     setIssuesModalContent(null); 
     setIsIssuesModalOpen(false);
 
+    // Clear comparison chart when loading a new report
+    setCompareReport(null);
+    setCompareAppId(null);
+
     const app = applications?.find(a => a.appId === selectedAppId);
     const appName = app ? app.appName : 'Selected Application';
 
-    // Set initial loading state for the issues modal
-    setIssuesModalContent({
-        title: `Loading Report for ${appName} (Scan ID: ${idNum})...`,
-        issues: null,
-        isLoading: true,
-        error: null,
-        appName: appName,
-        scanId: idNum
-    });
-    setIsIssuesModalOpen(true); // Open modal to show loading state
 
     try {
       const data = await getReport(idNum);
-      console.log('Report API Response:', data);
+      // ...existing code for errorForThisApp, etc...
       let errorForThisApp: string | null = null;
 
       if (!data || data.applicationId === undefined) {
@@ -152,65 +177,32 @@ const Reports: React.FC = () => {
       if (errorForThisApp) {
         setAppErrors(prev => ({ ...prev, [selectedAppId!]: errorForThisApp }));
         setAppReports(prev => ({ ...prev, [selectedAppId!]: null }));
-        setIssuesModalContent({
-          title: `Error Loading Report for ${appName}`,
-          issues: null,
-          isLoading: false,
-          error: errorForThisApp,
-          appName: appName,
-          scanId: idNum
-        });
+        // Optionally set issues modal content for error, but do NOT open modal
+        // setIssuesModalContent({ ... });
       } else if (data) { 
-        console.log('Successfully loaded report for app ID:', selectedAppId, 'with result ID:', idNum);
         setAppReports(prev => ({ ...prev, [selectedAppId!]: data }));
-        setIssuesModalContent({
-          title: `Security Issues for ${appName} (Scan ID: ${idNum})`,
-          issues: data.issues || [],
-          isLoading: false,
-          error: null,
-          appName: appName,
-          scanId: idNum
-        });
-        // Invalidate dashboardStats to refresh dashboard if needed
+        // Do NOT open issues modal here
+        // setIssuesModalContent({ ... });
+        // setIsIssuesModalOpen(true);
         queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       } else {
         const unknownError = `Could not retrieve data for Scan Result ID ${idNum}.`;
         setAppErrors(prev => ({ ...prev, [selectedAppId!]: unknownError }));
-        setIssuesModalContent({
-          title: `Error Loading Report for ${appName}`,
-          issues: null,
-          isLoading: false,
-          error: unknownError,
-          appName: appName,
-          scanId: idNum
-        });
+        // Optionally set issues modal content for error, but do NOT open modal
       }
     } catch (e: any) {
-      console.error('Error loading report:', e);
+      // ...existing error handling...
       const errorMessage = e.response ? 
         `Failed to load report: ${e.message}. Status: ${e.response.status} - ${e.response.statusText}` : 
         `Failed to load report: ${e.message}`;
-      
       if (selectedAppId) {
         setAppErrors(prev => ({ ...prev, [selectedAppId!]: errorMessage }));
         setAppReports(prev => ({ ...prev, [selectedAppId!]: null }));
       }
-      setIssuesModalContent({
-        title: `Error Loading Report for ${appName}`,
-        issues: null,
-        isLoading: false,
-        error: errorMessage,
-        appName: appName,
-        scanId: idNum
-      });
+      // Optionally set issues modal content for error, but do NOT open modal
     } finally {
       setLoading(false);
-      // Ensure modal is open if content was set, otherwise it might have been closed by setLoading(true) if it was fast
-      if (issuesModalContent) { // Check if content was set
-         // Update isLoading to false in the modal content if not already handled by error/success cases
-         setIssuesModalContent(prev => prev ? {...prev, isLoading: false} : null);
-         setIsIssuesModalOpen(true);
-      }
+      // Do NOT open issues modal here
     }
   };
 
@@ -318,7 +310,7 @@ const Reports: React.FC = () => {
   // Handle compare submit
   const handleCompareSubmit = async () => {
     setCompareError(null);
-    setCompareReport(null);
+    // Do not clear compareReport here, so it persists across refreshes
     if (!compareScanId) {
       setCompareError('Please enter a scan result ID to compare.');
       return;
@@ -326,6 +318,11 @@ const Reports: React.FC = () => {
     const currentReport = appReports[selectedAppId!];
     if (!currentReport) {
       setCompareError('No scan result loaded to compare with.');
+      return;
+    }
+    // Validation: Prevent comparing with itself
+    if (String(compareScanId).trim() === String(currentReport.resultId).trim()) {
+      setCompareError('Cannot compare a scan result with itself. Please enter a different scan result ID with the same type.');
       return;
     }
     try {
@@ -336,7 +333,8 @@ const Reports: React.FC = () => {
       if (!type1 || !type2 || type1 !== type2) throw new Error('Scan types do not match.');
       if (!data.summary || !data.summary.bySeverity) throw new Error('No severity data in this scan result.');
       setCompareReport(data);
-      setIsCompareModalOpen(false); // Close the modal after compare
+      setCompareAppId(selectedAppId); // Persist the appId for which the comparison is shown
+      setIsCompareModalOpen(false); // Only close the modal, do NOT clear compareReport
     } catch (e: any) {
       setCompareError(e.message || 'Failed to load scan result for comparison.');
     }
@@ -480,7 +478,7 @@ const Reports: React.FC = () => {
                           );
                         })()}
                         {/* Comparison Bar Chart (if compareReport is set and this app is selected) */}
-                        {(selectedAppId === app.appId && compareReport) && (() => {
+                        {(compareAppId === app.appId && compareReport) && (() => {
                           const report1 = appReports[app.appId];
                           const report2 = compareReport;
                           if (!report1 || !report2) return null;
@@ -582,7 +580,14 @@ const Reports: React.FC = () => {
                       <button
                         type="button"
                         className="mt-2 px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium"
-                        onClick={() => { setSelectedAppId(app.appId); setIsCompareModalOpen(true); setCompareScanId(''); setCompareError(null); setCompareReport(null); }}
+                        onClick={() => {
+                          setSelectedAppId(app.appId);
+                          setIsCompareModalOpen(true);
+                          setCompareScanId('');
+                          setCompareError(null);
+                          setCompareAppId(app.appId); // Set the appId for which the comparison chart should show
+                          // do not clear compareReport here
+                        }}
                       >
                         Compare Scan Result
                       </button>
