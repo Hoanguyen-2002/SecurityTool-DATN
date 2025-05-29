@@ -184,8 +184,12 @@ const Dashboard: React.FC = () => {
               <li key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h3>
-                    <p className="text-sm text-gray-500">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a></p>
+                    {/* Combine name and URL */}
+                    <h3 className="text-xl font-medium text-gray-800 mb-1">
+                      {app.appName}:&nbsp;
+                      <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                    </h3>
+                    {/* Removed separate URL line */}
                     {/* General Issue Statistics (always visible) */}
                     <AppStatsInline appId={app.appId} />
                   </div>

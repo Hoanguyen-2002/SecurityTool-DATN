@@ -393,8 +393,12 @@ const FlowAnalyzer: React.FC = () => {
             <div key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
               <div className="flex justify-between items-center">
                 <div className="flex-grow mr-4">
-                  <h2 className="text-xl font-medium text-gray-800 mb-1">{app.appName}</h2>
-                  <p className="text-sm text-gray-500">URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a></p>
+                  {/* Combine name and URL */}
+                  <h2 className="text-xl font-medium text-gray-800 mb-1">
+                    {app.appName}:&nbsp;
+                    <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a>
+                  </h2>
+                  {/* Removed separate URL line */}
                   {/* Flows for this app */}
                   <div className="mt-2">
                     <span className="text-sm text-gray-500">

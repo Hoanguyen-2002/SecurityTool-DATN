@@ -445,10 +445,12 @@ const ScanConfig: React.FC = () => {
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>{app.appName}</h2>
-                      <p className="text-sm text-gray-500 truncate">
-                        URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
-                      </p>
+                      {/* Combine name and URL */}
+                      <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>
+                        {app.appName}:&nbsp;
+                        <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                      </h2>
+                      {/* Removed separate URL line */}
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded shadow-sm text-sm">
                           <span className="font-medium text-indigo-700">SonarQube Last Scan:</span>

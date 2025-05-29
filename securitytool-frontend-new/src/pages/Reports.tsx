@@ -401,12 +401,14 @@ const Reports: React.FC = () => {
             }
             return (
               <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-                <div className="p-6 flex justify-between items-center"> {/* Changed items-start to items-center */}
-                  <div className="flex-grow mr-4"> {/* Added flex-grow and margin-right for app details */}
-                    <h2 className="text-xl font-semibold text-gray-800 mb-1 truncate" title={app.appName}>{app.appName}</h2>
-                    <p className="text-sm text-gray-500 mb-3 truncate">
-                      URL: <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
-                    </p>
+                <div className="p-6 flex justify-between items-center">
+                  <div className="flex-grow mr-4">
+                    {/* Combine name and URL */}
+                    <h2 className="text-xl font-semibold text-gray-800 mb-1 truncate" title={app.appName}>
+                      {app.appName}:&nbsp;
+                      <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                    </h2>
+                    {/* Removed separate URL line */}
                     <div className="flex flex-row gap-4 items-start">
                       {/* Severity Distribution Bar Chart for loaded scan result */}
                       {(() => {
