@@ -401,17 +401,18 @@ const FlowAnalyzer: React.FC = () => {
                   {/* Removed separate URL line */}
                   {/* Flows for this app */}
                   <div className="mt-2">
-                    <span className="text-sm text-gray-500">
-                      Flows:
-                      {allBusinessFlows && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 && (
-                        <span className="text-sm text-gray-500"> {allBusinessFlows.filter(f => f.appId === app.appId).length}</span>
-                      )}
-                    </span>
+                    {/* Redesigned Flows: Total */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Total Flows</span>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-200 text-yellow-900 text-sm font-bold shadow border border-yellow-300">
+                        {allBusinessFlows && allBusinessFlows.filter(f => f.appId === app.appId).length}
+                      </span>
+                    </div>
                     {allBusinessFlows && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 ? (
                       <ul className="flex flex-col gap-1 ml-6 mt-1">
                         {allBusinessFlows.filter(f => f.appId === app.appId).map(flow => (
                           <li key={flow.id} className="flex items-center gap-2">
-                            <span className="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium shadow-sm hover:bg-indigo-200 transition-colors cursor-default">
+                            <span className="inline-flex items-center px-3 py-1 bg-indigo-200 text-indigo-900 rounded-full text-sm font-semibold shadow-sm hover:bg-indigo-300 transition-colors cursor-default border border-indigo-300">
                               <svg className="w-4 h-4 mr-1 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                               {flow.flowName}
                             </span>
