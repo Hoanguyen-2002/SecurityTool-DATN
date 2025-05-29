@@ -271,7 +271,13 @@ const ApplicationManagement: React.FC = () => {
         <div className="flex items-center">
           <h1 className="text-3xl font-bold text-gray-800 mr-4">Application Management</h1>
           <form onSubmit={handleSearch} className="flex items-center">
-            <div className="flex rounded-full shadow-sm bg-white border border-gray-300">
+            <div className="flex rounded-full shadow-sm bg-white border border-gray-300 items-center">
+              {/* Search icon on the left */}
+              <span className="flex items-center pl-3 pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                </svg>
+              </span>
               <input
                 type="text"
                 className="pl-2 pr-2 py-2 border-0 rounded-full focus:outline-none focus:border-gray-300 w-56 bg-transparent"
@@ -284,7 +290,10 @@ const ApplicationManagement: React.FC = () => {
                 className="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold flex items-center transition-colors hover:bg-blue-600 focus:outline-none border-0 shadow-none"
                 disabled={searching}
               >
-                Search
+                {/* Search icon in the button */}
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                </svg>
               </button>
             </div>
             {searchTerm && (
