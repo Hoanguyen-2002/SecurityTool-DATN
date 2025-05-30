@@ -40,7 +40,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(dto.getEmail())
                 .phone(dto.getPhone())
                 .major(dto.getMajor())
-                .enabled(false)
+                .enabled(true) // Set enabled to true immediately after registration
                 .verificationToken(verificationToken)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -99,12 +99,6 @@ public class AuthServiceImpl implements AuthService {
     public void editUserInfo(String currentUsername, EditUserInfoRequestDTO dto) {
         User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        if (dto.getUsername() != null && !dto.getUsername().equals(user.getUsername())) {
-            if (userRepository.findByUsername(dto.getUsername()).isPresent()) {
-                throw new RuntimeException("Username already exists");
-            }
-            user.setUsername(dto.getUsername());
-        }
         if (dto.getEmail() != null && !dto.getEmail().equals(user.getEmail())) {
             if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
                 throw new RuntimeException("Email already exists");

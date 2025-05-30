@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register } from '../api/authApi';
+import Modal from '../components/Modal';
 
 const majors = [
   'Software Engineer',
@@ -18,6 +19,7 @@ const Register: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showWaitModal, setShowWaitModal] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -28,11 +30,14 @@ const Register: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setShowWaitModal(true);
     try {
       await register(form);
+      setShowWaitModal(false);
       setSuccess('Registration successful! Please check your email to verify your account.');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err: any) {
+      setShowWaitModal(false);
       setError(err.response?.data?.message || 'Registration failed');
     }
   };
@@ -72,6 +77,9 @@ const Register: React.FC = () => {
           <a href="/login" className="text-blue-600 hover:underline">Already have an account? Login</a>
         </div>
       </form>
+      <Modal isOpen={showWaitModal} onClose={() => {}} title="Please Wait" showFooterActions={false}>
+        <div className="mb-4 text-center text-base">Sending verification link to your email, please wait...</div>
+      </Modal>
     </div>
   );
 };

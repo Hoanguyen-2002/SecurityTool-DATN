@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -61,15 +64,29 @@ public class AuthController {
             @RequestBody EditUserInfoRequestDTO dto,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        authService.editUserInfo(userDetails.getUsername(), dto);
-        return ResponseEntity.ok("User information updated successfully.");
+        try {
+            authService.editUserInfo(userDetails.getUsername(), dto);
+            return ResponseEntity.ok("User information updated successfully.");
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("Username changed")) {
+                return ResponseEntity.status(440).body("Username changed. Please login again with your new username.");
+            }
+            throw ex;
+        }
     }
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setPassword(null);
-        return ResponseEntity.ok(user);
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", user.getId());
+        result.put("username", user.getUsername());
+        result.put("email", user.getEmail());
+        result.put("phone", user.getPhone());
+        result.put("major", user.getMajor());
+        result.put("createdAt", user.getCreatedAt());
+        result.put("updatedAt", user.getUpdatedAt());
+        return ResponseEntity.ok(result);
     }
 }

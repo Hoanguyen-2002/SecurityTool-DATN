@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { editUserInfo, logout, getUserInfo } from '../api/userApi';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
-import { PencilSquareIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
 const majors = [
   'Software Engineer',
@@ -16,12 +16,18 @@ const UserProfile: React.FC = () => {
     email: '',
     phone: '',
     major: majors[0],
+    created_at: '',
+    updated_at: '',
   });
   const [editForm, setEditForm] = useState(user);
   const [modalOpen, setModalOpen] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [forceLogoutModal, setForceLogoutModal] = useState(false);
+  const [forceLogoutMsg, setForceLogoutMsg] = useState('');
+  const [customMajor, setCustomMajor] = useState(editForm.major && !majors.includes(editForm.major) ? editForm.major : '');
+  const prevUsername = useRef(user.username);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +37,7 @@ const UserProfile: React.FC = () => {
         const res = await getUserInfo();
         setUser(res.data);
         setEditForm(res.data);
+        prevUsername.current = res.data.username;
       } catch (err: any) {
         setError('Failed to load user info');
       } finally {
@@ -41,18 +48,30 @@ const UserProfile: React.FC = () => {
   }, []);
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+    if (e.target.name === 'major') {
+      setEditForm({ ...editForm, major: e.target.value });
+      if (e.target.value === 'Enter Manually') {
+        setCustomMajor('');
+      }
+    } else {
+      setEditForm({ ...editForm, [e.target.name]: e.target.value });
+    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    let submitForm = { ...editForm };
+    if (editForm.major === 'Enter Manually') {
+      submitForm.major = customMajor;
+    }
     try {
-      await editUserInfo(editForm);
-      setUser(editForm);
+      await editUserInfo(submitForm);
+      setUser(submitForm);
       setSuccess('Information updated successfully!');
       setModalOpen(false);
+      prevUsername.current = submitForm.username;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Update failed');
     }
@@ -67,81 +86,116 @@ const UserProfile: React.FC = () => {
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+  };
+
   return (
-    <div className="max-w-2xl ml-10 mt-10 bg-white rounded-xl shadow-lg p-10 relative border border-gray-200">
-      {/* Card Title: Username */}
-      <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
-        <span className="text-blue-700">{user.username}</span>
-      </h2>
-      {error && <div className="mb-4 text-red-500">{error}</div>}
-      {success && <div className="mb-4 text-green-600">{success}</div>}
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <>
-          <div className="mb-4 flex items-center">
-            <div className="w-1/3 font-semibold text-gray-600">Email:</div>
-            <div className="w-2/3">{user.email}</div>
+    <>
+      <h1 className="text-3xl font-bold mb-8 ml-4 mt-8">User Profile</h1>
+      <div className="w-full bg-white rounded-2xl shadow-lg p-10 border border-gray-200 flex flex-col min-h-[400px] justify-between">
+        <div>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-shrink-0 w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-3xl font-bold text-blue-700">
+              {user.username.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-blue-700">{user.username}</h2>
+              <div className="flex gap-2 mt-2">
+                <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+                  Created: {formatDate(user.created_at)}
+                </span>
+                <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
+                  Updated: {formatDate(user.updated_at)}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="mb-4 flex items-center">
-            <div className="w-1/3 font-semibold text-gray-600">Phone:</div>
-            <div className="w-2/3">{user.phone}</div>
-          </div>
-          <div className="mb-8 flex items-center">
-            <div className="w-1/3 font-semibold text-gray-600">Major:</div>
-            <div className="w-2/3">{user.major}</div>
-          </div>
-          <div className="flex gap-4 mb-8">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="flex items-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-sm"
-              title="Edit"
-            >
-              <PencilSquareIcon className="h-5 w-5" />
-              Edit
-            </button>
-          </div>
-          <div className="flex justify-end">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 shadow-sm"
-              title="Logout"
-            >
-              <ArrowRightOnRectangleIcon className="h-5 w-5" />
-              Logout
-            </button>
-          </div>
-        </>
-      )}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Edit User Info" showFooterActions={false}>
-        <form onSubmit={handleEditSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1">Username</label>
-            <input name="username" value={editForm.username} onChange={handleEditChange} required className="w-full px-3 py-2 border rounded" />
-          </div>
-          <div>
-            <label className="block mb-1">Email</label>
-            <input type="email" name="email" value={editForm.email} onChange={handleEditChange} required className="w-full px-3 py-2 border rounded" />
-          </div>
-          <div>
-            <label className="block mb-1">Phone</label>
-            <input name="phone" value={editForm.phone} onChange={handleEditChange} className="w-full px-3 py-2 border rounded" />
-          </div>
-          <div>
-            <label className="block mb-1">Major</label>
-            <select name="major" value={editForm.major} onChange={handleEditChange} className="w-full px-3 py-2 border rounded">
-              {majors.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
-          </div>
-        </form>
-      </Modal>
-    </div>
+          {error && <div className="mb-4 text-red-500">{error}</div>}
+          {success && <div className="mb-4 text-green-600">{success}</div>}
+          {loading ? (
+            <div>Loading...</div>
+          ) : (
+            <>
+              <div className="mb-4 flex items-center">
+                <div className="w-28 font-semibold text-gray-600">Email:</div>
+                <div>{user.email}</div>
+              </div>
+              <div className="mb-4 flex items-center">
+                <div className="w-28 font-semibold text-gray-600">Phone:</div>
+                <div>{user.phone}</div>
+              </div>
+              <div className="mb-8 flex items-center">
+                <div className="w-28 font-semibold text-gray-600">Major:</div>
+                <div>{user.major}</div>
+              </div>
+              <div className="flex gap-4 mb-8">
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="flex items-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-sm"
+                  title="Edit"
+                >
+                  <PencilSquareIcon className="h-5 w-5" />
+                  Edit
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        {/* Remove the logout button from the bottom of the profile card */}
+        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Edit User Info" showFooterActions={false}>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div>
+              <label className="block mb-1">Username</label>
+              <input name="username" value={editForm.username} readOnly className="w-full px-3 py-2 border rounded bg-gray-100 cursor-not-allowed" />
+            </div>
+            <div>
+              <label className="block mb-1">Email</label>
+              <input type="email" name="email" value={editForm.email} onChange={handleEditChange} required className="w-full px-3 py-2 border rounded" />
+            </div>
+            <div>
+              <label className="block mb-1">Phone</label>
+              <input name="phone" value={editForm.phone} onChange={handleEditChange} className="w-full px-3 py-2 border rounded" />
+            </div>
+            <div>
+              <label className="block mb-1">Major</label>
+              <select name="major" value={majors.includes(editForm.major) ? editForm.major : 'Enter Manually'} onChange={handleEditChange} className="w-full px-3 py-2 border rounded">
+                {majors.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+                <option value="Enter Manually">Enter Manually...</option>
+              </select>
+              {(!majors.includes(editForm.major) || editForm.major === 'Enter Manually') && (
+                <input
+                  className="w-full px-3 py-2 border rounded mt-2"
+                  placeholder="Enter your major"
+                  value={customMajor}
+                  onChange={e => {
+                    setCustomMajor(e.target.value);
+                    setEditForm({ ...editForm, major: 'Enter Manually' });
+                  }}
+                  required
+                />
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setModalOpen(false)} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
+            </div>
+          </form>
+        </Modal>
+        <Modal
+          isOpen={forceLogoutModal}
+          onClose={() => {}}
+          title="Username Changed"
+          showFooterActions={false}
+        >
+          <div className="mb-4">{forceLogoutMsg}</div>
+        </Modal>
+      </div>
+    </>
   );
 };
 

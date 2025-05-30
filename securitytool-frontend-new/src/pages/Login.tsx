@@ -24,7 +24,7 @@ const Login: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Security Tool</h2>
         {error && <div className="mb-4 text-red-500">{error}</div>}
         <div className="mb-4">
           <label className="block mb-1">Username</label>
