@@ -14,6 +14,17 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: maupro2002@gmail.com
+    password: ozqt jmlm bfpj vrdx
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 8081
@@ -26,4 +37,3 @@ spring.cache:
 #sonarqube
 sonarqube:
   projectKey: sqp_9797b07916a233f02fd8b5291521cd7e5af0327d
-

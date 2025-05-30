@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { HomeIcon, FolderIcon, CogIcon, BeakerIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, FolderIcon, CogIcon, BeakerIcon, DocumentTextIcon, UserIcon } from '@heroicons/react/24/outline';
 
 interface SidebarItem {
   label: string;
@@ -15,7 +15,8 @@ const items: SidebarItem[] = [
   // { label: 'Modules', path: '/modules', isPending: true, icon: <ViewGridIcon className="h-5 w-5 mr-3" /> },
   { label: 'Scan Tools', path: '/scan-config', icon: <CogIcon className="h-5 w-5 mr-3" /> },
   { label: 'Business Flow Analyzer', path: '/flow-analyzer', icon: <BeakerIcon className="h-5 w-5 mr-3" /> },
-  { label: 'Reports', path: '/reports', icon: <DocumentTextIcon className="h-5 w-5 mr-3" /> }
+  { label: 'Reports', path: '/reports', icon: <DocumentTextIcon className="h-5 w-5 mr-3" /> },
+  { label: 'User Profile', path: '/user-profile', icon: <UserIcon className="h-5 w-5 mr-3" /> }
 ];
 
 const Sidebar: React.FC = () => (
