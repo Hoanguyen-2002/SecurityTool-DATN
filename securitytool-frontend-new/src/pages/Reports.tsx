@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import { ApplicationResponseDTO } from '../types/application';
 import { ReportResponseDTO, SecurityIssueResponseDTO } from '../types/report';
 import { Bar } from 'react-chartjs-2';
+import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 
 const APP_REPORTS_STORAGE_KEY = 'appReportsData'; // Key for localStorage
 
@@ -581,7 +582,7 @@ const Reports: React.FC = () => {
                     {currentReport && currentReport.issues && (
                       <button
                         type="button"
-                        className="mt-2 px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium"
+                        className="mt-2 px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center gap-2"
                         onClick={() => {
                           setSelectedAppId(app.appId);
                           setIsCompareModalOpen(true);
@@ -591,6 +592,7 @@ const Reports: React.FC = () => {
                           // do not clear compareReport here
                         }}
                       >
+                        <ArrowsRightLeftIcon className="h-5 w-5" />
                         Compare Scan Result
                       </button>
                     )}
