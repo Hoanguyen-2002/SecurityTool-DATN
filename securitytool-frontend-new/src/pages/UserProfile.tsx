@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { editUserInfo, logout, getUserInfo } from '../api/userApi';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 
 const majors = [
   'Software Engineer',
@@ -26,6 +26,10 @@ const UserProfile: React.FC = () => {
   const [forceLogoutModal, setForceLogoutModal] = useState(false);
   const [forceLogoutMsg, setForceLogoutMsg] = useState('');
   const [customMajor, setCustomMajor] = useState(editForm.major && !majors.includes(editForm.major) ? editForm.major : '');
+  const [changePwdModalOpen, setChangePwdModalOpen] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '' });
+  const [pwdError, setPwdError] = useState('');
+  const [pwdSuccess, setPwdSuccess] = useState('');
   const prevUsername = useRef(user.username);
   const navigate = useNavigate();
 
@@ -92,6 +96,26 @@ const UserProfile: React.FC = () => {
     }
   };
 
+  const handlePwdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPwdForm({ ...pwdForm, [e.target.name]: e.target.value });
+  };
+
+  const handlePwdSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdError('');
+    setPwdSuccess('');
+    try {
+      // @ts-ignore
+      const { changePassword } = await import('../api/userApi');
+      await changePassword(pwdForm);
+      setPwdSuccess('Password changed successfully!');
+      setPwdForm({ currentPassword: '', newPassword: '' });
+      setChangePwdModalOpen(false);
+    } catch (err: any) {
+      setPwdError(err.response?.data?.message || 'Failed to change password');
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -142,6 +166,14 @@ const UserProfile: React.FC = () => {
                 >
                   <PencilSquareIcon className="h-5 w-5" />
                   Edit
+                </button>
+                <button
+                  onClick={() => setChangePwdModalOpen(true)}
+                  className="flex items-center gap-1 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 shadow-sm"
+                  title="Change Password"
+                >
+                  <LockClosedIcon className="h-5 w-5" />
+                  Change Password
                 </button>
               </div>
             </>
@@ -196,6 +228,38 @@ const UserProfile: React.FC = () => {
           showFooterActions={false}
         >
           <div className="mb-4">{forceLogoutMsg}</div>
+        </Modal>
+        <Modal isOpen={changePwdModalOpen} onClose={() => setChangePwdModalOpen(false)} title="Change Password" showFooterActions={false}>
+          <form onSubmit={handlePwdSubmit} className="space-y-4">
+            {pwdError && <div className="text-red-500">{pwdError}</div>}
+            {pwdSuccess && <div className="text-green-600">{pwdSuccess}</div>}
+            <div>
+              <label className="block mb-1">Current Password</label>
+              <input
+                type="password"
+                name="currentPassword"
+                value={pwdForm.currentPassword}
+                onChange={handlePwdChange}
+                required
+                className="w-full px-3 py-2 border rounded"
+              />
+            </div>
+            <div>
+              <label className="block mb-1">New Password</label>
+              <input
+                type="password"
+                name="newPassword"
+                value={pwdForm.newPassword}
+                onChange={handlePwdChange}
+                required
+                className="w-full px-3 py-2 border rounded"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setChangePwdModalOpen(false)} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+              <button type="submit" className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Change</button>
+            </div>
+          </form>
         </Modal>
       </div>
     </>

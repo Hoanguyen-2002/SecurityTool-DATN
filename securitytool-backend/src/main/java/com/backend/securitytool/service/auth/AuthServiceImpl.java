@@ -3,6 +3,7 @@ package com.backend.securitytool.service.auth;
 import com.backend.securitytool.model.dto.request.LoginRequestDTO;
 import com.backend.securitytool.model.dto.request.RegisterRequestDTO;
 import com.backend.securitytool.model.dto.request.EditUserInfoRequestDTO;
+import com.backend.securitytool.model.dto.request.ChangePasswordRequestDTO;
 import com.backend.securitytool.model.dto.response.JwtResponseDTO;
 import com.backend.securitytool.model.entity.User;
 import com.backend.securitytool.repository.UserRepository;
@@ -89,10 +90,13 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Email not found");
         }
         User user = userOpt.get();
-        String resetToken = UUID.randomUUID().toString();
-        user.setVerificationToken(resetToken);
+        // Generate a random temporary password
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+        String encodedTempPassword = passwordEncoder.encode(tempPassword);
+        user.setPassword(encodedTempPassword);
+        user.setUpdatedAt(Instant.now());
         userRepository.save(user);
-        emailService.sendResetPasswordEmail(email, resetToken);
+        emailService.sendResetPasswordEmail(email, tempPassword);
     }
 
     @Override
@@ -111,6 +115,21 @@ public class AuthServiceImpl implements AuthService {
         if (dto.getMajor() != null) {
             user.setMajor(dto.getMajor());
         }
+        user.setUpdatedAt(Instant.now());
+        userRepository.save(user);
+    }
+
+    @Override
+    public void changePassword(String username, ChangePasswordRequestDTO dto) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect.");
+        }
+        if (dto.getNewPassword() == null || dto.getNewPassword().isEmpty()) {
+            throw new RuntimeException("New password must not be empty.");
+        }
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
     }

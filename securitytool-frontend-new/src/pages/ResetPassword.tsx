@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { resetPassword } from '../api/authApi';
+import Modal from '../components/Modal';
 
 const ResetPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showWaitModal, setShowWaitModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
     setError('');
+    setShowWaitModal(true);
     try {
       await resetPassword(email);
+      setShowWaitModal(false);
       setMessage('If your email exists, a reset link has been sent. Please check your inbox.');
     } catch (err: any) {
+      setShowWaitModal(false);
       setError(err.response?.data?.message || 'Failed to send reset email');
     }
   };
@@ -33,6 +38,9 @@ const ResetPassword: React.FC = () => {
           <a href="/login" className="text-blue-600 hover:underline">Back to Login</a>
         </div>
       </form>
+      <Modal isOpen={showWaitModal} onClose={() => {}} title="Please Wait" showFooterActions={false}>
+        <div className="mb-4 text-center text-base">Sending reset password link to your email. please wait</div>
+      </Modal>
     </div>
   );
 };

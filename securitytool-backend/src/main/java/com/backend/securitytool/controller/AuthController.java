@@ -3,6 +3,7 @@ package com.backend.securitytool.controller;
 import com.backend.securitytool.model.dto.request.LoginRequestDTO;
 import com.backend.securitytool.model.dto.request.RegisterRequestDTO;
 import com.backend.securitytool.model.dto.request.EditUserInfoRequestDTO;
+import com.backend.securitytool.model.dto.request.ChangePasswordRequestDTO;
 import com.backend.securitytool.model.dto.response.JwtResponseDTO;
 import com.backend.securitytool.model.entity.User;
 import com.backend.securitytool.repository.UserRepository;
@@ -54,7 +55,11 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestParam String email) {
+    public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body("Email is required.");
+        }
         authService.resetPassword(email);
         return ResponseEntity.ok("If your email exists, a reset password link has been sent.");
     }
@@ -72,6 +77,19 @@ public class AuthController {
                 return ResponseEntity.status(440).body("Username changed. Please login again with your new username.");
             }
             throw ex;
+        }
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            @RequestBody ChangePasswordRequestDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        try {
+            authService.changePassword(userDetails.getUsername(), dto);
+            return ResponseEntity.ok("Password changed successfully.");
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 

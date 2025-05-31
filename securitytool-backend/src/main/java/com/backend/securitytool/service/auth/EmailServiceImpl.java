@@ -33,12 +33,11 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendResetPasswordEmail(String to, String token) {
+    public void sendResetPasswordEmail(String to, String tempPassword) {
         String subject = "Reset Password";
-        String resetLink = frontendUrl + "/reset-password?token=" + token;
         String text = "You requested to reset your password.\n\n"
-                + "Please click the link below to reset your password:\n"
-                + resetLink + "\n\n"
+                + "Your temporary password is: " + tempPassword + "\n\n"
+                + "Please use this password to login and change your password after logging in.\n"
                 + "If you did not request this, please ignore this email.";
 
         SimpleMailMessage message = new SimpleMailMessage();
