@@ -41,6 +41,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(dto.getEmail())
                 .phone(dto.getPhone())
                 .major(dto.getMajor())
+                .companyName(dto.getCompanyName())
                 .enabled(true) // Set enabled to true immediately after registration
                 .verificationToken(verificationToken)
                 .createdAt(Instant.now())

@@ -16,6 +16,7 @@ const Register: React.FC = () => {
     email: '',
     phone: '',
     major: majors[0],
+    companyName: '',
   });
   const [customMajor, setCustomMajor] = useState('');
   const [error, setError] = useState('');
@@ -72,11 +73,21 @@ const Register: React.FC = () => {
           </div>
           <div className="mb-4">
             <label className="block mb-1 font-medium">Email</label>
-            <input type="email" name="email" value={form.email} onChange={handleChange} required className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
+            <input type="email" name="email" value={form.email} onChange={handleChange} required className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Enter your email" />
           </div>
           <div className="mb-4">
             <label className="block mb-1 font-medium">Phone</label>
-            <input name="phone" value={form.phone} onChange={handleChange} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
+            <input name="phone" value={form.phone} onChange={handleChange} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Enter your phone number" />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-1 font-medium">Company Name</label>
+            <input
+              name="companyName"
+              value={form.companyName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="Enter your company name"
+            />
           </div>
           <div className="mb-6">
             <label className="block mb-1 font-medium">Major</label>
