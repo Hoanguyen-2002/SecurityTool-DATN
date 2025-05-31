@@ -48,7 +48,7 @@ const Sidebar: React.FC = () => {
       <div className="flex items-center gap-2 mb-4 px-4">
         <Link to="/user-profile" className="flex items-center p-2 hover:bg-gray-700 rounded">
           <UserIcon className="h-5 w-5 mr-2" />
-          User Profile
+          Profile
         </Link>
         <button
           onClick={() => setShowLogoutModal(true)}
@@ -63,7 +63,10 @@ const Sidebar: React.FC = () => {
           title="Confirm Logout"
           showFooterActions={false}
         >
-          <div className="mb-8 text-xl text-gray-800 font-bold text-center">Do you want to log out?</div>
+          <div className="flex flex-col items-center mb-8">
+            <ArrowRightOnRectangleIcon className="h-12 w-12 text-red-500 mb-4" />
+            <div className="text-xl text-gray-800 font-bold text-center">Do you want to log out?</div>
+          </div>
           <div className="flex justify-end gap-2">
             <button
               className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"

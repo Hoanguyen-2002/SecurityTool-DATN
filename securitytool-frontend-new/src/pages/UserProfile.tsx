@@ -16,8 +16,7 @@ const UserProfile: React.FC = () => {
     email: '',
     phone: '',
     major: majors[0],
-    created_at: '',
-    updated_at: '',
+    updatedAt: '',
   });
   const [editForm, setEditForm] = useState(user);
   const [modalOpen, setModalOpen] = useState(false);
@@ -104,11 +103,8 @@ const UserProfile: React.FC = () => {
             <div>
               <h2 className="text-3xl font-bold text-blue-700">{user.username}</h2>
               <div className="flex gap-2 mt-2">
-                <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
-                  Created: {formatDate(user.created_at)}
-                </span>
                 <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
-                  Updated: {formatDate(user.updated_at)}
+                  Updated: {formatDate(user.updatedAt)}
                 </span>
               </div>
             </div>
