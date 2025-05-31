@@ -93,13 +93,15 @@ const Dashboard: React.FC = () => {
       if (!searchTerm.trim()) {
         setSearchResults(null);
         setSearching(false);
+        setPage(0); // Reset to first page when clearing search
         return;
       }
+      // Always use searchApplications for search
       const results = await searchApplications(searchTerm.trim());
-      setSearchResults(results.map(app => ({ ...app, appId: Number(app.appId) })));
+      setSearchResults(results.map(app => ({ ...app, appId: app.appId ?? Number((app as any).id) })));
     } catch (err: any) {
       setSearchError(err.message || 'Search failed.');
-      setSearchResults(null);
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -170,7 +172,7 @@ const Dashboard: React.FC = () => {
               <button
                 type="button"
                 className="ml-2 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 rounded-full border border-gray-200 bg-gray-100"
-                onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}
+                onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); setPage(0); }}
               >
                 Clear
               </button>
@@ -180,38 +182,76 @@ const Dashboard: React.FC = () => {
         {searchError && <div className="mb-2"><ErrorDisplay message={searchError} /></div>}
 
         {/* <h2 className="text-xl mb-4 font-medium text-gray-600">Applications</h2> */}
-        {(searchResults !== null ? searchResults : apps) && (searchResults !== null ? searchResults : apps)!.length > 0 ? (
-          <ul className="space-y-4">
-            {(searchResults !== null ? searchResults : apps)!.map(app => (
-              <li key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-                <div className="flex justify-between items-center">
-                  <div>
-                    {/* Combine name and URL */}
-                    <h3 className="text-xl font-medium text-gray-800 mb-1">
-                      {app.appName}:&nbsp;
-                      <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
-                    </h3>
-                    {/* Removed separate URL line */}
-                    {/* General Issue Statistics (always visible) */}
-                    <AppStatsInline appId={app.appId} />
-                  </div>
-                  <button 
-                    onClick={() => openStatsModal(app)} 
-                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors text-sm font-medium flex items-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.001.028-.002.055-.002.082 0 .027.001.054.002.082-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7-.001-.028-.002-.055-.002-.082 0-.027.001.054.002.082z" />
-                    </svg>
-                    View Issue Statistics
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-500">No applications found.</p>
-        )}
+        {(() => {
+          // If searching and searchResults is not null, show only searchResults (even if empty)
+          if (searchTerm && searchResults !== null) {
+            if (searchResults.length === 0) {
+              return <p className="text-gray-500">No applications found.</p>;
+            }
+            return (
+              <ul className="space-y-4">
+                {searchResults.map(app => (
+                  app && app.appId !== undefined && app.appId !== null && !isNaN(Number(app.appId)) ? (
+                    <li key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="text-xl font-medium text-gray-800 mb-1">
+                            {app.appName}:&nbsp;
+                            <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                          </h3>
+                          <AppStatsInline appId={Number(app.appId)} />
+                        </div>
+                        <button 
+                          onClick={() => openStatsModal(app)} 
+                          className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors text-sm font-medium flex items-center"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.001.028-.002.055-.002.082 0 .027.001.054.002.082-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7-.001-.028-.002-.055-.002-.082 0-.027.001.054.002.082z" />
+                          </svg>
+                          View Issue Statistics
+                        </button>
+                      </div>
+                    </li>
+                  ) : null
+                ))}
+              </ul>
+            );
+          }
+          // Otherwise, show all apps
+          if (apps.length === 0) {
+            return <p className="text-gray-500">No applications found.</p>;
+          }
+          return (
+            <ul className="space-y-4">
+              {apps.map(app => (
+                app && app.appId !== undefined && app.appId !== null && !isNaN(Number(app.appId)) ? (
+                  <li key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-xl font-medium text-gray-800 mb-1">
+                          {app.appName}:&nbsp;
+                          <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                        </h3>
+                        <AppStatsInline appId={Number(app.appId)} />
+                      </div>
+                      <button 
+                        onClick={() => openStatsModal(app)} 
+                        className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors text-sm font-medium flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.001.028-.002.055-.002.082 0 .027.001.054.002.082-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7-.001-.028-.002-.055-.002-.082 0-.027.001.054.002.082z" />
+                        </svg>
+                        View Issue Statistics
+                      </button>
+                    </div>
+                  </li>
+                ) : null
+              ))}
+            </ul>
+          );
+        })()}
 
         {/* Pagination Controls */}
         <div className="flex justify-between items-center my-4">
