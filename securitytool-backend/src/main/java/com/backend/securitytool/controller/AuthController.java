@@ -103,6 +103,7 @@ public class AuthController {
         result.put("email", user.getEmail());
         result.put("phone", user.getPhone());
         result.put("major", user.getMajor());
+        result.put("companyName", user.getCompanyName());
         result.put("createdAt", user.getCreatedAt());
         result.put("updatedAt", user.getUpdatedAt());
         return ResponseEntity.ok(result);

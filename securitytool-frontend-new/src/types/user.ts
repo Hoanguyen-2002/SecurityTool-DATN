@@ -3,6 +3,7 @@ export interface User {
   email: string;
   phone?: string;
   major: string;
+  companyName?: string;
 }
 
 export interface ChangePasswordRequest {

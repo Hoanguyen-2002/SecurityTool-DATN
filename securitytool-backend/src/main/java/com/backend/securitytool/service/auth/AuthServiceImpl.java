@@ -115,6 +115,9 @@ public class AuthServiceImpl implements AuthService {
         if (dto.getMajor() != null) {
             user.setMajor(dto.getMajor());
         }
+        if (dto.getCompanyName() != null) {
+            user.setCompanyName(dto.getCompanyName());
+        }
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
     }

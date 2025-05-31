@@ -30,6 +30,9 @@ public class User {
     @Column(length = 50)
     private String major; // software engineer, security analyst, devops engineer, Ai Engineer, ...
 
+    @Column(length = 100)
+    private String companyName;
+
     @Column(nullable = false)
     private boolean enabled = false; // for email verification
 

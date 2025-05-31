@@ -16,6 +16,7 @@ const UserProfile: React.FC = () => {
     email: '',
     phone: '',
     major: majors[0],
+    companyName: '',
     updatedAt: '',
   });
   const [editForm, setEditForm] = useState(user);
@@ -154,6 +155,10 @@ const UserProfile: React.FC = () => {
                 <div className="w-28 font-semibold text-gray-600">Phone:</div>
                 <div>{user.phone}</div>
               </div>
+              <div className="mb-4 flex items-center">
+                <div className="w-28 font-semibold text-gray-600">Company:</div>
+                <div>{user.companyName || <span className="text-gray-400 italic">Not provided</span>}</div>
+              </div>
               <div className="mb-8 flex items-center">
                 <div className="w-28 font-semibold text-gray-600">Major:</div>
                 <div>{user.major}</div>
@@ -195,6 +200,10 @@ const UserProfile: React.FC = () => {
               <input name="phone" value={editForm.phone} onChange={handleEditChange} className="w-full px-3 py-2 border rounded" />
             </div>
             <div>
+              <label className="block mb-1">Company Name</label>
+              <input name="companyName" value={editForm.companyName || ''} onChange={handleEditChange} className="w-full px-3 py-2 border rounded" />
+            </div>
+            <div>
               <label className="block mb-1">Major</label>
               <select name="major" value={majors.includes(editForm.major) ? editForm.major : 'Enter Manually'} onChange={handleEditChange} className="w-full px-3 py-2 border rounded">
                 {majors.map(m => (
@@ -208,7 +217,6 @@ const UserProfile: React.FC = () => {
                   placeholder="Enter your major"
                   value={customMajor}
                   onChange={e => {
-                    setCustomMajor(e.target.value);
                     setEditForm({ ...editForm, major: 'Enter Manually' });
                   }}
                   required

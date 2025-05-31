@@ -644,7 +644,7 @@ const ScanConfig: React.FC = () => {
                       <p className="font-semibold">Status: <span className={`font-normal px-2 py-0.5 rounded-full text-xs ml-1 ${scan.status?.toLowerCase() === 'completed' || scan.status?.toLowerCase() === 'success' ? 'bg-green-100 text-green-700' : scan.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{scan.status}</span></p>
                       {scan.summary && (
                         <div className="mt-1">
-                          <p className="font-semibold">Summary:</p>
+                          <p className="font-semibold">Summary Severity:</p>
                           {historyModalContent.scanType === 'sonar' ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1"> {/* Adjusted gap */}
                               {scan.summary.split(',').map((item: string, index: number) => {
