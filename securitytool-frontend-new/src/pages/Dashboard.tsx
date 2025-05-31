@@ -51,6 +51,8 @@ const Dashboard: React.FC = () => {
       queryKey: ['applications', page, pageSize],
       queryFn: () => fetchApplications(page, pageSize),
       staleTime: 5000,
+      refetchInterval: 5000,
+      refetchOnWindowFocus: true,
     });
   useEffect(() => {
     if (paginatedApps) {

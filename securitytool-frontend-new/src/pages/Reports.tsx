@@ -21,6 +21,8 @@ const Reports: React.FC = () => {
   const { data: paginatedApps, isLoading: isLoadingApps, isError: isErrorApps, error: errorApps } = useQuery<PaginatedApplications, Error>({
     queryKey: ['applications', page, pageSize],
     queryFn: () => fetchApplications(page, pageSize),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
   useEffect(() => {
     if (paginatedApps) {

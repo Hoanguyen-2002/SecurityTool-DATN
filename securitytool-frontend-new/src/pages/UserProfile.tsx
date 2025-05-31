@@ -44,6 +44,13 @@ const UserProfile: React.FC = () => {
       }
     };
     fetchUser();
+    const interval = setInterval(fetchUser, 5000);
+    const onFocus = () => fetchUser();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, []);
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

@@ -136,6 +136,8 @@ const FlowAnalyzer: React.FC = () => {
     useQuery<PaginatedApplications, Error>({
       queryKey: ['applications', page, pageSize],
       queryFn: () => fetchApplications(page, pageSize),
+      refetchInterval: 5000,
+      refetchOnWindowFocus: true,
     });
   useEffect(() => {
     if (paginatedApps) {
