@@ -24,20 +24,25 @@ const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">Reset Password</h2>
-        {error && <div className="mb-4 text-red-500">{error}</div>}
-        {message && <div className="mb-4 text-green-600">{message}</div>}
-        <div className="mb-6">
-          <label className="block mb-1">Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-3 py-2 border rounded" />
-        </div>
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Send Reset Link</button>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
+      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col items-center">
+        <h2 className="text-3xl font-extrabold mb-2 text-center text-blue-700">Reset Password</h2>
+        <p className="text-gray-600 text-center mb-6 text-base">
+          Enter your email address and we'll send you a link to reset your password. Keep your account secure with Security Tool.
+        </p>
+        <form onSubmit={handleSubmit} className="w-full">
+          {error && <div className="mb-4 text-red-500">{error}</div>}
+          {message && <div className="mb-4 text-green-600">{message}</div>}
+          <div className="mb-6">
+            <label className="block mb-1 font-medium">Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
+          </div>
+          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold shadow">Send Reset Link</button>
+        </form>
         <div className="mt-4 text-center">
           <a href="/login" className="text-blue-600 hover:underline">Back to Login</a>
         </div>
-      </form>
+      </div>
       <Modal isOpen={showWaitModal} onClose={() => {}} title="Please Wait" showFooterActions={false}>
         <div className="mb-4 text-center text-base">Sending reset password link to your email. please wait</div>
       </Modal>
