@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register } from '../api/authApi';
 import Modal from '../components/Modal';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const majors = [
   'Software Engineer',
@@ -22,6 +23,7 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showWaitModal, setShowWaitModal] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -67,9 +69,26 @@ const Register: React.FC = () => {
             <label className="block mb-1 font-medium">Username</label>
             <input name="username" value={form.username} onChange={handleChange} required className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
           </div>
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <label className="block mb-1 font-medium">Password</label>
-            <input type="password" name="password" value={form.password} onChange={handleChange} required className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
+            <input
+              type={showRegisterPassword ? 'text' : 'password'}
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200 pr-10"
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              className="absolute right-3"
+              style={{ top: '70%', transform: 'translateY(-50%)' }}
+              onClick={() => setShowRegisterPassword(v => !v)}
+              aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+            >
+              {showRegisterPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+            </button>
           </div>
           <div className="mb-4">
             <label className="block mb-1 font-medium">Email</label>

@@ -85,8 +85,12 @@ public class AuthController {
             @RequestBody ChangePasswordRequestDTO dto,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("You must be authenticated to change your password.");
+        }
+        String username = userDetails.getUsername();
         try {
-            authService.changePassword(userDetails.getUsername(), dto);
+            authService.changePassword(username, dto);
             return ResponseEntity.ok("Password changed successfully.");
         } catch (RuntimeException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { editUserInfo, logout, getUserInfo } from '../api/userApi';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
-import { PencilSquareIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const majors = [
   'Software Engineer',
@@ -31,6 +31,8 @@ const UserProfile: React.FC = () => {
   const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '' });
   const [pwdError, setPwdError] = useState('');
   const [pwdSuccess, setPwdSuccess] = useState('');
+  const [showPwdCurrent, setShowPwdCurrent] = useState(false);
+  const [showPwdNew, setShowPwdNew] = useState(false);
   const prevUsername = useRef(user.username);
   const navigate = useNavigate();
 
@@ -241,27 +243,47 @@ const UserProfile: React.FC = () => {
           <form onSubmit={handlePwdSubmit} className="space-y-4">
             {pwdError && <div className="text-red-500">{pwdError}</div>}
             {pwdSuccess && <div className="text-green-600">{pwdSuccess}</div>}
-            <div>
+            <div className="relative">
               <label className="block mb-1">Current Password</label>
               <input
-                type="password"
+                type={showPwdCurrent ? 'text' : 'password'}
                 name="currentPassword"
                 value={pwdForm.currentPassword}
                 onChange={handlePwdChange}
                 required
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded pr-10"
               />
+              <button
+                type="button"
+                tabIndex={-1}
+                className="absolute right-3"
+                style={{ top: '70%', transform: 'translateY(-50%)' }}
+                onClick={() => setShowPwdCurrent(v => !v)}
+                aria-label={showPwdCurrent ? 'Hide password' : 'Show password'}
+              >
+                {showPwdCurrent ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+              </button>
             </div>
-            <div>
+            <div className="relative">
               <label className="block mb-1">New Password</label>
               <input
-                type="password"
+                type={showPwdNew ? 'text' : 'password'}
                 name="newPassword"
                 value={pwdForm.newPassword}
                 onChange={handlePwdChange}
                 required
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded pr-10"
               />
+              <button
+                type="button"
+                tabIndex={-1}
+                className="absolute right-3"
+                style={{ top: '70%', transform: 'translateY(-50%)' }}
+                onClick={() => setShowPwdNew(v => !v)}
+                aria-label={showPwdNew ? 'Hide password' : 'Show password'}
+              >
+                {showPwdNew ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+              </button>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setChangePwdModalOpen(false)} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>

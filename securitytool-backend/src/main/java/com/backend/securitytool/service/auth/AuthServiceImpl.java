@@ -62,7 +62,8 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Invalid password");
         }
         String token = jwtUtil.generateToken(user.getUsername());
-        return new JwtResponseDTO(token, user.getUsername(), user.getEmail(), user.getMajor());
+        // Always return JWT and mustChangePassword flag
+        return new JwtResponseDTO(token, user.getUsername(), user.getEmail(), user.getMajor(), user.isMustChangePassword());
     }
 
     @Override
@@ -95,6 +96,7 @@ public class AuthServiceImpl implements AuthService {
         String tempPassword = UUID.randomUUID().toString().substring(0, 8);
         String encodedTempPassword = passwordEncoder.encode(tempPassword);
         user.setPassword(encodedTempPassword);
+        user.setMustChangePassword(true); // User must change password after login
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
         emailService.sendResetPasswordEmail(email, tempPassword);
@@ -134,6 +136,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("New password must not be empty.");
         }
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        user.setMustChangePassword(false); // Đã đổi mật khẩu, không cần bắt buộc đổi nữa
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
     }

@@ -36,6 +36,9 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = false; // for email verification
 
+    @Column(nullable = false)
+    private boolean mustChangePassword = false;
+
     @Column
     private String verificationToken;
 
