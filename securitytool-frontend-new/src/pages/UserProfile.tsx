@@ -172,7 +172,7 @@ const UserProfile: React.FC = () => {
                   title="Edit"
                 >
                   <PencilSquareIcon className="h-5 w-5" />
-                  Edit
+                  Edit Profile
                 </button>
                 <button
                   onClick={() => setChangePwdModalOpen(true)}

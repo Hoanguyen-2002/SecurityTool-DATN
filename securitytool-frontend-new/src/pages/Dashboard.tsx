@@ -429,7 +429,12 @@ function AppStatsInline({ appId }: { appId: number }) {
   return (
     <div className="mt-2 flex flex-col gap-1">
       <div className="flex gap-4 text-xs text-gray-700 flex-wrap">
-        <span className="text-sm text-gray-500">Total Severity Issues: <span className="font-semibold">{stats.totalIssues}</span></span>
+        <span className="text-sm flex items-center gap-1">
+          <span className="inline-block px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-semibold">
+            Total Severity Issues:
+          </span>
+          <span className="font-bold text-purple-800">{stats.totalIssues}</span>
+        </span>
       </div>
       <div className="flex flex-col gap-1 mt-2">
         {severityOrder.map((sev, idx) => {
