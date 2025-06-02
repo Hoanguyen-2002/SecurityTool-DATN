@@ -1,6 +1,7 @@
 package com.backend.securitytool.mapper;
 
 import com.backend.securitytool.model.dto.request.BusinessFlowRequestDTO;
+import com.backend.securitytool.model.dto.request.ApiEndpointParamDTO;
 import com.backend.securitytool.model.dto.response.BusinessFlowResponseDTO;
 import com.backend.securitytool.model.entity.BusinessFlow;
 import com.backend.securitytool.model.entity.ScanResult;
@@ -20,27 +21,27 @@ public abstract class BusinessFlowMapper {
     protected ObjectMapper objectMapper;
 
     @Mapping(target = "resultId", source = "result.id")
-    @Mapping(target = "apiEndpoints", source = "apiEndpoints", qualifiedByName = "jsonToList")
+    @Mapping(target = "apiEndpoints", source = "apiEndpoints", qualifiedByName = "jsonToApiEndpointParamList")
     @Mapping(target = "appId", source = "app.id")
     public abstract BusinessFlowResponseDTO toResponseDTO(BusinessFlow entity);
 
     @Mapping(target = "result", source = "resultId", qualifiedByName = "resultIdToScanResult")
-    @Mapping(target = "apiEndpoints", source = "apiEndpoints", qualifiedByName = "listToJson")
+    @Mapping(target = "apiEndpoints", source = "apiEndpoints", qualifiedByName = "apiEndpointParamListToJson")
     @Mapping(target = "app", source = "appId", qualifiedByName = "appIdToTargetApplication")
     public abstract BusinessFlow toEntity(BusinessFlowRequestDTO dto);
 
-    @Named("jsonToList")
-    protected List<String> jsonToList(String json) {
+    @Named("jsonToApiEndpointParamList")
+    protected List<ApiEndpointParamDTO> jsonToApiEndpointParamList(String json) {
         if (json == null) return Collections.emptyList();
         try {
-            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, ApiEndpointParamDTO.class));
         } catch (JsonProcessingException e) {
             return Collections.emptyList();
         }
     }
 
-    @Named("listToJson")
-    protected String listToJson(List<String> list) {
+    @Named("apiEndpointParamListToJson")
+    protected String apiEndpointParamListToJson(List<ApiEndpointParamDTO> list) {
         if (list == null) return "[]";
         try {
             return objectMapper.writeValueAsString(list);

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFlow, getFlows, updateFlow, deleteFlow, analyzeBusinessFlow } from '../api/flowApi';
 import { fetchApplications, searchApplications, PaginatedApplications } from '../api/applicationApi';
 import { ApplicationResponseDTO } from '../types/application';
-import { NewFlowPayload, BusinessFlowResponseDTO, AnalyzeFlowApiResponse, FlowAnalysisRequestDTO, StepResult } from '../types/flow'; // Added StepResult, removed AnalyzeFlowData
+import { NewFlowPayload, BusinessFlowResponseDTO, AnalyzeFlowApiResponse, FlowAnalysisRequestDTO, StepResult, ApiEndpointParamDTO } from '../types/flow'; // Added ApiEndpointParamDTO
 import Loading from '../components/Loading';
 import ErrorDisplay from '../components/Error';
 import Modal from '../components/Modal';
@@ -24,8 +24,11 @@ const FlowAnalyzer: React.FC = () => {
     flowName: '',
     resultId: 0, // Changed to number
     flowDescription: '',
-    apiEndpoints: ['']
+    apiEndpoints: [] // not used for input, use newFlowEndpoints
   });
+  // State for new/edit endpoints
+  const [newFlowEndpoints, setNewFlowEndpoints] = useState<ApiEndpointParamDTO[]>([{ endpoint: '', params: '' }]);
+  const [editFlowEndpoints, setEditFlowEndpoints] = useState<ApiEndpointParamDTO[]>([]);
 
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
   const [flowToDeleteId, setFlowToDeleteId] = useState<number | null>(null);
@@ -49,6 +52,10 @@ const FlowAnalyzer: React.FC = () => {
   const [pageSize] = useState<number>(5);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalElements, setTotalElements] = useState<number>(0);
+
+  // Add state for validation errors
+  const [addFlowValidationError, setAddFlowValidationError] = useState<string | null>(null);
+  const [editFlowValidationError, setEditFlowValidationError] = useState<string | null>(null);
 
   const addFlowMutation = useMutation<BusinessFlowResponseDTO, Error, NewFlowPayload>({
     mutationFn: createFlow,
@@ -168,18 +175,20 @@ const FlowAnalyzer: React.FC = () => {
   const openAddFlowModal = (app: ApplicationResponseDTO) => {
     setCurrentAppForModal(app);
     setNewFlowData({
-      appId: app.appId, // app.appId is a number
+      appId: app.appId,
       flowName: '',
-      resultId: 0, // Default to 0
+      resultId: 0,
       flowDescription: '',
-      apiEndpoints: ['']
+      apiEndpoints: [] // not used for input, use newFlowEndpoints
     });
+    setNewFlowEndpoints([{ endpoint: '', params: '' }]);
     setIsAddFlowModalOpen(true);
   };
 
   const closeAddFlowModal = () => {
     setIsAddFlowModalOpen(false);
-    setNewFlowData({ appId: 0, flowName: '', resultId: 0, flowDescription: '', apiEndpoints: [''] }); // Reset with numbers
+    setNewFlowData({ appId: 0, flowName: '', resultId: 0, flowDescription: '', apiEndpoints: [] });
+    setNewFlowEndpoints([{ endpoint: '', params: '' }]);
   };
 
   const openViewFlowsModal = (app: ApplicationResponseDTO) => {
@@ -194,16 +203,19 @@ const FlowAnalyzer: React.FC = () => {
 
   // Function to open the edit modal
   const openEditModal = (flow: BusinessFlowResponseDTO) => {
-    setEditingFlowData({
-        ...flow,
-        apiEndpoints: flow.apiEndpoints && flow.apiEndpoints.length > 0 ? flow.apiEndpoints : ['']
-    });
+    setEditingFlowData(flow);
+    setEditFlowEndpoints(flow.apiEndpoints?.map(ep => ({
+      endpoint: ep.endpoint,
+      httpMethod: ep.httpMethod, // preserve actual value, do not default to 'GET'
+      params: ep.params || ''
+    })) || []);
     setIsEditFlowModalOpen(true);
     setIsViewFlowsModalOpen(false); // Hide view flows modal when editing
   };
 
   const closeEditModal = () => {
     setEditingFlowData(null);
+    setEditFlowEndpoints([]);
     setIsEditFlowModalOpen(false);
     setIsViewFlowsModalOpen(true); // Show view flows modal again when cancel is clicked
   };
@@ -219,37 +231,30 @@ const FlowAnalyzer: React.FC = () => {
     setNewFlowData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleEndpointChange = (index: number, value: string) => {
-    const updatedEndpoints = [...newFlowData.apiEndpoints];
-    updatedEndpoints[index] = value;
-    setNewFlowData(prev => ({ ...prev, apiEndpoints: updatedEndpoints }));
+  // Handlers for endpoint fields
+  const handleNewEndpointFieldChange = (idx: number, field: keyof ApiEndpointParamDTO, value: string) => {
+    setNewFlowEndpoints(prev => prev.map((ep, i) => i === idx ? { ...ep, [field]: value } : ep));
   };
 
-  const addEndpointField = () => {
-    setNewFlowData(prev => ({ ...prev, apiEndpoints: [...prev.apiEndpoints, ''] }));
+  const handleEditEndpointFieldChange = (idx: number, field: keyof ApiEndpointParamDTO, value: string) => {
+    setEditFlowEndpoints(prev => prev.map((ep, i) => i === idx ? { ...ep, [field]: value } : ep));
   };
 
-  const removeEndpointField = (index: number) => {
-    const updatedEndpoints = newFlowData.apiEndpoints.filter((_, i) => i !== index);
-    setNewFlowData(prev => ({ ...prev, apiEndpoints: updatedEndpoints }));
-  };
+  const addNewEndpointField = () => setNewFlowEndpoints(prev => [...prev, { endpoint: '', params: '' }]);
+  const removeNewEndpointField = (idx: number) => setNewFlowEndpoints(prev => prev.filter((_, i) => i !== idx));
+  const addEditEndpointField = () => setEditFlowEndpoints(prev => [...prev, { endpoint: '', params: '' }]);
+  const removeEditEndpointField = (idx: number) => setEditFlowEndpoints(prev => prev.filter((_, i) => i !== idx));
 
   const handleAddFlowSubmit = () => {
-    if (!newFlowData.appId || !newFlowData.flowName.trim()) {
-      alert("Application ID and Flow Name are required.");
+    // Validation: all fields must be filled
+    if (!newFlowData.flowName.trim() || !newFlowData.flowDescription.trim() || newFlowData.resultId === null || newFlowData.resultId === undefined || newFlowEndpoints.some(ep => !ep.endpoint.trim() || !ep.httpMethod || ep.httpMethod === '')) {
+      setAddFlowValidationError('Please fill in all required fields.');
       return;
     }
-    const resultIdAsNumber = Number(newFlowData.resultId);
-    if (isNaN(resultIdAsNumber)) { // Check if resultId is a valid number
-        alert("Result ID must be a valid number.");
-        return;
-    }
-
+    setAddFlowValidationError(null);
     addFlowMutation.mutate({
       ...newFlowData,
-      appId: Number(newFlowData.appId),
-      resultId: resultIdAsNumber, // Ensure resultId is a number
-      apiEndpoints: newFlowData.apiEndpoints.filter(ep => ep.trim() !== '')
+      apiEndpoints: newFlowEndpoints
     });
   };
   
@@ -259,40 +264,22 @@ const FlowAnalyzer: React.FC = () => {
     setEditingFlowData(prev => prev ? { ...prev, [name]: value } : null);
   };
 
-  const handleEditEndpointChange = (index: number, value: string) => {
-    if (!editingFlowData) return;
-    const updatedEndpoints = [...(editingFlowData.apiEndpoints || [])];
-    updatedEndpoints[index] = value;
-    setEditingFlowData(prev => prev ? { ...prev, apiEndpoints: updatedEndpoints } : null);
-  };
-
-  const addEditEndpointField = () => {
-    if (!editingFlowData) return;
-    setEditingFlowData(prev => prev ? { ...prev, apiEndpoints: [...(prev.apiEndpoints || []), ''] } : null);
-  };
-
-  const removeEditEndpointField = (index: number) => {
-    if (!editingFlowData || !editingFlowData.apiEndpoints) return;
-    const updatedEndpoints = editingFlowData.apiEndpoints.filter((_, i) => i !== index);
-    setEditingFlowData(prev => prev ? { ...prev, apiEndpoints: updatedEndpoints } : null);
-  };
-
   const handleEditFlowSubmit = () => {
     if (!editingFlowData) return;
-    const resultIdAsNumber = Number(editingFlowData.resultId);
-    if (isNaN(resultIdAsNumber)) {
-        alert("Result ID must be a valid number.");
-        return;
+    // Validation: all fields must be filled
+    if (!editingFlowData.flowName.trim() || !(editingFlowData.flowDescription ?? '').trim() || editingFlowData.resultId === null || editingFlowData.resultId === undefined || editFlowEndpoints.some(ep => !ep.endpoint.trim() || !ep.httpMethod || ep.httpMethod === '')) {
+      setEditFlowValidationError('Please fill in all required fields.');
+      return;
     }
+    setEditFlowValidationError(null);
     updateFlowMutation.mutate({
-        ...editingFlowData,
-        resultId: resultIdAsNumber,
-        apiEndpoints: editingFlowData.apiEndpoints?.filter(ep => ep.trim() !== '') || []
+      ...editingFlowData,
+      apiEndpoints: editFlowEndpoints
     }, {
       onSuccess: () => {
         setIsEditFlowModalOpen(false);
-        setIsViewFlowsModalOpen(true); // Show view flows modal again after successful save
-        setShowEditSuccessModal(true); // Show success popup
+        setIsViewFlowsModalOpen(true);
+        setShowEditSuccessModal(true);
       }
     });
   };
@@ -329,7 +316,7 @@ const FlowAnalyzer: React.FC = () => {
     const payload: FlowAnalysisRequestDTO = {
       flowName: flow.flowName,
       resultId: flow.resultId,
-      apiEndpoints: flow.apiEndpoints || [],
+      apiEndpoints: flow.apiEndpoints, // send full objects, not just endpoint strings
       flowDescription: flow.flowDescription || '',
       appId: flow.appId
     };
@@ -473,10 +460,13 @@ const FlowAnalyzer: React.FC = () => {
         title="Add New Business Flow"
         confirmButtonText="Add Flow"
         confirmButtonPosition="left"
+        maxWidthClass="max-w-3xl"
       >
         <div className="space-y-6">
           <div>
-            <label htmlFor="flowName" className="block text-sm font-semibold text-gray-700 mb-1">Flow Name</label>
+            <label htmlFor="flowName" className="block text-sm font-semibold text-gray-700 mb-1">
+              Flow Name <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               name="flowName"
@@ -490,7 +480,9 @@ const FlowAnalyzer: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="flowDescription" className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+            <label htmlFor="flowDescription" className="block text-sm font-semibold text-gray-700 mb-1">
+              Description <span className="text-red-500">*</span>
+            </label>
             <textarea
               name="flowDescription"
               id="flowDescription"
@@ -499,10 +491,13 @@ const FlowAnalyzer: React.FC = () => {
               rows={3}
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
               placeholder="Enter flow description"
+              required
             />
           </div>
           <div>
-            <label htmlFor="resultId" className="block text-sm font-semibold text-gray-700 mb-1">SonarQube Scan Result ID</label>
+            <label htmlFor="resultId" className="block text-sm font-semibold text-gray-700 mb-1">
+              SonarQube Scan Result ID <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               name="resultId"
@@ -523,43 +518,64 @@ const FlowAnalyzer: React.FC = () => {
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
               placeholder="Enter scan result ID"
               min={0}
+              required
             />
             {addFlowResultIdError && (
               <div className="text-red-600 text-xs mt-1">{addFlowResultIdError}</div>
             )}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">API Endpoints</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              API Endpoints <span className="text-red-500">*</span>
+            </label>
             <div className="space-y-2">
-              {newFlowData.apiEndpoints.map((endpoint, idx) => (
-                <div key={idx} className="flex items-center gap-2">
+              {newFlowEndpoints.map((ep, idx) => (
+                <div key={idx} className="flex gap-2 items-center mb-2">
                   <input
                     type="text"
-                    value={endpoint}
-                    onChange={e => handleEndpointChange(idx, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
-                    placeholder="/api/v1/example"
+                    value={ep.endpoint}
+                    onChange={e => handleNewEndpointFieldChange(idx, 'endpoint', e.target.value)}
+                    className="flex-1 px-3 py-2 border rounded"
+                    placeholder={`Endpoint Path #${idx + 1}`}
+                    required
                   />
-                  {newFlowData.apiEndpoints.length > 1 && (
+                  <select
+                    value={ep.httpMethod || ''}
+                    onChange={e => handleNewEndpointFieldChange(idx, 'httpMethod', e.target.value)}
+                    className="w-32 px-3 py-2 border rounded"
+                    required
+                  >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="DELETE">DELETE</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={ep.params}
+                    onChange={e => handleNewEndpointFieldChange(idx, 'params', e.target.value)}
+                    className="flex-1 px-3 py-2 border rounded"
+                    placeholder="Params/Validation (optional)"
+                  />
+                  {newFlowEndpoints.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => removeEndpointField(idx)}
-                      className="text-xs text-red-600 hover:underline px-2 py-1 rounded focus:outline-none"
+                      onClick={() => removeNewEndpointField(idx)}
+                      className="ml-1 p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+                      title="Remove endpoint"
                     >
-                      Remove
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   )}
                 </div>
               ))}
+              <button type="button" onClick={addNewEndpointField} className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded">+ Add Endpoint</button>
             </div>
-            <button
-              type="button"
-              onClick={addEndpointField}
-              className="mt-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium focus:outline-none"
-            >
-              + Add Endpoint
-            </button>
           </div>
+          {addFlowValidationError && <div className="text-red-600 text-sm mt-2">{addFlowValidationError}</div>}
         </div>
       </Modal>
 
@@ -600,9 +616,9 @@ const FlowAnalyzer: React.FC = () => {
                               <span 
                                 key={index} 
                                 className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full shadow-sm hover:bg-indigo-200 transition-colors cursor-default inline-block max-w-[200px] sm:max-w-xs truncate" 
-                                title={endpoint}
+                                title={endpoint.endpoint}
                               >
-                                {endpoint}
+                                {endpoint.endpoint}
                               </span>
                             ))}
                           </div>
@@ -659,10 +675,13 @@ const FlowAnalyzer: React.FC = () => {
             title={`Edit Flow: ${editingFlowData.flowName.toUpperCase()}`}
             confirmButtonText="Save Changes"
             confirmButtonPosition="left"
+            maxWidthClass="max-w-3xl"
         >
             <div className="space-y-6">
                 <div>
-                    <label htmlFor="editFlowName" className="block text-sm font-semibold text-gray-700 mb-1">Flow Name</label>
+                    <label htmlFor="editFlowName" className="block text-sm font-semibold text-gray-700 mb-1">
+                      Flow Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="text"
                         name="flowName"
@@ -674,7 +693,9 @@ const FlowAnalyzer: React.FC = () => {
                     />
                 </div>
                 <div>
-                    <label htmlFor="editFlowDescription" className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                    <label htmlFor="editFlowDescription" className="block text-sm font-semibold text-gray-700 mb-1">
+                      Description <span className="text-red-500">*</span>
+                    </label>
                     <textarea
                         name="flowDescription"
                         id="editFlowDescription"
@@ -683,10 +704,13 @@ const FlowAnalyzer: React.FC = () => {
                         rows={3}
                         className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                         placeholder="Enter flow description"
+                        required
                     />
                 </div>
                 <div>
-                    <label htmlFor="editResultId" className="block text-sm font-semibold text-gray-700 mb-1">SonarQube Scan Result ID</label>
+                    <label htmlFor="editResultId" className="block text-sm font-semibold text-gray-700 mb-1">
+                      SonarQube Scan Result ID <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="number"
                         name="resultId"
@@ -707,30 +731,56 @@ const FlowAnalyzer: React.FC = () => {
                         className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                         placeholder="Enter scan result ID"
                         min={0}
-                      />
-                      {editFlowResultIdError && (
-                        <div className="text-red-600 text-xs mt-1">{editFlowResultIdError}</div>
-                      )}
+                        required
+                    />
+                    {editFlowResultIdError && (
+                      <div className="text-red-600 text-xs mt-1">{editFlowResultIdError}</div>
+                    )}
                 </div>
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">API Endpoints</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      API Endpoints <span className="text-red-500">*</span>
+                    </label>
                     <div className="space-y-2">
-                        {editingFlowData.apiEndpoints && editingFlowData.apiEndpoints.map((endpoint, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
+                        {editFlowEndpoints.map((ep, idx) => (
+                            <div key={idx} className="flex gap-2 items-center mb-2">
                                 <input
                                     type="text"
-                                    value={endpoint}
-                                    onChange={e => handleEditEndpointChange(idx, e.target.value)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
-                                    placeholder="/api/v1/example"
+                                    value={ep.endpoint}
+                                    onChange={e => handleEditEndpointFieldChange(idx, 'endpoint', e.target.value)}
+                                    className="flex-1 px-3 py-2 border rounded"
+                                    placeholder={`Endpoint Path #${idx + 1}`}
+                                    required
                                 />
-                                {editingFlowData.apiEndpoints && editingFlowData.apiEndpoints.length > 1 && (
+                                <select
+                                  value={ep.httpMethod || ''}
+                                  onChange={e => handleEditEndpointFieldChange(idx, 'httpMethod', e.target.value)}
+                                  className="w-32 px-3 py-2 border rounded"
+                                  required
+                                >
+                                  <option value="GET">GET</option>
+                                  <option value="POST">POST</option>
+                                  <option value="PUT">PUT</option>
+                                  <option value="PATCH">PATCH</option>
+                                  <option value="DELETE">DELETE</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    value={ep.params}
+                                    onChange={e => handleEditEndpointFieldChange(idx, 'params', e.target.value)}
+                                    className="flex-1 px-3 py-2 border rounded"
+                                    placeholder="Params/Validation (optional)"
+                                />
+                                {editFlowEndpoints.length > 1 && (
                                     <button
                                         type="button"
                                         onClick={() => removeEditEndpointField(idx)}
-                                        className="text-xs text-red-600 hover:underline px-2 py-1 rounded focus:outline-none"
+                                        className="ml-1 p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+                                        title="Remove endpoint"
                                     >
-                                        Remove
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
                                     </button>
                                 )}
                             </div>
@@ -739,11 +789,12 @@ const FlowAnalyzer: React.FC = () => {
                     <button
                         type="button"
                         onClick={addEditEndpointField}
-                        className="mt-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium focus:outline-none"
+                        className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded"
                     >
                         + Add Endpoint
                     </button>
                 </div>
+                {editFlowValidationError && <div className="text-red-600 text-sm mt-2">{editFlowValidationError}</div>}
             </div>
         </Modal>
       )}

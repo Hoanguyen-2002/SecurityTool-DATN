@@ -10,7 +10,7 @@ import java.util.List;
 public class BusinessFlowRequestDTO {
     private String flowName;
     private Integer resultId;
-    private List<String> apiEndpoints;
+    private List<ApiEndpointParamDTO> apiEndpoints; // Now includes httpMethod in ApiEndpointParamDTO
     private String flowDescription;
     private Integer appId;
 }

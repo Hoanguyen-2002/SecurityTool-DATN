@@ -1,6 +1,6 @@
 package com.backend.securitytool.model.dto.response;
 
-import lombok.Builder;
+import com.backend.securitytool.model.dto.request.ApiEndpointParamDTO;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,7 +12,7 @@ public class BusinessFlowResponseDTO {
     private Integer id;
     private String flowName;
     private Integer resultId;
-    private List<String> apiEndpoints;
+    private List<ApiEndpointParamDTO> apiEndpoints; // Now includes httpMethod in ApiEndpointParamDTO
     private String flowDescription;
     private Integer appId;
 }

@@ -6,8 +6,6 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.util.List;
-
 @Getter
 @Setter
 @Entity
@@ -26,13 +24,12 @@ public class BusinessFlow {
     private String flowDescription;
 
     @Column(name = "api_endpoints", columnDefinition = "TEXT")
-    private String apiEndpoints; // JSON string of endpoints
+    private String apiEndpoints; // JSON string of List<ApiEndpointParamDTO>
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "result_id")
     private ScanResult result;
 
-    // Add this if you have a mappedBy="app" in TargetApplication
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "app_id")
     private TargetApplication app;

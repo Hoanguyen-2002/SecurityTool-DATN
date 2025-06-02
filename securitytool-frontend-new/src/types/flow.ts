@@ -1,7 +1,7 @@
 export interface FlowAnalysisRequestDTO {
   flowName: string;
   resultId: number; // Assuming resultId is always present for analysis
-  apiEndpoints?: string[];
+  apiEndpoints?: ApiEndpointParamDTO[];
   flowDescription?: string;
   appId: number;
 }
@@ -11,7 +11,7 @@ export interface FlowAnalysisRequestDTO {
     id: number; // Changed from flowId
     flowName: string;
     resultId?: number; // Was sonarQubeResultId, now matches backend DTO
-    apiEndpoints?: string[]; // Added to match backend DTO
+    apiEndpoints: ApiEndpointParamDTO[]; // Changed to match backend DTO
     flowDescription?: string; // Was description
     appId: number;
     // stepsJson: any[]; // Removed as not in new DTO
@@ -24,11 +24,17 @@ export interface FlowAnalysisRequestDTO {
     appId: number;
   }
 
+  export interface ApiEndpointParamDTO {
+    endpoint: string;
+    httpMethod?: string;
+    params: string;
+  }
+
   // Matches backend BusinessFlowRequestDTO
   export interface NewFlowPayload {
     flowName: string;
     resultId: number; // Changed from sonarQubeResultId
-    apiEndpoints: string[]; // Changed from endpoints
+    apiEndpoints: ApiEndpointParamDTO[]; // Changed to match backend DTO
     flowDescription: string; // Changed from description
     appId: number;
   }

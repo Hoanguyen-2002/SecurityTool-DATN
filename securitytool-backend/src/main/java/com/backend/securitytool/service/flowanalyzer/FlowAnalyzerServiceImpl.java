@@ -2,6 +2,7 @@ package com.backend.securitytool.service.flowanalyzer;
 
 import com.backend.securitytool.mapper.BusinessFlowMapper;
 import com.backend.securitytool.model.dto.request.BusinessFlowRequestDTO;
+import com.backend.securitytool.model.dto.request.ApiEndpointParamDTO;
 import com.backend.securitytool.model.dto.response.BusinessFlowAnalysisResponseDTO;
 import com.backend.securitytool.model.dto.response.BusinessFlowResponseDTO;
 import com.backend.securitytool.model.dto.response.BusinessFlowStepResultDTO;
@@ -10,6 +11,8 @@ import com.backend.securitytool.model.entity.SecurityIssue;
 import com.backend.securitytool.repository.BusinessFlowRepository;
 import com.backend.securitytool.repository.ScanResultRepository;
 import com.backend.securitytool.repository.SecurityIssueRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +35,7 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
     private final ScanResultRepository scanResultRepository;
     private final BusinessFlowMapper businessFlowMapper;
     private final SecurityIssueRepository securityIssueRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public BusinessFlowResponseDTO createFlow(BusinessFlowRequestDTO requestDTO) {
@@ -104,6 +108,36 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
 
     @Override
     public BusinessFlowAnalysisResponseDTO analyze(BusinessFlowRequestDTO requestDTO) {
+        List<String> endpointPaths = new ArrayList<>();
+
+        // Nếu apiEndpoints là null hoặc rỗng, thử parse từ JSON string (trường hợp lấy từ DB hoặc FE gửi sai dạng)
+        if (requestDTO.getApiEndpoints() == null || requestDTO.getApiEndpoints().isEmpty()) {
+            // Không có endpoint nào, trả về kết quả rỗng
+            return new BusinessFlowAnalysisResponseDTO(
+                    requestDTO.getFlowName(),
+                    requestDTO.getFlowDescription(),
+                    0, 0, 0, true, new ArrayList<>()
+            );
+        } else {
+            // Kiểm tra nếu phần tử đầu tiên là String (FE gửi sai dạng), parse lại từ JSON string
+            Object first = requestDTO.getApiEndpoints().get(0);
+            if (first instanceof String) {
+                // FE gửi lên là List<String>, cần chuyển thành List<ApiEndpointParamDTO>
+                for (Object obj : requestDTO.getApiEndpoints()) {
+                    if (obj instanceof String) {
+                        endpointPaths.add((String) obj);
+                    }
+                }
+            } else {
+                // Đúng dạng List<ApiEndpointParamDTO>
+                for (ApiEndpointParamDTO dto : requestDTO.getApiEndpoints()) {
+                    if (dto != null && dto.getEndpoint() != null) {
+                        endpointPaths.add(dto.getEndpoint());
+                    }
+                }
+            }
+        }
+
         List<SecurityIssue> issues = securityIssueRepository.findByResultId(requestDTO.getResultId());
         Map<String, List<SecurityIssue>> issueMap = issues.stream()
                 .filter(issue -> issue.getEndpoint() != null && issue.getEndpoint().getPath() != null)
@@ -112,15 +146,14 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
         List<BusinessFlowStepResultDTO> stepResults = new ArrayList<>();
         int totalStaticIssues = 0;
         int passedSteps = 0;
-        List<String> endpoints = requestDTO.getApiEndpoints();
-        for (String endpoint : endpoints) {
+        for (String endpoint : endpointPaths) {
             int staticCount = issueMap.getOrDefault(endpoint, Collections.emptyList()).size();
             boolean passed = staticCount == 0;
             if (passed) passedSteps++;
             totalStaticIssues += staticCount;
             stepResults.add(new BusinessFlowStepResultDTO(endpoint, staticCount, passed));
         }
-        int totalSteps = endpoints.size();
+        int totalSteps = endpointPaths.size();
         boolean overallPassed = (passedSteps == totalSteps) && (totalStaticIssues == 0);
 
         // Calculate happy path progress for ECOMMERCE_HAPPY_PATH_ENDPOINTS
@@ -129,11 +162,10 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
         for (String happyEndpoint : ECOMMERCE_HAPPY_PATH_ENDPOINTS) {
             happyTotal++;
             int staticCount = issueMap.getOrDefault(happyEndpoint, Collections.emptyList()).size();
-            boolean present = endpoints.contains(happyEndpoint);
+            boolean present = endpointPaths.contains(happyEndpoint);
             boolean passed = present && staticCount == 0;
             if (passed) happyPassed++;
         }
-        // You can log or return these values as needed, here we just print for demonstration
         System.out.println("[E-COMMERCE HAPPY PATH PROGRESS]");
         System.out.println("Happy path endpoints present: " + happyPassed + "/" + happyTotal);
 
