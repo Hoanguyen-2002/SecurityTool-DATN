@@ -1,4 +1,4 @@
-package com.backend.securitytool.service.auth;
+package com.backend.securitytool.service.email;
 
 public interface EmailService {
     void sendVerificationEmail(String to, String token);

@@ -8,6 +8,7 @@ import com.backend.securitytool.model.dto.response.JwtResponseDTO;
 import com.backend.securitytool.model.entity.User;
 import com.backend.securitytool.repository.UserRepository;
 import com.backend.securitytool.security.JwtUtil;
+import com.backend.securitytool.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

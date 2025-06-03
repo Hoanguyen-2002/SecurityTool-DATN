@@ -1,4 +1,4 @@
-package com.backend.securitytool.service.auth;
+package com.backend.securitytool.service.email;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
