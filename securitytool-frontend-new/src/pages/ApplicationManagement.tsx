@@ -17,8 +17,8 @@ const ApplicationManagement: React.FC = () => {
   const { data: paginatedApps, isLoading, isError, error } = useQuery<PaginatedApplications, Error>({
     queryKey: ['applications', page, pageSize],
     queryFn: () => fetchApplications(page, pageSize),
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
   });
   useEffect(() => {
     if (paginatedApps) {

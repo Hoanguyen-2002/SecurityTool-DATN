@@ -23,8 +23,8 @@ const ScanConfig: React.FC = () => {
   const { data: paginatedApps, isLoading, isError, error } = useQuery<PaginatedApplications, Error>({
       queryKey: ['applications', page, pageSize],
       queryFn: () => fetchApplications(page, pageSize),
-      refetchInterval: 5000,
-      refetchOnWindowFocus: true,
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
       // keepPreviousData: true, // Removed because it's not a valid option in this version
     });
 

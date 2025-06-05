@@ -27,7 +27,7 @@ const FlowAnalyzer: React.FC = () => {
     apiEndpoints: [] // not used for input, use newFlowEndpoints
   });
   // State for new/edit endpoints
-  const [newFlowEndpoints, setNewFlowEndpoints] = useState<ApiEndpointParamDTO[]>([{ endpoint: '', params: '' }]);
+  const [newFlowEndpoints, setNewFlowEndpoints] = useState<ApiEndpointParamDTO[]>([{ endpoint: '', httpMethod: 'GET', params: '' }]);
   const [editFlowEndpoints, setEditFlowEndpoints] = useState<ApiEndpointParamDTO[]>([]);
 
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
@@ -63,13 +63,8 @@ const FlowAnalyzer: React.FC = () => {
       setIsAddFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
     },
-    onError: (error: any) => {
-      // Show error below input instead of alert
-      if (error?.response?.status === 404 || error?.response?.status === 500) {
-        setAddFlowResultIdError('Result ID not found.');
-      } else {
-        setAddFlowResultIdError(error.message || 'Failed to add flow.');
-      }
+    onError: () => {
+      setAddFlowValidationError('Fail to add new Flow, please check entered field.');
     }
   });
 
@@ -79,13 +74,8 @@ const FlowAnalyzer: React.FC = () => {
       setIsEditFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
     },
-    onError: (error: any) => {
-      // Show error below input instead of alert
-      if (error?.response?.status === 404 || error?.response?.status === 500) {
-        setEditFlowResultIdError('Result ID not found.');
-      } else {
-        setEditFlowResultIdError(error.message || 'Failed to update flow.');
-      }
+    onError: () => {
+      setEditFlowValidationError('Fail to update Flow, please check entered field.');
     }
   });
 
@@ -143,8 +133,9 @@ const FlowAnalyzer: React.FC = () => {
     useQuery<PaginatedApplications, Error>({
       queryKey: ['applications', page, pageSize],
       queryFn: () => fetchApplications(page, pageSize),
-      refetchInterval: 5000,
-      refetchOnWindowFocus: true,
+      // Remove or increase refetchInterval, and set refetchOnWindowFocus to false to avoid repeated calls
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
     });
   useEffect(() => {
     if (paginatedApps) {
@@ -179,16 +170,16 @@ const FlowAnalyzer: React.FC = () => {
       flowName: '',
       resultId: 0,
       flowDescription: '',
-      apiEndpoints: [] // not used for input, use newFlowEndpoints
+      apiEndpoints: []
     });
-    setNewFlowEndpoints([{ endpoint: '', params: '' }]);
+    setNewFlowEndpoints([{ endpoint: '', httpMethod: 'GET', params: '' }]);
     setIsAddFlowModalOpen(true);
   };
 
   const closeAddFlowModal = () => {
     setIsAddFlowModalOpen(false);
     setNewFlowData({ appId: 0, flowName: '', resultId: 0, flowDescription: '', apiEndpoints: [] });
-    setNewFlowEndpoints([{ endpoint: '', params: '' }]);
+    setNewFlowEndpoints([{ endpoint: '', httpMethod: 'GET', params: '' }]);
   };
 
   const openViewFlowsModal = (app: ApplicationResponseDTO) => {
@@ -240,14 +231,25 @@ const FlowAnalyzer: React.FC = () => {
     setEditFlowEndpoints(prev => prev.map((ep, i) => i === idx ? { ...ep, [field]: value } : ep));
   };
 
-  const addNewEndpointField = () => setNewFlowEndpoints(prev => [...prev, { endpoint: '', params: '' }]);
+  const addNewEndpointField = () => setNewFlowEndpoints(prev => [...prev, { endpoint: '', httpMethod: 'GET', params: '' }]);
   const removeNewEndpointField = (idx: number) => setNewFlowEndpoints(prev => prev.filter((_, i) => i !== idx));
   const addEditEndpointField = () => setEditFlowEndpoints(prev => [...prev, { endpoint: '', params: '' }]);
   const removeEditEndpointField = (idx: number) => setEditFlowEndpoints(prev => prev.filter((_, i) => i !== idx));
 
   const handleAddFlowSubmit = () => {
-    // Validation: all fields must be filled
-    if (!newFlowData.flowName.trim() || !newFlowData.flowDescription.trim() || newFlowData.resultId === null || newFlowData.resultId === undefined || newFlowEndpoints.some(ep => !ep.endpoint.trim() || !ep.httpMethod || ep.httpMethod === '')) {
+    // Validation: all fields must be filled for every endpoint
+    const missingField =
+      !newFlowData.flowName.trim() ||
+      !newFlowData.flowDescription.trim() ||
+      newFlowData.resultId === null ||
+      newFlowData.resultId === undefined ||
+      newFlowEndpoints.length === 0 ||
+      newFlowEndpoints.some(ep =>
+        !ep.endpoint || ep.endpoint.trim() === '' ||
+        !ep.httpMethod || ep.httpMethod.trim() === '' ||
+        ep.params === undefined // params can be empty string, but not undefined
+      );
+    if (missingField) {
       setAddFlowValidationError('Please fill in all required fields.');
       return;
     }
@@ -530,49 +532,53 @@ const FlowAnalyzer: React.FC = () => {
             </label>
             <div className="space-y-2">
               {newFlowEndpoints.map((ep, idx) => (
-                <div key={idx} className="flex gap-2 items-center mb-2">
+                <div key={idx} className="flex gap-2 items-center">
                   <input
                     type="text"
+                    placeholder="Endpoint path (e.g. /api/login)"
                     value={ep.endpoint}
                     onChange={e => handleNewEndpointFieldChange(idx, 'endpoint', e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded"
-                    placeholder={`Endpoint Path #${idx + 1}`}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
                   />
                   <select
-                    value={ep.httpMethod || ''}
+                    value={ep.httpMethod || 'GET'}
                     onChange={e => handleNewEndpointFieldChange(idx, 'httpMethod', e.target.value)}
-                    className="w-32 px-3 py-2 border rounded"
+                    className="px-2 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
                   >
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
                     <option value="PUT">PUT</option>
-                    <option value="PATCH">PATCH</option>
                     <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
                   </select>
                   <input
                     type="text"
+                    placeholder="Params (optional)"
                     value={ep.params}
                     onChange={e => handleNewEndpointFieldChange(idx, 'params', e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded"
-                    placeholder="Params/Validation (optional)"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   {newFlowEndpoints.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeNewEndpointField(idx)}
-                      className="ml-1 p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
-                      title="Remove endpoint"
+                      className="text-red-500 hover:text-red-700 px-2 py-1 rounded"
+                      title="Remove Endpoint"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      &times;
                     </button>
                   )}
                 </div>
               ))}
-              <button type="button" onClick={addNewEndpointField} className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded">+ Add Endpoint</button>
+              <button
+                type="button"
+                onClick={addNewEndpointField}
+                className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm font-medium"
+              >
+                + Add Endpoint
+              </button>
             </div>
           </div>
           {addFlowValidationError && <div className="text-red-600 text-sm mt-2">{addFlowValidationError}</div>}
@@ -590,21 +596,22 @@ const FlowAnalyzer: React.FC = () => {
           maxWidthClass="max-w-2xl" 
         >
           {flowsForModal.length > 0 ? (
-            <ul className="space-y-4"> 
+            <ul className="space-y-4">
               {flowsForModal.map(flow => (
-                <li key={flow.id} className="p-4 bg-slate-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out"> 
-                  <div className="flex justify-between items-start mb-2"> 
+                <li key={flow.id} className="p-4 bg-slate-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out relative">
+                  <div className="flex justify-between items-start mb-2">
                     <div className="pr-4 flex-grow min-w-0">
-                      <h4 
-                        className="text-lg font-semibold text-indigo-700 truncate hover:text-indigo-800 transition-colors" 
-                        title={flow.flowName}
-                      >
+                      <h4 className="text-lg font-semibold text-indigo-700 truncate hover:text-indigo-800 transition-colors" title={flow.flowName}>
                         {flow.flowName.toUpperCase()}
                       </h4>
-                      <p 
-                        className="text-sm text-gray-600 mt-1.5 truncate" 
-                        title={flow.flowDescription || undefined}
-                      >
+                      {flow.updatedAt && (
+                        <div className="mt-1 mb-1">
+                          <span className="inline-block bg-purple-100 text-purple-700 text-xs font-semibold rounded-full px-4 py-1 shadow-sm" style={{ fontFamily: 'inherit' }}>
+                            Updated: {new Date(flow.updatedAt).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-sm text-gray-600 mt-1.5 truncate" title={flow.flowDescription || undefined}>
                         <strong className="font-medium text-gray-700">Description:</strong> {flow.flowDescription || <span className="text-gray-400 italic">Not provided</span>}
                       </p>
                       
@@ -646,7 +653,7 @@ const FlowAnalyzer: React.FC = () => {
                         </button>
                     </div>
                   </div>
-                  <div className="flex justify-end mt-3 border-t pt-3"> 
+                  <div className="flex justify-end mt-3 border-t pt-3">
                     <button 
                       onClick={() => handleAnalyzeFlows(flow.id)}
                       className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium whitespace-nowrap flex items-center shadow-md hover:shadow-lg transition-all duration-200 ease-in-out"
