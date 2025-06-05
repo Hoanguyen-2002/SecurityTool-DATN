@@ -6,7 +6,6 @@ import com.backend.securitytool.model.dto.response.SecurityIssueResponseDTO;
 import java.util.List;
 
 public interface ReportService {
-//    ReportResponseDTO getReport(Integer resultId);
-    List<SecurityIssueResponseDTO> getReport(Integer resultId);
+    ReportResponseDTO getReport(Integer resultId);
     String exportCsv(Integer resultId);
 }

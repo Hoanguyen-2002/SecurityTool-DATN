@@ -11,9 +11,10 @@ export const getReport = async (resultId: number): Promise<ReportResponseDTO> =>
     let issuesToProcess: any[] | undefined = undefined; // Allow any type for raw issues
     let preStructuredReport: any | null = null;
 
-    // Scenario 1: Backend returns CommonResponse like { data: [...issues...] }
-    if (res.data && typeof res.data === 'object' && Array.isArray(res.data.data)) {
-      issuesToProcess = res.data.data;
+    // Scenario 1: Backend returns CommonResponse like { data: { ...report... } }
+    if (res.data && typeof res.data === 'object' && 'data' in res.data && typeof res.data.data === 'object' && 'appId' in res.data.data) {
+      preStructuredReport = res.data.data;
+      issuesToProcess = preStructuredReport.issues;
     } 
     // Scenario 2: Backend returns a direct array of issues
     else if (Array.isArray(res.data)) {
@@ -59,30 +60,21 @@ export const getReport = async (resultId: number): Promise<ReportResponseDTO> =>
         }, {})
       };
 
-      // Determine applicationId from localStorage
-      const storedAppIdString = localStorage.getItem(`scanApp_${resultId}`); // Use the overall report's resultId
-      if (storedAppIdString === null) {
-        throw new Error(`Application ID for scan result ${resultId} not found in local storage. Ensure scan results are correctly associated with applications before attempting to load reports.`);
-      }
-      
-      const determinedApplicationId = Number(storedAppIdString);
-      if (isNaN(determinedApplicationId)) {
-        throw new Error(`Invalid Application ID format ('${storedAppIdString}') found in local storage for scan result ${resultId}.`);
-      }
-      
+      // Remove all localStorage logic. Use appId/applicationId from backend response if available.
+      let determinedApplicationId: number | undefined = undefined;
       if (preStructuredReport) {
-        // If we had a pre-structured report, use its top-level fields but with mapped issues
+        determinedApplicationId = preStructuredReport.appId ?? preStructuredReport.applicationId;
         return {
           applicationId: preStructuredReport.applicationId !== undefined ? Number(preStructuredReport.applicationId) : determinedApplicationId,
-          resultId: Number(preStructuredReport.resultId), // Ensure it's a number
+          appId: preStructuredReport.appId !== undefined ? Number(preStructuredReport.appId) : determinedApplicationId,
+          resultId: Number(preStructuredReport.resultId),
           issues: mappedIssues,
-          summary: preStructuredReport.summary || summary // Prefer existing summary if available
+          summary: preStructuredReport.summary || summary
         } as ReportResponseDTO;
       }
-
+      // If no preStructuredReport, just return issues and resultId
       return {
-        applicationId: determinedApplicationId,
-        resultId: resultId, // Use the function parameter resultId for the overall report
+        resultId: resultId,
         issues: mappedIssues,
         summary
       };

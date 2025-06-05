@@ -10,8 +10,6 @@ import { ReportResponseDTO, SecurityIssueResponseDTO } from '../types/report';
 import { Bar } from 'react-chartjs-2';
 import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 
-const APP_REPORTS_STORAGE_KEY = 'appReportsData'; // Key for localStorage
-
 const Reports: React.FC = () => {
   const queryClient = useQueryClient();
   // Pagination state
@@ -38,10 +36,7 @@ const Reports: React.FC = () => {
   const [isLoadReportModalOpen, setIsLoadReportModalOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
   const [scanResultId, setScanResultId] = useState('');
-  const [appReports, setAppReports] = useState<Record<number, ReportResponseDTO | null>>(() => {
-    const storedReports = localStorage.getItem(APP_REPORTS_STORAGE_KEY);
-    return storedReports ? JSON.parse(storedReports) : {};
-  });
+  const [appReports, setAppReports] = useState<Record<number, ReportResponseDTO | null>>({});
   const [loading, setLoading] = useState(false); // Used for Load Report and Download CSV actions
   const [appErrors, setAppErrors] = useState<Record<number, string | null>>({}); // New state for app-specific errors
 
@@ -66,44 +61,24 @@ const Reports: React.FC = () => {
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [compareScanId, setCompareScanId] = useState('');
   const [compareError, setCompareError] = useState<string | null>(null);
-  const [compareReport, setCompareReport] = useState<ReportResponseDTO | null>(() => {
-    // Persist compareReport in localStorage
-    try {
-      const stored = localStorage.getItem('compareReportData');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [compareAppId, setCompareAppId] = useState<number | null>(() => {
-    // Persist compareAppId in localStorage
-    try {
-      const stored = localStorage.getItem('compareAppId');
-      return stored ? Number(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [compareReport, setCompareReport] = useState<ReportResponseDTO | null>(null);
+  const [compareAppId, setCompareAppId] = useState<number | null>(null);
 
+  // Rehydrate appReports from localStorage on mount
   useEffect(() => {
-    if (Object.keys(appReports).length > 0 || localStorage.getItem(APP_REPORTS_STORAGE_KEY)) {
-      localStorage.setItem(APP_REPORTS_STORAGE_KEY, JSON.stringify(appReports));
+    const stored = localStorage.getItem('appReports');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setAppReports(parsed);
+      } catch {}
     }
+  }, []);
+
+  // Persist appReports to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('appReports', JSON.stringify(appReports));
   }, [appReports]);
-
-  // Persist compareReport and compareAppId to localStorage whenever they change
-  useEffect(() => {
-    if (compareReport) {
-      localStorage.setItem('compareReportData', JSON.stringify(compareReport));
-    } else {
-      localStorage.removeItem('compareReportData');
-    }
-    if (compareAppId !== null && compareAppId !== undefined) {
-      localStorage.setItem('compareAppId', String(compareAppId));
-    } else {
-      localStorage.removeItem('compareAppId');
-    }
-  }, [compareReport, compareAppId]);
 
   const openDetailedReportView = (appId: number, resultId: string | number) => {
     const app = applications?.find(a => a.appId === appId);
@@ -140,72 +115,58 @@ const Reports: React.FC = () => {
     const idNum = Number(scanResultId);
 
     if (!selectedAppId) {
-      setIsLoadReportModalOpen(false);
+      setAppErrors(prev => ({ ...prev, [selectedAppId!]: 'No application selected.' }));
       return;
     }
 
     setAppErrors(prev => ({ ...prev, [selectedAppId!]: null }));
 
     if (!(idNum > 0)) {
-      alert('Please enter a valid Scan Result ID.');
+      setAppErrors(prev => ({ ...prev, [selectedAppId!]: 'Invalid scan result ID.' }));
       return;
     }
 
-    setIsLoadReportModalOpen(false);
     setLoading(true);
-    // Reset issues modal content before loading new report
-    setIssuesModalContent(null); 
-    setIsIssuesModalOpen(false);
-
-    // Clear comparison chart when loading a new report
-    setCompareReport(null);
-    setCompareAppId(null);
-
-    const app = applications?.find(a => a.appId === selectedAppId);
-    const appName = app ? app.appName : 'Selected Application';
-
-
     try {
-      const data = await getReport(idNum);
-      // ...existing code for errorForThisApp, etc...
-      let errorForThisApp: string | null = null;
-
-      if (!data || data.applicationId === undefined) {
-        errorForThisApp = `Report for Scan ID ${idNum} not found or has incomplete data.`;
-        console.warn('Invalid report data received:', data);
-      } else if (data.applicationId !== selectedAppId) {
-        errorForThisApp = `Report ID ${idNum} (belongs to Application ${data.applicationId}) cannot be loaded for Application ${selectedAppId}.`;
+      let data = await getReport(idNum);
+      // Always assign appId from applications list
+      const app = applications.find(a => a.appId === selectedAppId);
+      if (app) {
+        data.appId = app.appId;
+        data.applicationId = app.appId;
       }
-
+      let errorForThisApp: string | null = null;
+      const reportAppId = data.appId ?? data.applicationId;
+      if (!data || reportAppId === undefined) {
+        errorForThisApp = `Report for Scan ID ${idNum} not found or has incomplete data.`;
+      } else if (!app || reportAppId !== app.appId) {
+        errorForThisApp = `Report ID ${idNum} does not belong to the selected application.`;
+      }
       if (errorForThisApp) {
         setAppErrors(prev => ({ ...prev, [selectedAppId!]: errorForThisApp }));
         setAppReports(prev => ({ ...prev, [selectedAppId!]: null }));
-        // Optionally set issues modal content for error, but do NOT open modal
-        // setIssuesModalContent({ ... });
-      } else if (data) { 
-        setAppReports(prev => ({ ...prev, [selectedAppId!]: data }));
-        // Do NOT open issues modal here
-        // setIssuesModalContent({ ... });
-        // setIsIssuesModalOpen(true);
+      } else if (data) {
+        setAppReports(prev => {
+          const updated = { ...prev, [selectedAppId!]: data };
+          localStorage.setItem('appReports', JSON.stringify(updated));
+          return updated;
+        });
+        setIsLoadReportModalOpen(false); // Ensure modal closes
         queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       } else {
         const unknownError = `Could not retrieve data for Scan Result ID ${idNum}.`;
         setAppErrors(prev => ({ ...prev, [selectedAppId!]: unknownError }));
-        // Optionally set issues modal content for error, but do NOT open modal
       }
     } catch (e: any) {
-      // ...existing error handling...
-      const errorMessage = e.response ? 
-        `Failed to load report: ${e.message}. Status: ${e.response.status} - ${e.response.statusText}` : 
+      const errorMessage = e.response ?
+        `Failed to load report: ${e.message}. Status: ${e.response.status} - ${e.response.statusText}` :
         `Failed to load report: ${e.message}`;
       if (selectedAppId) {
         setAppErrors(prev => ({ ...prev, [selectedAppId!]: errorMessage }));
         setAppReports(prev => ({ ...prev, [selectedAppId!]: null }));
       }
-      // Optionally set issues modal content for error, but do NOT open modal
     } finally {
       setLoading(false);
-      // Do NOT open issues modal here
     }
   };
 
@@ -313,7 +274,6 @@ const Reports: React.FC = () => {
   // Handle compare submit
   const handleCompareSubmit = async () => {
     setCompareError(null);
-    // Do not clear compareReport here, so it persists across refreshes
     if (!compareScanId) {
       setCompareError('Please enter a scan result ID to compare.');
       return;
@@ -331,6 +291,12 @@ const Reports: React.FC = () => {
     try {
       const data = await getReport(Number(compareScanId));
       if (!data || !data.issues) throw new Error('Scan result not found.');
+      // Always assign appId from applications list
+      const app = applications.find(a => a.appId === selectedAppId);
+      if (app) {
+        data.appId = app.appId;
+        data.applicationId = app.appId;
+      }
       const type1 = getScanType(data.issues);
       const type2 = getScanType(currentReport.issues);
       if (!type1 || !type2 || type1 !== type2) throw new Error('Scan types do not match.');
@@ -395,7 +361,20 @@ const Reports: React.FC = () => {
             const currentReport = appReports[app.appId];
             // Only hide if error indicates not found/deleted
             if (appSpecificError && /not found|incomplete|deleted|cannot be loaded/i.test(appSpecificError)) {
-              return null;
+              // Instead of hiding, show the app with an error message
+              return (
+                <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                  <div className="p-6 flex justify-between items-center">
+                    <div className="flex-grow mr-4">
+                      <h2 className="text-xl font-semibold text-gray-800 mb-1 truncate" title={app.appName}>
+                        {app.appName}:&nbsp;
+                        <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                      </h2>
+                      <div className="text-red-500 text-sm mt-2">{appSpecificError}</div>
+                    </div>
+                  </div>
+                </div>
+              );
             }
             return (
               <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">

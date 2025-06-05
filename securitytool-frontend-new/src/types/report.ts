@@ -12,7 +12,8 @@ export interface SecurityIssueResponseDTO {
   }
   
   export interface ReportResponseDTO {
-    applicationId: number; // Added to verify report ownership
+    applicationId?: number; // legacy, for compatibility
+    appId?: number; // new, matches backend
     resultId: number;
     issues: SecurityIssueResponseDTO[];
     summary?: {

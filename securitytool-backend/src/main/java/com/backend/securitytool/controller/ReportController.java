@@ -3,7 +3,6 @@ package com.backend.securitytool.controller;
 import com.backend.securitytool.constants.ApiConstants;
 import com.backend.securitytool.model.dto.response.CommonResponse;
 import com.backend.securitytool.model.dto.response.ReportResponseDTO;
-import com.backend.securitytool.model.dto.response.SecurityIssueResponseDTO;
 import com.backend.securitytool.service.report.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,25 +22,13 @@ public class ReportController {
     @Autowired
     private ReportService reportService;
 
-//    @GetMapping(ApiConstants.REPORT_ID_PATH)
-//    public ResponseEntity<CommonResponse<ReportResponseDTO>> getReport(@PathVariable Integer resultId) {
-//        ReportResponseDTO report = reportService.getReport(resultId);
-//        CommonResponse<ReportResponseDTO> response = new CommonResponse<>(
-//                "success",
-//                "Report retrieved successfully",
-//                report,
-//                LocalDateTime.now()
-//        );
-//        return new ResponseEntity<>(response, HttpStatus.OK);
-//    }
-
     @GetMapping(ApiConstants.REPORT_ID_PATH)
-    public ResponseEntity<CommonResponse<List<SecurityIssueResponseDTO>>> getReport(@PathVariable Integer resultId) {
-        List<SecurityIssueResponseDTO> issues = reportService.getReport(resultId);
-        CommonResponse<List<SecurityIssueResponseDTO>> response = new CommonResponse<>(
+    public ResponseEntity<CommonResponse<ReportResponseDTO>> getReport(@PathVariable Integer resultId) {
+        ReportResponseDTO report = reportService.getReport(resultId);
+        CommonResponse<ReportResponseDTO> response = new CommonResponse<>(
                 "success",
-                "Issues retrieved successfully",
-                issues,
+                "Report retrieved successfully",
+                report,
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(response, HttpStatus.OK);
