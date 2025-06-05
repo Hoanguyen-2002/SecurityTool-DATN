@@ -10,6 +10,8 @@ import com.backend.securitytool.repository.UserRepository;
 import com.backend.securitytool.service.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -111,5 +113,25 @@ public class AuthController {
         result.put("createdAt", user.getCreatedAt());
         result.put("updatedAt", user.getUpdatedAt());
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            return ResponseEntity.badRequest().body("Refresh token is required.");
+        }
+        try {
+            if (!authService.getJwtUtil().validateRefreshToken(refreshToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token.");
+            }
+            String username = authService.getJwtUtil().getUsernameFromJwt(refreshToken);
+            String newAccessToken = authService.getJwtUtil().generateAccessToken(username);
+            Map<String, String> result = new HashMap<>();
+            result.put("accessToken", newAccessToken);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token.");
+        }
     }
 }

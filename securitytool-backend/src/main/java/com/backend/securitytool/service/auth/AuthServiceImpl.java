@@ -62,9 +62,16 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
-        String token = jwtUtil.generateToken(user.getUsername());
-        // Always return JWT and mustChangePassword flag
-        return new JwtResponseDTO(token, user.getUsername(), user.getEmail(), user.getMajor(), user.isMustChangePassword());
+        String accessToken = jwtUtil.generateAccessToken(user.getUsername());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUsername());
+        return new JwtResponseDTO(
+                accessToken,
+                refreshToken,
+                user.getUsername(),
+                user.getEmail(),
+                user.getMajor(),
+                user.isMustChangePassword()
+        );
     }
 
     @Override
@@ -140,5 +147,10 @@ public class AuthServiceImpl implements AuthService {
         user.setMustChangePassword(false); // Đã đổi mật khẩu, không cần bắt buộc đổi nữa
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
+    }
+
+    @Override
+    public JwtUtil getJwtUtil() {
+        return jwtUtil;
     }
 }

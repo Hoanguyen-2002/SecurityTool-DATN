@@ -16,3 +16,6 @@ export const resetPassword = (email: string) =>
 
 export const setNewPassword = (token: string, password: string) =>
   instance.post('/auth/set-new-password', { token, password });
+
+export const refreshToken = (refreshToken: string) =>
+  instance.post('/auth/refresh-token', { refreshToken });

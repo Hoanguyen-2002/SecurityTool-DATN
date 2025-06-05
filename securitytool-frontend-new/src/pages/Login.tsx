@@ -26,7 +26,8 @@ const Login: React.FC = () => {
     try {
       const response = await login(username, password);
       // Save token to localStorage or context
-      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('authToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
       if (response.data.mustChangePassword) {
         setMustChangePassword(true);
         setShowChangePwdModal(true);
