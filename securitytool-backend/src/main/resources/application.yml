@@ -33,7 +33,9 @@ server:
 spring.cache:
   type: simple
 
+# JWT settings
+security:
+  jwt:
+    expiration-ms: 86400000 # 1 day in ms
+    refresh-expiration-ms: 604800000 # 7 days in ms
 
-#sonarqube
-sonarqube:
-  projectKey: sqp_9797b07916a233f02fd8b5291521cd7e5af0327d

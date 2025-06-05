@@ -6,7 +6,6 @@ import com.backend.securitytool.model.dto.response.ScanResponseDTO;
 import java.util.List;
 
 public interface SonarQubeScannerService {
-//    ScanResponseDTO scan(Integer appId, String projectKey);
     ScanResponseDTO scan(ScanRequestDTO requestDTO);
     List<ScanResponseDTO> getAllScansByAppId(Integer appId);
 }
