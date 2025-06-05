@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface BusinessFlowRepository extends JpaRepository<BusinessFlow, Integer> {
     List<BusinessFlow> findByAppId(Integer appId);
+    BusinessFlow findByFlowName(String flowName);
 }

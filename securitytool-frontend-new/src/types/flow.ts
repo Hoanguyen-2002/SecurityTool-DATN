@@ -14,9 +14,7 @@ export interface FlowAnalysisRequestDTO {
     apiEndpoints: ApiEndpointParamDTO[]; // Changed to match backend DTO
     flowDescription?: string; // Was description
     appId: number;
-    // stepsJson: any[]; // Removed as not in new DTO
-    // createdAt: string; // Removed as not in new DTO
-    // updatedAt?: string; // Removed as not in new DTO
+    updatedAt?: string;
   }
   
   export interface ApiEndpointRequestDTO {

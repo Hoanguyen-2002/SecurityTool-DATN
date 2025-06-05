@@ -3,8 +3,9 @@ package com.backend.securitytool.model.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.ColumnDefault;
+
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -33,4 +34,8 @@ public class BusinessFlow {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "app_id")
     private TargetApplication app;
+
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "updated_at")
+    private Instant updatedAt = Instant.now();
 }

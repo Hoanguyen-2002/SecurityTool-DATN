@@ -4,6 +4,7 @@ import com.backend.securitytool.model.dto.request.ApiEndpointParamDTO;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -15,4 +16,5 @@ public class BusinessFlowResponseDTO {
     private List<ApiEndpointParamDTO> apiEndpoints; // Now includes httpMethod in ApiEndpointParamDTO
     private String flowDescription;
     private Integer appId;
+    private Instant updatedAt;
 }

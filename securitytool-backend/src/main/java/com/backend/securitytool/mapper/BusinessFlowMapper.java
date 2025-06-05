@@ -23,6 +23,7 @@ public abstract class BusinessFlowMapper {
     @Mapping(target = "resultId", source = "result.id")
     @Mapping(target = "apiEndpoints", source = "apiEndpoints", qualifiedByName = "jsonToApiEndpointParamList")
     @Mapping(target = "appId", source = "app.id")
+    @Mapping(source = "updatedAt", target = "updatedAt")
     public abstract BusinessFlowResponseDTO toResponseDTO(BusinessFlow entity);
 
     @Mapping(target = "result", source = "resultId", qualifiedByName = "resultIdToScanResult")

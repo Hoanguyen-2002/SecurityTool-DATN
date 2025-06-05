@@ -12,10 +12,10 @@ import com.backend.securitytool.repository.BusinessFlowRepository;
 import com.backend.securitytool.repository.ScanResultRepository;
 import com.backend.securitytool.repository.SecurityIssueRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,6 +50,17 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
                 throw new RuntimeException("Only SonarQube scan result is allowed for business flow. Please provide a valid SonarQube scan result id.");
             }
         }
+
+        // Validate flow name is unique
+        if (requestDTO.getFlowName() != null) {
+            BusinessFlow flowExists = businessFlowRepository.findByFlowName(requestDTO.getFlowName());
+            if (flowExists != null) {
+                throw new RuntimeException("A business flow with name '" + requestDTO.getFlowName() + "' already exists");
+            }
+        } else {
+            throw new RuntimeException("Flow name is required");
+        }
+
         BusinessFlow entity = businessFlowMapper.toEntity(requestDTO);
         if (requestDTO.getAppId() != null) {
             entity.setApp(businessFlowMapper.toEntity(requestDTO).getApp());
@@ -75,7 +86,17 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
                 throw new RuntimeException("Only SonarQube scan result is allowed for business flow. Please provide a valid SonarQube scan result id.");
             }
         }
+
         BusinessFlow entity = optional.get();
+
+        // Validate flow name uniqueness when changing name
+        if (requestDTO.getFlowName() != null && !requestDTO.getFlowName().equals(entity.getFlowName())) {
+            BusinessFlow flowExists = businessFlowRepository.findByFlowName(requestDTO.getFlowName());
+            if (flowExists != null && !flowExists.getId().equals(id)) {
+                throw new RuntimeException("A business flow with name '" + requestDTO.getFlowName() + "' already exists");
+            }
+        }
+        // Update fields
         entity.setFlowName(requestDTO.getFlowName());
         entity.setFlowDescription(requestDTO.getFlowDescription());
         BusinessFlow temp = businessFlowMapper.toEntity(requestDTO);
@@ -86,6 +107,7 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
         if (requestDTO.getAppId() != null) {
             entity.setApp(temp.getApp());
         }
+        entity.setUpdatedAt(Instant.now());
         BusinessFlow saved = businessFlowRepository.save(entity);
         return businessFlowMapper.toResponseDTO(saved);
     }
