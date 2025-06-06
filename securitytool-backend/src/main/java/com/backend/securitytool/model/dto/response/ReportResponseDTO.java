@@ -9,6 +9,6 @@ import java.util.List;
 @NoArgsConstructor
 public class ReportResponseDTO {
     private Integer resultId;
-    private Integer appId; // Thêm trường này
+    private Integer appId;
     private List<SecurityIssueResponseDTO> issues;
 }

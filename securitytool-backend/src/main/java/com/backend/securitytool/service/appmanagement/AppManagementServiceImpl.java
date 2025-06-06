@@ -61,6 +61,18 @@ public class AppManagementServiceImpl implements AppManagementService{
     @CacheEvict(value = "apps", allEntries = true)
     public ApplicationResponseDTO addApp(ApplicationRequestDTO dto) {
         logger.debug("Adding new application: {}", dto.getAppName());
+
+        if (dto.getAppName() != null) {
+            List<TargetApplication> existingApps = repository.findByAppNameContainingIgnoreCase(dto.getAppName());
+            for (TargetApplication existingApp : existingApps) {
+                if (existingApp.getAppName().equalsIgnoreCase(dto.getAppName())) {
+                    throw new RuntimeException("An application with name '" + dto.getAppName() + "' already exists");
+                }
+            }
+        } else {
+            throw new RuntimeException("Application name is required");
+        }
+
         TargetApplication app = applicationMapper.toEntity(dto);
         if (dto.getAuthInfo() != null && !dto.getAuthInfo().isEmpty()) {
             app.setAuthInfo(dto.getAuthInfo());
@@ -76,6 +88,17 @@ public class AppManagementServiceImpl implements AppManagementService{
         logger.debug("Updating application with ID: {}", id);
         TargetApplication app = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.APPLICATION_NOT_FOUND + id));
+
+        // Check if app name is being updated and if it already exists
+        if (dto.getAppName() != null && !dto.getAppName().equals(app.getAppName())) {
+            List<TargetApplication> existingApps = repository.findByAppNameContainingIgnoreCase(dto.getAppName());
+            for (TargetApplication existingApp : existingApps) {
+                if (existingApp.getAppName().equalsIgnoreCase(dto.getAppName()) && !existingApp.getId().equals(id)) {
+                    throw new RuntimeException("An application with name '" + dto.getAppName() + "' already exists");
+                }
+            }
+        }
+        // Update the application entity with the new values from the DTO
         applicationMapper.updateEntityFromDTO(dto, app);
         if (dto.getAuthInfo() != null) {
             if (dto.getAuthInfo().isEmpty()) {
