@@ -34,7 +34,9 @@ instance.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    if (error.response && error.response.status === 403 && !originalRequest._retry) {
+      // Remove expired accessToken immediately
+      localStorage.removeItem('authToken');
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         if (isRefreshing) {
@@ -59,7 +61,10 @@ instance.interceptors.response.use(
         } catch (refreshErr) {
           processQueue(refreshErr, null);
           localStorage.removeItem('authToken');
-          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('refreshToken'); // Always remove refreshToken if refresh fails
+          localStorage.setItem('forceLogoutMsg', 'Your session has expired. Please log in again.');
+          // Dispatch a custom event to notify the app to show a session expired popup
+          window.dispatchEvent(new CustomEvent('sessionExpired'));
           window.location.href = '/login';
           return Promise.reject(refreshErr);
         } finally {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../api/authApi';
 import Modal from '../components/Modal';
@@ -17,7 +17,16 @@ const Login: React.FC = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showChangeCurrentPassword, setShowChangeCurrentPassword] = useState(false);
   const [showChangeNewPassword, setShowChangeNewPassword] = useState(false);
+  const [forceLogoutMsg, setForceLogoutMsg] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const msg = localStorage.getItem('forceLogoutMsg');
+    if (msg) {
+      setForceLogoutMsg(msg);
+      localStorage.removeItem('forceLogoutMsg');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +79,11 @@ const Login: React.FC = () => {
           Welcome to Security Tool! Effortlessly manage, scan, and analyze your E-commerce applications for vulnerabilities. Stay secure with real-time dashboards, detailed reports, and powerful automation features.
         </p>
         <form onSubmit={handleSubmit} className="w-full">
+          {forceLogoutMsg && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-center text-sm font-semibold">
+              {forceLogoutMsg}
+            </div>
+          )}
           {error && <div className="mb-4 text-red-500">{error}</div>}
           <div className="mb-4">
             <label className="block mb-1 font-medium">Username</label>

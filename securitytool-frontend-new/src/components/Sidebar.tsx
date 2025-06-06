@@ -25,6 +25,7 @@ const Sidebar: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
   const handleLogout = async () => {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
     navigate('/login');
   };
   return (

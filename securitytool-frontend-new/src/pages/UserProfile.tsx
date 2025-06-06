@@ -51,13 +51,8 @@ const UserProfile: React.FC = () => {
       }
     };
     fetchUser();
-    const interval = setInterval(fetchUser, 5000);
-    const onFocus = () => fetchUser();
-    window.addEventListener('focus', onFocus);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
-    };
+    // Remove setInterval and window focus event to avoid excessive API calls
+    // Only fetch on mount and after update
   }, []);
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -81,7 +76,10 @@ const UserProfile: React.FC = () => {
     }
     try {
       await editUserInfo(submitForm);
-      setUser(submitForm);
+      // Refetch user info after successful update
+      const res = await getUserInfo();
+      setUser(res.data);
+      setEditForm(res.data);
       setSuccess('Information updated successfully!');
       setModalOpen(false);
       prevUsername.current = submitForm.username;
@@ -114,6 +112,10 @@ const UserProfile: React.FC = () => {
       setPwdSuccess('Password changed successfully!');
       setPwdForm({ currentPassword: '', newPassword: '' });
       setChangePwdModalOpen(false);
+      // Refetch user info after password change
+      const res = await getUserInfo();
+      setUser(res.data);
+      setEditForm(res.data);
     } catch (err: any) {
       setPwdError(err.response?.data?.message || 'Failed to change password');
     }
