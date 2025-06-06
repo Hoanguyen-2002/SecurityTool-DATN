@@ -186,6 +186,11 @@ const ScanConfig: React.FC = () => {
         const latestScanResults = JSON.parse(localStorage.getItem('latestScanResultIds') || '{}');
         latestScanResults[appId] = { ...latestScanResults[appId], zap: result.id };
         localStorage.setItem('latestScanResultIds', JSON.stringify(latestScanResults));
+        // Update allZapScans immediately with the new scan at the front
+        setAllZapScans(prev => ({
+          ...prev,
+          [appId]: Array.isArray(prev[appId]) ? [result, ...prev[appId]!] : [result]
+        }));
       }
       // Invalidate relevant queries to refresh data everywhere
       queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -226,8 +231,13 @@ const ScanConfig: React.FC = () => {
       if (result && result.id) {
         associateScanWithApp(result.id, appId);
         const latestScanResults = JSON.parse(localStorage.getItem('latestScanResultIds') || '{}');
-        latestScanResults[appId] = { sonar: result.id, zap: latestScanResults[appId]?.zap };
+        latestScanResults[appId] = { ...latestScanResults[appId], sonar: result.id };
         localStorage.setItem('latestScanResultIds', JSON.stringify(latestScanResults));
+        // Update allSonarScans immediately with the new scan at the front
+        setAllSonarScans(prev => ({
+          ...prev,
+          [appId]: Array.isArray(prev[appId]) ? [result, ...prev[appId]!] : [result]
+        }));
       }
       // Invalidate relevant queries to refresh data everywhere
       queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -455,12 +465,16 @@ const ScanConfig: React.FC = () => {
                       {/* Removed separate URL line */}
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded shadow-sm text-sm">
-                          <span className="font-medium text-indigo-700">SonarQube Last Scan:</span>
-                          <span className="font-semibold text-indigo-900">{latestSonarDate ? new Date(latestSonarDate).toLocaleString() : 'N/A'}</span>
+                          <span className="font-semibold text-indigo-700">SonarQube Last Scan:</span>
+                          <span className="text-indigo-700">
+                            {latestSonarDate ? new Date(latestSonarDate).toLocaleString() : 'N/A'}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1 bg-red-50 px-3 py-1 rounded shadow-sm text-sm">
-                          <span className="font-medium text-red-700">ZAP Last Scan:</span>
-                          <span className="font-semibold text-red-900">{latestZapDate ? new Date(latestZapDate).toLocaleString() : 'N/A'}</span>
+                          <span className="font-semibold text-red-700">ZAP Last Scan:</span>
+                          <span className="text-red-700">
+                            {latestZapDate ? new Date(latestZapDate).toLocaleString() : 'N/A'}
+                          </span>
                         </div>
                       </div>
                     </div>
