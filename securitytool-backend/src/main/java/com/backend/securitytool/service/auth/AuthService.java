@@ -15,7 +15,6 @@ public interface AuthService {
     void resetPassword(String email);
     void editUserInfo(String currentUsername, EditUserInfoRequestDTO dto);
     void changePassword(String username, ChangePasswordRequestDTO dto);
-
-    // Thêm getter cho JwtUtil để controller sử dụng
     JwtUtil getJwtUtil();
+    JwtResponseDTO refreshAccessToken(String refreshToken);
 }

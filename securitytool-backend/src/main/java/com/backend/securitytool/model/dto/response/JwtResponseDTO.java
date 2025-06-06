@@ -10,6 +10,5 @@ public class JwtResponseDTO {
     private String refreshToken;
     private String username;
     private String email;
-    private String major;
     private boolean mustChangePassword;
 }

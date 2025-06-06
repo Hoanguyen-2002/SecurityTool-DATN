@@ -28,9 +28,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(RegisterRequestDTO dto) {
+        // Validate username uniqueness
         if (userRepository.findByUsername(dto.getUsername()).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
+        // Check if email is already used by any account
         if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
@@ -69,7 +71,6 @@ public class AuthServiceImpl implements AuthService {
                 refreshToken,
                 user.getUsername(),
                 user.getEmail(),
-                user.getMajor(),
                 user.isMustChangePassword()
         );
     }
@@ -115,7 +116,8 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         if (dto.getEmail() != null && !dto.getEmail().equals(user.getEmail())) {
-            if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
+            // Check if email is used by another account (not current user)
+            if (userRepository.findByEmailAndUsernameNot(dto.getEmail(), currentUsername).isPresent()) {
                 throw new RuntimeException("Email already exists");
             }
             user.setEmail(dto.getEmail());
@@ -152,5 +154,24 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public JwtUtil getJwtUtil() {
         return jwtUtil;
+    }
+
+    @Override
+    // Thêm phương thức này để làm mới access token từ refresh token
+    public JwtResponseDTO refreshAccessToken(String refreshToken) {
+        if (!jwtUtil.validateRefreshToken(refreshToken)) {
+            throw new RuntimeException("Invalid or expired refresh token");
+        }
+        String username = jwtUtil.getUsernameFromJwt(refreshToken);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String newAccessToken = jwtUtil.generateAccessToken(username);
+        return new JwtResponseDTO(
+                newAccessToken,
+                refreshToken,
+                user.getUsername(),
+                user.getEmail(),
+                user.isMustChangePassword()
+        );
     }
 }

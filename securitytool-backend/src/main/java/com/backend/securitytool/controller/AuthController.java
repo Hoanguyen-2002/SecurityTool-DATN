@@ -122,16 +122,10 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Refresh token is required.");
         }
         try {
-            if (!authService.getJwtUtil().validateRefreshToken(refreshToken)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token.");
-            }
-            String username = authService.getJwtUtil().getUsernameFromJwt(refreshToken);
-            String newAccessToken = authService.getJwtUtil().generateAccessToken(username);
-            Map<String, String> result = new HashMap<>();
-            result.put("accessToken", newAccessToken);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token.");
+            JwtResponseDTO jwtResponse = authService.refreshAccessToken(refreshToken);
+            return ResponseEntity.ok(jwtResponse);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
 }
