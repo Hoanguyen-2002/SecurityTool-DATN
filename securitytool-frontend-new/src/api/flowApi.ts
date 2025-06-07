@@ -13,10 +13,51 @@ export const createFlow = async (payload: NewFlowPayload): Promise<BusinessFlowR
 };
 
 /**
- * Get all business flows
+ * Get all business flows (without pagination) - OLD VERSION
  */
 export const getFlows = async (): Promise<BusinessFlowResponseDTO[]> => {
   const res = await instance.get<BusinessFlowResponseDTO[]>(FLOWS_BASE_PATH);
+  return res.data;
+};
+
+/**
+ * Get all business flows without pagination using new backend API
+ */
+export const getAllFlowsWithoutPagination = async (appId?: number): Promise<BusinessFlowResponseDTO[]> => {
+  const params = new URLSearchParams();
+  if (appId !== undefined) {
+    params.append('appId', appId.toString());
+  }
+  
+  const url = params.toString() ? `${FLOWS_BASE_PATH}/all?${params.toString()}` : `${FLOWS_BASE_PATH}/all`;
+  const res = await instance.get<BusinessFlowResponseDTO[]>(url);
+  return res.data;
+};
+
+/**
+ * Get all business flows for a specific app (without pagination)
+ */
+export const getFlowsByAppId = async (appId: number): Promise<BusinessFlowResponseDTO[]> => {
+  const res = await instance.get<BusinessFlowResponseDTO[]>(`${FLOWS_BASE_PATH}?appId=${appId}`);
+  return res.data;
+};
+
+/**
+ * Get paginated business flows by app ID
+ */
+export const getPaginatedFlows = async (appId?: number, page: number = 1, size: number = 3): Promise<{
+  content: BusinessFlowResponseDTO[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}> => {
+  const params = new URLSearchParams();
+  if (appId !== undefined) params.append('appId', appId.toString());
+  params.append('page', page.toString());
+  params.append('size', size.toString());
+  
+  const res = await instance.get(`${FLOWS_BASE_PATH}?${params.toString()}`);
   return res.data;
 };
 

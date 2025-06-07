@@ -13,6 +13,10 @@ import com.backend.securitytool.repository.ScanResultRepository;
 import com.backend.securitytool.repository.SecurityIssueRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -39,7 +43,7 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
 
     @Override
     public BusinessFlowResponseDTO createFlow(BusinessFlowRequestDTO requestDTO) {
-        // Validate resultId is SonarQube scan result
+        // Validate resultId is SonarQube scan result and belongs to appId
         if (requestDTO.getResultId() != null) {
             var scanResultOpt = scanResultRepository.findById(requestDTO.getResultId());
             if (scanResultOpt.isEmpty()) {
@@ -49,16 +53,19 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
             if (!"static".equalsIgnoreCase(scanResult.getScanType())) {
                 throw new RuntimeException("Only SonarQube scan result is allowed for business flow. Please provide a valid SonarQube scan result id.");
             }
+            if (requestDTO.getAppId() == null || scanResult.getApp() == null || !scanResult.getApp().getId().equals(requestDTO.getAppId())) {
+                throw new RuntimeException("Scan result does not belong to the specified application");
+            }
         }
 
-        // Validate flow name is unique
-        if (requestDTO.getFlowName() != null) {
-            BusinessFlow flowExists = businessFlowRepository.findByFlowName(requestDTO.getFlowName());
+        // Validate flow name is unique within the same app
+        if (requestDTO.getFlowName() != null && requestDTO.getAppId() != null) {
+            BusinessFlow flowExists = businessFlowRepository.findByFlowNameAndAppId(requestDTO.getFlowName(), requestDTO.getAppId());
             if (flowExists != null) {
-                throw new RuntimeException("A business flow with name '" + requestDTO.getFlowName() + "' already exists");
+                throw new RuntimeException("A business flow with name '" + requestDTO.getFlowName() + "' already exists in this application");
             }
         } else {
-            throw new RuntimeException("Flow name is required");
+            throw new RuntimeException("Flow name and appId are required");
         }
 
         BusinessFlow entity = businessFlowMapper.toEntity(requestDTO);
@@ -75,7 +82,7 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
         if (optional.isEmpty()) {
             throw new RuntimeException("Business flow not found");
         }
-        // Validate resultId is SonarQube scan result
+        // Validate resultId is SonarQube scan result and belongs to appId
         if (requestDTO.getResultId() != null) {
             var scanResultOpt = scanResultRepository.findById(requestDTO.getResultId());
             if (scanResultOpt.isEmpty()) {
@@ -85,15 +92,19 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
             if (!"static".equalsIgnoreCase(scanResult.getScanType())) {
                 throw new RuntimeException("Only SonarQube scan result is allowed for business flow. Please provide a valid SonarQube scan result id.");
             }
+            if (requestDTO.getAppId() == null || scanResult.getApp() == null || !scanResult.getApp().getId().equals(requestDTO.getAppId())) {
+                throw new RuntimeException("Scan result does not belong to the specified application");
+            }
         }
 
         BusinessFlow entity = optional.get();
 
-        // Validate flow name uniqueness when changing name
-        if (requestDTO.getFlowName() != null && !requestDTO.getFlowName().equals(entity.getFlowName())) {
-            BusinessFlow flowExists = businessFlowRepository.findByFlowName(requestDTO.getFlowName());
+        // Validate flow name uniqueness within the same app when changing name or app
+        if (requestDTO.getFlowName() != null && requestDTO.getAppId() != null &&
+            (!requestDTO.getFlowName().equals(entity.getFlowName()) || !requestDTO.getAppId().equals(entity.getApp() != null ? entity.getApp().getId() : null))) {
+            BusinessFlow flowExists = businessFlowRepository.findByFlowNameAndAppId(requestDTO.getFlowName(), requestDTO.getAppId());
             if (flowExists != null && !flowExists.getId().equals(id)) {
-                throw new RuntimeException("A business flow with name '" + requestDTO.getFlowName() + "' already exists");
+                throw new RuntimeException("A business flow with name '" + requestDTO.getFlowName() + "' already exists in this application");
             }
         }
         // Update fields
@@ -112,8 +123,9 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
         return businessFlowMapper.toResponseDTO(saved);
     }
 
+
     @Override
-    public List<BusinessFlowResponseDTO> getListFlow(Integer appId) {
+    public List<BusinessFlowResponseDTO> getListFlowWihoutPagination(Integer appId) {
         List<BusinessFlow> flows;
         if (appId != null) {
             flows = businessFlowRepository.findByAppId(appId);
@@ -121,6 +133,23 @@ public class FlowAnalyzerServiceImpl implements FlowAnalyzerService {
             flows = businessFlowRepository.findAll();
         }
         return flows.stream().map(businessFlowMapper::toResponseDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<BusinessFlowResponseDTO> getListFlow(Integer appId, int page, int size) {
+        // Adjust page to be zero-based for Spring Data
+        int pageIndex = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(pageIndex, size);
+        Page<BusinessFlow> flowPage;
+        if (appId != null) {
+            flowPage = businessFlowRepository.findByAppId(appId, pageable);
+        } else {
+            flowPage = businessFlowRepository.findAll(pageable);
+        }
+        List<BusinessFlowResponseDTO> dtoList = flowPage.getContent().stream()
+                .map(businessFlowMapper::toResponseDTO)
+                .toList();
+        return new PageImpl<>(dtoList, pageable, flowPage.getTotalElements());
     }
 
     @Override

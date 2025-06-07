@@ -9,6 +9,7 @@ import com.backend.securitytool.service.flowanalyzer.FlowAnalyzerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,9 +34,18 @@ public class FlowController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<List<BusinessFlowResponseDTO>> getListFlowWihoutPagination(@RequestParam(required = false) Integer appId) {
+        List<BusinessFlowResponseDTO> flows = flowAnalyzerService.getListFlowWihoutPagination(appId);
+        return ResponseEntity.ok(flows);
+    }
+
     @GetMapping
-    public ResponseEntity<List<BusinessFlowResponseDTO>> getListFlow(@RequestParam(required = false) Integer appId) {
-        List<BusinessFlowResponseDTO> flows = flowAnalyzerService.getListFlow(appId);
+    public ResponseEntity<Page<BusinessFlowResponseDTO>> getListFlow(
+            @RequestParam(required = false) Integer appId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "3") int size) {
+        Page<BusinessFlowResponseDTO> flows = flowAnalyzerService.getListFlow(appId, page, size);
         return ResponseEntity.ok(flows);
     }
 

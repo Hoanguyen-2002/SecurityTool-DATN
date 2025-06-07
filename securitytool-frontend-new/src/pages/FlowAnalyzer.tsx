@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'; // Added useRef
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFlow, getFlows, updateFlow, deleteFlow, analyzeBusinessFlow } from '../api/flowApi';
+import { createFlow, updateFlow, deleteFlow, analyzeBusinessFlow, getPaginatedFlows, getAllFlowsWithoutPagination } from '../api/flowApi';
 import { fetchApplications, searchApplications, PaginatedApplications } from '../api/applicationApi';
 import { ApplicationResponseDTO } from '../types/application';
 import { NewFlowPayload, BusinessFlowResponseDTO, AnalyzeFlowApiResponse, FlowAnalysisRequestDTO, StepResult, ApiEndpointParamDTO } from '../types/flow'; // Added ApiEndpointParamDTO
@@ -46,24 +46,30 @@ const FlowAnalyzer: React.FC = () => {
 
   const [addFlowResultIdError, setAddFlowResultIdError] = useState<string | null>(null);
   const [editFlowResultIdError, setEditFlowResultIdError] = useState<string | null>(null);
-
   // Pagination state
   const [page, setPage] = useState<number>(0);
   const [pageSize] = useState<number>(5);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalElements, setTotalElements] = useState<number>(0);
+  
+  // Modal pagination state for flows
+  const [modalFlowPage, setModalFlowPage] = useState<number>(1);
+  const [modalFlowPageSize] = useState<number>(3);
+  const [modalFlowTotalPages, setModalFlowTotalPages] = useState<number>(1);
+  const [modalFlowTotalElements, setModalFlowTotalElements] = useState<number>(0);
   // Add state for validation errors
   const [addFlowValidationError, setAddFlowValidationError] = useState<string | null>(null);
   const [editFlowValidationError, setEditFlowValidationError] = useState<string | null>(null);
-  
-  // Add state for specific field errors
+    // Add state for specific field errors
   const [addFlowNameError, setAddFlowNameError] = useState<string>('');
   const [editFlowNameError, setEditFlowNameError] = useState<string>('');
-  const addFlowMutation = useMutation<BusinessFlowResponseDTO, Error, NewFlowPayload>({
+    // State for dropdown visibility for each app (tracks which dropdowns are CLOSED)
+  const [dropdownClosedAppIds, setDropdownClosedAppIds] = useState<Set<number>>(new Set());const addFlowMutation = useMutation<BusinessFlowResponseDTO, Error, NewFlowPayload>({
     mutationFn: createFlow,
     onSuccess: () => {
       setIsAddFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
+      queryClient.invalidateQueries({ queryKey: ['paginatedFlows'] });
       // Clear all errors on success
       setAddFlowValidationError(null);
       setAddFlowNameError('');
@@ -113,12 +119,12 @@ const FlowAnalyzer: React.FC = () => {
         setAddFlowValidationError(errorMessage);
       }
     }
-  });
-  const updateFlowMutation = useMutation<BusinessFlowResponseDTO, Error, BusinessFlowResponseDTO>({
+  });  const updateFlowMutation = useMutation<BusinessFlowResponseDTO, Error, BusinessFlowResponseDTO>({
     mutationFn: updateFlow,
     onSuccess: () => {
       setIsEditFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
+      queryClient.invalidateQueries({ queryKey: ['paginatedFlows'] });
       // Clear all errors on success
       setEditFlowValidationError(null);
       setEditFlowNameError('');
@@ -169,12 +175,12 @@ const FlowAnalyzer: React.FC = () => {
       }
     }
   });
-
   const deleteFlowMutation = useMutation<void, Error, number>({
     mutationFn: deleteFlow,
     onSuccess: () => {
       setIsConfirmDeleteModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
+      queryClient.invalidateQueries({ queryKey: ['paginatedFlows'] });
     },
     onError: (error) => {
       alert(`Failed to delete flow: ${error.message}`);
@@ -236,19 +242,41 @@ const FlowAnalyzer: React.FC = () => {
   }, [paginatedApps]);
   const apps: ApplicationResponseDTO[] = paginatedApps && Array.isArray((paginatedApps as any).content)
     ? (paginatedApps as any).content.map((app: any) => ({ ...app, appId: Number(app.id) }))
-    : [];
-  const {
-    data: allBusinessFlows,
+    : [];  const {
+    data: allBusinessFlows
   } = useQuery<BusinessFlowResponseDTO[], Error>({
     queryKey: ['businessFlows'], // Query for all flows
-    queryFn: getFlows,
-    // No need to filter by currentAppForModal here, do it in useMemo
+    queryFn: () => getAllFlowsWithoutPagination(), // Use new API without appId to get ALL flows
+    refetchOnWindowFocus: false,
   });
 
+  // Paginated flows query for the modal
+  const {
+    data: paginatedFlowsData,
+    isLoading: paginatedFlowsLoading,
+    isError: paginatedFlowsIsError,
+    error: paginatedFlowsError
+  } = useQuery({
+    queryKey: ['paginatedFlows', currentAppForModal?.appId, modalFlowPage, modalFlowPageSize],
+    queryFn: () => currentAppForModal ? getPaginatedFlows(currentAppForModal.appId, modalFlowPage, modalFlowPageSize) : Promise.resolve(null),
+    enabled: !!currentAppForModal && isViewFlowsModalOpen,
+    refetchOnWindowFocus: false,
+  });
+
+  // Update pagination info when paginated data changes
+  useEffect(() => {
+    if (paginatedFlowsData) {
+      setModalFlowTotalPages(paginatedFlowsData.totalPages);
+      setModalFlowTotalElements(paginatedFlowsData.totalElements);
+    }
+  }, [paginatedFlowsData]);
   const flowsForModal = useMemo(() => {
-    if (!allBusinessFlows || !currentAppForModal) return [];
-    return allBusinessFlows.filter(flow => flow.appId === currentAppForModal.appId);
-  }, [allBusinessFlows, currentAppForModal]);
+    // Use paginated data if available, otherwise fallback to empty array
+    if (paginatedFlowsData?.content) {
+      return paginatedFlowsData.content;
+    }
+    return [];
+  }, [paginatedFlowsData]);
 
   const openAddFlowModal = (app: ApplicationResponseDTO) => {
     setCurrentAppForModal(app);
@@ -268,9 +296,9 @@ const FlowAnalyzer: React.FC = () => {
     setNewFlowData({ appId: 0, flowName: '', resultId: 0, flowDescription: '', apiEndpoints: [] });
     setNewFlowEndpoints([{ endpoint: '', httpMethod: 'GET', params: '' }]);
   };
-
   const openViewFlowsModal = (app: ApplicationResponseDTO) => {
     setCurrentAppForModal(app);
+    setModalFlowPage(1); // Reset to first page when opening modal
     setIsViewFlowsModalOpen(true);
   };
 
@@ -313,9 +341,20 @@ const FlowAnalyzer: React.FC = () => {
   const handleNewEndpointFieldChange = (idx: number, field: keyof ApiEndpointParamDTO, value: string) => {
     setNewFlowEndpoints(prev => prev.map((ep, i) => i === idx ? { ...ep, [field]: value } : ep));
   };
-
   const handleEditEndpointFieldChange = (idx: number, field: keyof ApiEndpointParamDTO, value: string) => {
     setEditFlowEndpoints(prev => prev.map((ep, i) => i === idx ? { ...ep, [field]: value } : ep));
+  };
+  // Function to toggle dropdown visibility
+  const toggleFlowDropdown = (appId: number) => {
+    setDropdownClosedAppIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(appId)) {
+        newSet.delete(appId); // Remove from closed set (show dropdown)
+      } else {
+        newSet.add(appId); // Add to closed set (hide dropdown)
+      }
+      return newSet;
+    });
   };
 
   const addNewEndpointField = () => setNewFlowEndpoints(prev => [...prev, { endpoint: '', httpMethod: 'GET', params: '' }]);
@@ -471,9 +510,7 @@ const FlowAnalyzer: React.FC = () => {
             </button>
           )}
         </form>
-      </div>
-
-      {searchError && <div className="mb-2"><ErrorDisplay message={searchError} /></div>}
+      </div>      {searchError && <div className="mb-2"><ErrorDisplay message={searchError} /></div>}
 
       {(searchResults !== null ? searchResults : apps) && (searchResults !== null ? searchResults : apps)!.length > 0 ? (
         <div className="space-y-4">
@@ -489,27 +526,36 @@ const FlowAnalyzer: React.FC = () => {
                   {/* Removed separate URL line */}
                   {/* Flows for this app */}
                   <div className="mt-2">
-                    {/* Redesigned Flows: Total */}
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Total Flows</span>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-200 text-yellow-900 text-sm font-bold shadow border border-yellow-300">
-                        {allBusinessFlows && allBusinessFlows.filter(f => f.appId === app.appId).length}
+                    {/* Redesigned Flows: Total */}                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Total Flows</span>                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-200 text-yellow-900 text-sm font-bold shadow border border-yellow-300">
+                        {(allBusinessFlows && Array.isArray(allBusinessFlows)) ? allBusinessFlows.filter(f => f.appId === app.appId).length : 0}
                       </span>
-                    </div>
-                    {allBusinessFlows && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 ? (
-                      <ul className="flex flex-col gap-1 ml-6 mt-1">
-                        {allBusinessFlows.filter(f => f.appId === app.appId).map(flow => (
-                          <li key={flow.id} className="flex items-center gap-2">
-                            <span className="inline-flex items-center px-3 py-1 bg-indigo-200 text-indigo-900 rounded-full text-sm font-semibold shadow-sm hover:bg-indigo-300 transition-colors cursor-default border border-indigo-300">
-                              <svg className="w-4 h-4 mr-1 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                              {flow.flowName}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span className="text-gray-400 italic ml-2">N/A</span>
-                    )}
+                      {(allBusinessFlows && Array.isArray(allBusinessFlows) && allBusinessFlows.filter(f => f.appId === app.appId).length > 0) && (                        <button
+                          onClick={() => toggleFlowDropdown(app.appId)}
+                          className="inline-flex items-center px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-medium hover:bg-gray-300 transition-colors border border-gray-300"
+                        >
+                          <svg className={`w-3 h-3 transition-transform ${!dropdownClosedAppIds.has(app.appId) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                          <span className="ml-1">
+                            {!dropdownClosedAppIds.has(app.appId) ? 'Hide' : 'Show'} Details
+                          </span>
+                        </button>
+                      )}
+                    </div>                    {(allBusinessFlows && Array.isArray(allBusinessFlows) && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 && !dropdownClosedAppIds.has(app.appId)) ? (
+                      <div className="ml-6 mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="space-y-2">
+                          {(allBusinessFlows && Array.isArray(allBusinessFlows)) ? allBusinessFlows.filter(f => f.appId === app.appId).map(flow => (
+                            <div key={flow.id} className="flex items-center">
+                              <span className="inline-flex items-center px-2 py-1 bg-indigo-200 text-indigo-900 rounded-full text-xs font-semibold shadow-sm hover:bg-indigo-300 transition-colors cursor-default border border-indigo-300">
+                                <svg className="w-3 h-3 mr-1 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                {flow.flowName}
+                              </span>
+                            </div>
+                          )) : []}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex space-x-2">
@@ -685,79 +731,116 @@ const FlowAnalyzer: React.FC = () => {
           showConfirmButton={false}
           cancelButtonText="Close"
           maxWidthClass="max-w-2xl" 
-        >
-          {flowsForModal.length > 0 ? (
-            <ul className="space-y-4">
-              {flowsForModal.map(flow => (
-                <li key={flow.id} className="p-4 bg-slate-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out relative">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="pr-4 flex-grow min-w-0">
-                      <h4 className="text-lg font-semibold text-indigo-700 truncate hover:text-indigo-800 transition-colors" title={flow.flowName}>
-                        {flow.flowName.toUpperCase()}
-                      </h4>
-                      {flow.updatedAt && (
-                        <div className="mt-1 mb-1">
-                          <span className="inline-block bg-purple-100 text-purple-700 text-xs font-semibold rounded-full px-4 py-1 shadow-sm" style={{ fontFamily: 'inherit' }}>
-                            Updated: {new Date(flow.updatedAt).toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      <p className="text-sm text-gray-600 mt-1.5 truncate" title={flow.flowDescription || undefined}>
-                        <strong className="font-medium text-gray-700">Description:</strong> {flow.flowDescription || <span className="text-gray-400 italic">Not provided</span>}
-                      </p>
-                      
-                      {flow.apiEndpoints && flow.apiEndpoints.length > 0 && (
-                        <div className="mt-2.5">
-                          <p className="text-sm font-medium text-gray-700 mb-1.5">API Endpoints:</p>
-                          <div className="flex flex-wrap gap-2 items-center">
-                            {flow.apiEndpoints.map((endpoint, index) => (
-                              <span 
-                                key={index} 
-                                className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full shadow-sm hover:bg-indigo-200 transition-colors cursor-default inline-block max-w-[200px] sm:max-w-xs truncate" 
-                                title={endpoint.endpoint}
-                              >
-                                {endpoint.endpoint}
-                              </span>
-                            ))}
+        >          {paginatedFlowsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <span className="ml-2 text-gray-600">Loading flows...</span>
+            </div>
+          ) : paginatedFlowsIsError ? (
+            <div className="text-red-600 text-center py-4">
+              Error loading flows: {paginatedFlowsError?.message || 'Unknown error'}
+            </div>
+          ) : flowsForModal.length > 0 ? (
+            <>
+              <ul className="space-y-4">
+                {flowsForModal.map(flow => (
+                  <li key={flow.id} className="p-4 bg-slate-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out relative">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="pr-4 flex-grow min-w-0">
+                        <h4 className="text-lg font-semibold text-indigo-700 truncate hover:text-indigo-800 transition-colors" title={flow.flowName}>
+                          {flow.flowName.toUpperCase()}
+                        </h4>
+                        {flow.updatedAt && (
+                          <div className="mt-1 mb-1">
+                            <span className="inline-block bg-purple-100 text-purple-700 text-xs font-semibold rounded-full px-4 py-1 shadow-sm" style={{ fontFamily: 'inherit' }}>
+                              Updated: {new Date(flow.updatedAt).toLocaleString()}
+                            </span>
                           </div>
-                        </div>
-                      )}
-
-                      <p className="text-sm text-gray-600 mt-2.5">
-                        <strong className="font-medium text-gray-700">SonarQube Scan Result ID:</strong> {flow.resultId}
-                      </p>
+                        )}
+                        <p className="text-sm text-gray-600 mt-1.5 truncate" title={flow.flowDescription || undefined}>
+                          <strong className="font-medium text-gray-700">Description:</strong> {flow.flowDescription || <span className="text-gray-400 italic">Not provided</span>}
+                        </p>
+                        
+                        {flow.apiEndpoints && flow.apiEndpoints.length > 0 && (
+                          <div className="mt-2.5">
+                            <p className="text-sm font-medium text-gray-700 mb-1.5">API Endpoints:</p>
+                            <div className="flex flex-wrap gap-2 items-center">
+                              {flow.apiEndpoints.map((endpoint, index) => (
+                                <span 
+                                  key={index} 
+                                  className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full shadow-sm hover:bg-indigo-200 transition-colors cursor-default inline-block max-w-[200px] sm:max-w-xs truncate" 
+                                  title={endpoint.endpoint}
+                                >
+                                  {endpoint.endpoint}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <p className="text-sm text-gray-600 mt-2.5">
+                          <strong className="font-medium text-gray-700">SonarQube Scan Result ID:</strong> {flow.resultId}
+                        </p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-1.5 flex-shrink-0"> 
+                          <button 
+                              onClick={() => openEditModal(flow)} // Corrected: Was handleEditFlow
+                              className="px-3 py-1.5 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs font-medium whitespace-nowrap flex items-center justify-center w-full sm:w-auto"
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                              Edit
+                          </button>
+                          <button 
+                              onClick={() => openConfirmDeleteModal(flow.id)} // Corrected: Was confirmDelete
+                              className="px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 text-xs font-medium whitespace-nowrap flex items-center justify-center w-full sm:w-auto"
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                              Delete
+                          </button>
+                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-1.5 flex-shrink-0"> 
-                        <button 
-                            onClick={() => openEditModal(flow)} // Corrected: Was handleEditFlow
-                            className="px-3 py-1.5 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs font-medium whitespace-nowrap flex items-center justify-center w-full sm:w-auto"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
-                            Edit
-                        </button>
-                        <button 
-                            onClick={() => openConfirmDeleteModal(flow.id)} // Corrected: Was confirmDelete
-                            className="px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600 text-xs font-medium whitespace-nowrap flex items-center justify-center w-full sm:w-auto"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                            Delete
-                        </button>
+                    <div className="flex justify-end mt-3 border-t pt-3">
+                      <button 
+                        onClick={() => handleAnalyzeFlows(flow.id)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium whitespace-nowrap flex items-center shadow-md hover:shadow-lg transition-all duration-200 ease-in-out"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+                        </svg>
+                        Analyze Flow
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex justify-end mt-3 border-t pt-3">
-                    <button 
-                      onClick={() => handleAnalyzeFlows(flow.id)}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium whitespace-nowrap flex items-center shadow-md hover:shadow-lg transition-all duration-200 ease-in-out"
+                  </li>
+                ))}
+              </ul>
+              
+              {/* Pagination Controls */}
+              {modalFlowTotalPages > 1 && (
+                <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setModalFlowPage(prev => Math.max(1, prev - 1))}
+                      disabled={modalFlowPage === 1}
+                      className="px-3 py-2 bg-indigo-600 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
-                      </svg>
-                      Analyze Flow
+                      Previous
+                    </button>
+                    <span className="text-sm text-gray-600">
+                      Page {modalFlowPage} of {modalFlowTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setModalFlowPage(prev => Math.min(modalFlowTotalPages, prev + 1))}
+                      disabled={modalFlowPage === modalFlowTotalPages}
+                      className="px-3 py-2 bg-indigo-600 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
+                    >
+                      Next
                     </button>
                   </div>
-                </li>
-              ))}
-            </ul>
+                  <div className="text-sm text-gray-500">
+                    Total: {modalFlowTotalElements} flows
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-gray-500">No business flows found for this application.</p>
           )}
