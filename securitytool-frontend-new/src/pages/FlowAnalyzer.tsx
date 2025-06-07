@@ -237,12 +237,8 @@ const FlowAnalyzer: React.FC = () => {
   const apps: ApplicationResponseDTO[] = paginatedApps && Array.isArray((paginatedApps as any).content)
     ? (paginatedApps as any).content.map((app: any) => ({ ...app, appId: Number(app.id) }))
     : [];
-
   const {
     data: allBusinessFlows,
-    isLoading: flowsLoading, 
-    isError: flowsIsError,   
-    error: flowsError,       
   } = useQuery<BusinessFlowResponseDTO[], Error>({
     queryKey: ['businessFlows'], // Query for all flows
     queryFn: getFlows,
