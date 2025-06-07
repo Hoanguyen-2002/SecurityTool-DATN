@@ -52,30 +52,121 @@ const FlowAnalyzer: React.FC = () => {
   const [pageSize] = useState<number>(5);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalElements, setTotalElements] = useState<number>(0);
-
   // Add state for validation errors
   const [addFlowValidationError, setAddFlowValidationError] = useState<string | null>(null);
   const [editFlowValidationError, setEditFlowValidationError] = useState<string | null>(null);
-
+  
+  // Add state for specific field errors
+  const [addFlowNameError, setAddFlowNameError] = useState<string>('');
+  const [editFlowNameError, setEditFlowNameError] = useState<string>('');
   const addFlowMutation = useMutation<BusinessFlowResponseDTO, Error, NewFlowPayload>({
     mutationFn: createFlow,
     onSuccess: () => {
       setIsAddFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
+      // Clear all errors on success
+      setAddFlowValidationError(null);
+      setAddFlowNameError('');
     },
-    onError: () => {
-      setAddFlowValidationError('Fail to add new Flow, please check entered field.');
+    onError: (err: any) => {
+      console.log('Full error object:', err);
+      console.log('Error response:', err?.response);
+      console.log('Error response data:', err?.response?.data);
+      
+      // Reset previous errors
+      setAddFlowNameError('');
+      setAddFlowValidationError(null);
+      
+      // Try different ways to extract the error message
+      let errorMessage = 'Failed to add new Flow, please check entered field.';
+      
+      // Check if the error response has data with a message
+      if (err?.response?.data) {
+        const data = err.response.data;
+        
+        // Try multiple possible message fields
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.details) {
+          errorMessage = data.details;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      console.log('Extracted error message:', errorMessage);
+      
+      // Check for duplicate flow name errors with various patterns
+      const lowerMsg = errorMessage.toLowerCase();
+      if (lowerMsg.includes('already exists') || 
+          lowerMsg.includes('duplicate') || 
+          lowerMsg.includes('name already') ||
+          lowerMsg.includes('flow name') ||
+          lowerMsg.includes('business flow') ||
+          (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
+        setAddFlowNameError(errorMessage);
+      } else {
+        setAddFlowValidationError(errorMessage);
+      }
     }
   });
-
   const updateFlowMutation = useMutation<BusinessFlowResponseDTO, Error, BusinessFlowResponseDTO>({
     mutationFn: updateFlow,
     onSuccess: () => {
       setIsEditFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
+      // Clear all errors on success
+      setEditFlowValidationError(null);
+      setEditFlowNameError('');
     },
-    onError: () => {
-      setEditFlowValidationError('Fail to update Flow, please check entered field.');
+    onError: (err: any) => {
+      console.log('Full error object:', err);
+      console.log('Error response:', err?.response);
+      console.log('Error response data:', err?.response?.data);
+      
+      // Reset previous errors
+      setEditFlowNameError('');
+      setEditFlowValidationError(null);
+      
+      // Try different ways to extract the error message
+      let errorMessage = 'Failed to update Flow, please check entered field.';
+      
+      // Check if the error response has data with a message
+      if (err?.response?.data) {
+        const data = err.response.data;
+        
+        // Try multiple possible message fields
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.details) {
+          errorMessage = data.details;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      console.log('Extracted error message:', errorMessage);
+      
+      // Check for duplicate flow name errors with various patterns
+      const lowerMsg = errorMessage.toLowerCase();
+      if (lowerMsg.includes('already exists') || 
+          lowerMsg.includes('duplicate') || 
+          lowerMsg.includes('name already') ||
+          lowerMsg.includes('flow name') ||
+          lowerMsg.includes('business flow') ||
+          (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
+        setEditFlowNameError(errorMessage);
+      } else {
+        setEditFlowValidationError(errorMessage);
+      }
     }
   });
 
@@ -464,8 +555,7 @@ const FlowAnalyzer: React.FC = () => {
         confirmButtonPosition="left"
         maxWidthClass="max-w-3xl"
       >
-        <div className="space-y-6">
-          <div>
+        <div className="space-y-6">          <div>
             <label htmlFor="flowName" className="block text-sm font-semibold text-gray-700 mb-1">
               Flow Name <span className="text-red-500">*</span>
             </label>
@@ -474,12 +564,17 @@ const FlowAnalyzer: React.FC = () => {
               name="flowName"
               id="flowName"
               value={newFlowData.flowName}
-              onChange={handleNewFlowInputChange}
+              onChange={e => {
+                handleNewFlowInputChange(e);
+                setAddFlowNameError('');
+                setAddFlowValidationError(null);
+              }}
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
               placeholder="Enter flow name"
               required
               autoFocus
             />
+            {addFlowNameError && <p className="text-xs text-red-500 mt-1">{addFlowNameError}</p>}
           </div>
           <div>
             <label htmlFor="flowDescription" className="block text-sm font-semibold text-gray-700 mb-1">
@@ -581,7 +676,7 @@ const FlowAnalyzer: React.FC = () => {
               </button>
             </div>
           </div>
-          {addFlowValidationError && <div className="text-red-600 text-sm mt-2">{addFlowValidationError}</div>}
+          {addFlowValidationError && !addFlowNameError && <div className="text-red-600 text-sm mt-2">{addFlowValidationError}</div>}
         </div>
       </Modal>
 
@@ -684,8 +779,7 @@ const FlowAnalyzer: React.FC = () => {
             confirmButtonPosition="left"
             maxWidthClass="max-w-3xl"
         >
-            <div className="space-y-6">
-                <div>
+            <div className="space-y-6">                <div>
                     <label htmlFor="editFlowName" className="block text-sm font-semibold text-gray-700 mb-1">
                       Flow Name <span className="text-red-500">*</span>
                     </label>
@@ -694,10 +788,15 @@ const FlowAnalyzer: React.FC = () => {
                         name="flowName"
                         id="editFlowName"
                         value={editingFlowData.flowName}
-                        onChange={handleEditFlowInputChange}
+                        onChange={e => {
+                          handleEditFlowInputChange(e);
+                          setEditFlowNameError('');
+                          setEditFlowValidationError(null);
+                        }}
                         className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                         required
                     />
+                    {editFlowNameError && <p className="text-xs text-red-500 mt-1">{editFlowNameError}</p>}
                 </div>
                 <div>
                     <label htmlFor="editFlowDescription" className="block text-sm font-semibold text-gray-700 mb-1">
@@ -801,7 +900,7 @@ const FlowAnalyzer: React.FC = () => {
                         + Add Endpoint
                     </button>
                 </div>
-                {editFlowValidationError && <div className="text-red-600 text-sm mt-2">{editFlowValidationError}</div>}
+                {editFlowValidationError && !editFlowNameError && <div className="text-red-600 text-sm mt-2">{editFlowValidationError}</div>}
             </div>
         </Modal>
       )}

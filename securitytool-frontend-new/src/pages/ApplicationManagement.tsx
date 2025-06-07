@@ -38,7 +38,6 @@ const ApplicationManagement: React.FC = () => {
   const [addUrlError, setAddUrlError] = useState('');
   const [editNameError, setEditNameError] = useState('');
   const [editUrlError, setEditUrlError] = useState('');
-
   const createMut = useMutation<ApplicationResponseDTO, Error, ApplicationRequestDTO>({
     mutationFn: createApplication,
     onSuccess: (createdApp) => {
@@ -50,12 +49,49 @@ const ApplicationManagement: React.FC = () => {
       setNewDescription('');
       setNewTechStack('');
       setAddModalError(null);
+      setAddNameError('');
+      setAddUrlError('');
     },
-    onError: (err) => {
-      setAddModalError(err.message || 'Failed to create application.');
+    onError: (err: any) => {
+      // Reset previous errors
+      setAddNameError('');
+      setAddUrlError('');
+      setAddModalError(null);
+      
+      // Try different ways to extract the error message
+      let errorMessage = 'Failed to create application.';
+      
+      // Check if the error response has data with a message
+      if (err?.response?.data) {
+        const data = err.response.data;
+        
+        // Try multiple possible message fields
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.details) {
+          errorMessage = data.details;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Check for duplicate name errors with various patterns
+      const lowerMsg = errorMessage.toLowerCase();
+      if (lowerMsg.includes('already exists') || 
+          lowerMsg.includes('duplicate') || 
+          lowerMsg.includes('name already') ||
+          lowerMsg.includes('application name') ||
+          (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
+        setAddNameError(errorMessage);
+      } else {
+        setAddModalError(errorMessage);
+      }
     }
   });
-
   const updateMut = useMutation<ApplicationResponseDTO, Error, { id: number; payload: ApplicationRequestDTO }>({
     mutationFn: ({ id, payload }) => updateApplication(id, payload),
     onSuccess: () => {
@@ -63,9 +99,53 @@ const ApplicationManagement: React.FC = () => {
       setIsEditModalOpen(false);
       setEditingApp(null);
       setEditModalError(null);
+      setEditNameError('');
+      setEditUrlError('');
     },
-    onError: (err) => {
-      setEditModalError(err.message || 'Failed to update application.');
+    onError: (err: any) => {
+      console.log('Full error object:', err);
+      console.log('Error response:', err?.response);
+      console.log('Error response data:', err?.response?.data);
+      
+      // Reset previous errors
+      setEditNameError('');
+      setEditUrlError('');
+      setEditModalError(null);
+      
+      // Try different ways to extract the error message
+      let errorMessage = 'Failed to update application.';
+      
+      // Check if the error response has data with a message
+      if (err?.response?.data) {
+        const data = err.response.data;
+        
+        // Try multiple possible message fields
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.details) {
+          errorMessage = data.details;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      console.log('Extracted error message:', errorMessage);
+      
+      // Check for duplicate name errors with various patterns
+      const lowerMsg = errorMessage.toLowerCase();
+      if (lowerMsg.includes('already exists') || 
+          lowerMsg.includes('duplicate') || 
+          lowerMsg.includes('name already') ||
+          lowerMsg.includes('application name') ||
+          (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
+        setEditNameError(errorMessage);
+      } else {
+        setEditModalError(errorMessage);
+      }
     }
   });
 
@@ -120,14 +200,18 @@ const ApplicationManagement: React.FC = () => {
     }
     return `${authInfo.substring(0, 3)}****`;
   };
-
   const handleAdd = () => {
     setNewAppName('');
     setNewAppUrl('');
     setNewAuthInfo('');
     setNewDescription('');
     setNewTechStack('');
-    setAddModalError(null); // Clear previous errors
+    
+    // Clear all previous errors when opening add modal
+    setAddModalError(null);
+    setAddNameError('');
+    setAddUrlError('');
+    
     setIsAddModalOpen(true);
   };
 
@@ -161,7 +245,6 @@ const ApplicationManagement: React.FC = () => {
     createMut.mutate(payload);
     // No longer closing modal or resetting fields here, moved to onSuccess of createMut
   };
-
   const handleEdit = (app: ApplicationResponseDTO) => {
     console.log('Editing app (raw from list):', app);
     const actualId = (app as any).id;
@@ -185,7 +268,12 @@ const ApplicationManagement: React.FC = () => {
     setEditAuthInfo(conformantAppForEditing.authInfo || '');
     setEditDescription(conformantAppForEditing.description || '');
     setEditTechStack(conformantAppForEditing.techStack || '');
-    setEditModalError(null); // Clear previous errors
+    
+    // Clear all previous errors when opening edit modal
+    setEditModalError(null);
+    setEditNameError('');
+    setEditUrlError('');
+    
     setIsEditModalOpen(true);
   };
 
@@ -413,19 +501,26 @@ const ApplicationManagement: React.FC = () => {
         confirmButtonText="Add Application"
         confirmButtonPosition="left"
       >
-        <div className="space-y-3">
-          <div>
+        <div className="space-y-3">          <div>
             <label htmlFor="newAppName" className="block text-sm font-medium text-gray-700">
               Application Name <span className="text-red-500">*</span>
             </label>
-            <input type="text" id="newAppName" value={newAppName} onChange={e => setNewAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter application name" required />
+            <input type="text" id="newAppName" value={newAppName} onChange={e => { 
+              setNewAppName(e.target.value); 
+              setAddNameError(''); 
+              setAddModalError(null);
+            }} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter application name" required />
             {addNameError && <p className="text-xs text-red-500 mt-1">{addNameError}</p>}
           </div>
           <div>
             <label htmlFor="newAppUrl" className="block text-sm font-medium text-gray-700">
               Application URL <span className="text-red-500">*</span>
             </label>
-            <input type="text" id="newAppUrl" value={newAppUrl} onChange={e => setNewAppUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
+            <input type="text" id="newAppUrl" value={newAppUrl} onChange={e => { 
+              setNewAppUrl(e.target.value); 
+              setAddUrlError(''); 
+              setAddModalError(null);
+            }} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
             {addUrlError && <p className="text-xs text-red-500 mt-1">{addUrlError}</p>}
           </div>
           <div>
@@ -455,20 +550,26 @@ const ApplicationManagement: React.FC = () => {
           isConfirmDisabled={updateMut.isPending}
           confirmButtonText={updateMut.isPending ? 'Saving...' : 'Save Changes'}
         >
-          {editingApp && ( // Add this check to ensure editingApp is not null
-            <div>
-              <div className="mb-4">
+          {editingApp && (
+            <div>              <div className="mb-4">
                 <label htmlFor="editAppName" className="block text-sm font-medium text-gray-700">
                   Application Name <span className="text-red-500">*</span>
                 </label>
-                <input type="text" id="editAppName" value={editAppName} onChange={e => setEditAppName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required />
+                <input type="text" id="editAppName" value={editAppName} onChange={e => { 
+                  setEditAppName(e.target.value); 
+                  setEditNameError(''); 
+                  setEditModalError(null);
+                }} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required />
                 {editNameError && <p className="text-xs text-red-500 mt-1">{editNameError}</p>}
-              </div>
-              <div className="mb-4">
+              </div>              <div className="mb-4">
                 <label htmlFor="editAppUrl" className="block text-sm font-medium text-gray-700">
                   Application URL <span className="text-red-500">*</span>
                 </label>
-                <input type="text" id="editAppUrl" value={editAppUrl} onChange={e => setEditAppUrl(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
+                <input type="text" id="editAppUrl" value={editAppUrl} onChange={e => { 
+                  setEditAppUrl(e.target.value); 
+                  setEditUrlError(''); 
+                  setEditModalError(null);
+                }} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., http://localhost:3000" required />
                 {editUrlError && <p className="text-xs text-red-500 mt-1">{editUrlError}</p>}
               </div>
               <div className="mb-4">
@@ -485,7 +586,7 @@ const ApplicationManagement: React.FC = () => {
               </div>
             </div>
           )}
-          {editModalError && <ErrorDisplay message={editModalError} />}
+          {editModalError && !editNameError && <ErrorDisplay message={editModalError} />}
         </Modal>
       )}
 

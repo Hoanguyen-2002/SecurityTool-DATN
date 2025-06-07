@@ -37,5 +37,5 @@ spring.cache:
 security:
   jwt:
     expiration-ms: 900000 # 15mins in ms
-    refresh-expiration-ms: 3600000 # 1hour in ms
+    refresh-expiration-ms: 7200000 # 2hour in ms
 

@@ -20,9 +20,9 @@ const UserProfile: React.FC = () => {
     updatedAt: '',
   });
   const [editForm, setEditForm] = useState(user);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [success, setSuccess] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState(''); // Add specific email error state
   const [loading, setLoading] = useState(true);
   const [forceLogoutModal, setForceLogoutModal] = useState(false);
   const [forceLogoutMsg, setForceLogoutMsg] = useState('');
@@ -54,7 +54,6 @@ const UserProfile: React.FC = () => {
     // Remove setInterval and window focus event to avoid excessive API calls
     // Only fetch on mount and after update
   }, []);
-
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (e.target.name === 'major') {
       setEditForm({ ...editForm, major: e.target.value });
@@ -63,13 +62,18 @@ const UserProfile: React.FC = () => {
       }
     } else {
       setEditForm({ ...editForm, [e.target.name]: e.target.value });
+      // Clear specific field errors when user starts typing
+      if (e.target.name === 'email') {
+        setEmailError('');
+        setError('');
+      }
     }
   };
-
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setEmailError(''); // Clear previous email errors
     let submitForm = { ...editForm };
     if (editForm.major === 'Enter Manually') {
       submitForm.major = customMajor;
@@ -84,7 +88,44 @@ const UserProfile: React.FC = () => {
       setModalOpen(false);
       prevUsername.current = submitForm.username;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Update failed');
+      console.log('Full error object:', err);
+      console.log('Error response:', err?.response);
+      console.log('Error response data:', err?.response?.data);
+      
+      // Try different ways to extract the error message
+      let errorMessage = 'Update failed';
+      
+      // Check if the error response has data with a message
+      if (err?.response?.data) {
+        const data = err.response.data;
+        
+        // Try multiple possible message fields
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.details) {
+          errorMessage = data.details;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      console.log('Extracted error message:', errorMessage);
+      
+      // Check for duplicate email errors with various patterns
+      const lowerMsg = errorMessage.toLowerCase();
+      if (lowerMsg.includes('email already exists') || 
+          lowerMsg.includes('email already') || 
+          lowerMsg.includes('duplicate email') ||
+          lowerMsg.includes('email is already') ||
+          (err?.response?.status === 409 && lowerMsg.includes('email'))) { // 409 Conflict status for email
+        setEmailError(errorMessage);
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
@@ -167,9 +208,13 @@ const UserProfile: React.FC = () => {
                 <div className="w-28 font-semibold text-gray-600">Major:</div>
                 <div>{user.major}</div>
               </div>
-              <div className="flex gap-4 mb-8">
-                <button
-                  onClick={() => setModalOpen(true)}
+              <div className="flex gap-4 mb-8">                <button
+                  onClick={() => {
+                    setModalOpen(true);
+                    setError('');
+                    setEmailError('');
+                    setSuccess('');
+                  }}
                   className="flex items-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-sm"
                   title="Edit"
                 >
@@ -188,16 +233,20 @@ const UserProfile: React.FC = () => {
             </>
           )}
         </div>
-        {/* Remove the logout button from the bottom of the profile card */}
-        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Edit User Info" showFooterActions={false}>
+        {/* Remove the logout button from the bottom of the profile card */}        <Modal isOpen={modalOpen} onClose={() => {
+          setModalOpen(false);
+          setError('');
+          setEmailError('');
+        }} title="Edit User Info" showFooterActions={false}>
           <form onSubmit={handleEditSubmit} className="space-y-4">
+            {error && !emailError && <div className="text-red-500 text-sm mb-4">{error}</div>}
             <div>
               <label className="block mb-1">Username</label>
               <input name="username" value={editForm.username} readOnly className="w-full px-3 py-2 border rounded bg-gray-100 cursor-not-allowed" />
-            </div>
-            <div>
+            </div><div>
               <label className="block mb-1">Email</label>
               <input type="email" name="email" value={editForm.email} onChange={handleEditChange} required className="w-full px-3 py-2 border rounded" />
+              {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
             </div>
             <div>
               <label className="block mb-1">Phone</label>
@@ -226,9 +275,12 @@ const UserProfile: React.FC = () => {
                   required
                 />
               )}
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+            </div>            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => {
+                setModalOpen(false);
+                setError('');
+                setEmailError('');
+              }} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
               <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
             </div>
           </form>
