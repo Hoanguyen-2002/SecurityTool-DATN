@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
@@ -23,8 +24,9 @@ public class ReportController {
     private ReportService reportService;
 
     @GetMapping(ApiConstants.REPORT_ID_PATH)
-    public ResponseEntity<CommonResponse<ReportResponseDTO>> getReport(@PathVariable Integer resultId) {
-        ReportResponseDTO report = reportService.getReport(resultId);
+    public ResponseEntity<CommonResponse<ReportResponseDTO>> getReport(@PathVariable Integer resultId,
+                                                                       @RequestParam Integer appId) {
+        ReportResponseDTO report = reportService.getReport(resultId, appId);
         CommonResponse<ReportResponseDTO> response = new CommonResponse<>(
                 "success",
                 "Report retrieved successfully",

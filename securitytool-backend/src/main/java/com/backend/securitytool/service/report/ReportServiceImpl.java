@@ -4,7 +4,9 @@ import com.backend.securitytool.mapper.SecurityIssueMapper;
 import com.backend.securitytool.model.dto.response.ReportResponseDTO;
 import com.backend.securitytool.model.dto.response.SecurityIssueResponseDTO;
 import com.backend.securitytool.model.entity.SecurityIssue;
+import com.backend.securitytool.model.entity.ScanResult;
 import com.backend.securitytool.repository.SecurityIssueRepository;
+import com.backend.securitytool.repository.ScanResultRepository;
 import com.backend.securitytool.util.ReportExporter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,30 +29,35 @@ public class ReportServiceImpl implements ReportService {
 
     private SecurityIssueRepository securityIssueRepository;
     private SecurityIssueMapper securityIssueMapper;
+    private ScanResultRepository scanResultRepository;
 
     @Autowired
-    public ReportServiceImpl(SecurityIssueRepository securityIssueRepository, SecurityIssueMapper securityIssueMapper) {
+    public ReportServiceImpl(SecurityIssueRepository securityIssueRepository, SecurityIssueMapper securityIssueMapper, ScanResultRepository scanResultRepository) {
         this.securityIssueRepository = securityIssueRepository;
         this.securityIssueMapper = securityIssueMapper;
+        this.scanResultRepository = scanResultRepository;
     }
 
     @Override
-    public ReportResponseDTO getReport(Integer resultId) {
-        logger.debug("Fetching all issues for resultId: {}", resultId);
+    public ReportResponseDTO getReport(Integer resultId, Integer appId) {
+        logger.debug("Fetching all issues for resultId: {} and appId: {}", resultId, appId);
+
+        // Validate resultId belongs to appId
+        ScanResult scanResult = scanResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException("Scan result not found"));
+        Integer actualAppId = scanResult.getApp() != null ? scanResult.getApp().getId() : null;
+        if (appId != null && !appId.equals(actualAppId)) {
+            throw new RuntimeException("Scan result does not belong to the specified application");
+        }
 
         List<SecurityIssue> issues = securityIssueRepository.findByResultId(resultId);
         List<SecurityIssueResponseDTO> issueDTOs = issues.stream()
                 .map(securityIssueMapper::toResponseDTO)
                 .collect(Collectors.toList());
 
-        Integer appId = null;
-        if (!issues.isEmpty()) {
-            appId = issues.get(0).getAppId();
-        }
-
         ReportResponseDTO report = new ReportResponseDTO();
         report.setResultId(resultId);
-        report.setAppId(appId);
+        report.setAppId(actualAppId);
         report.setIssues(issueDTOs);
 
         logger.info("Retrieved {} issues for resultId: {}", issues.size(), resultId);

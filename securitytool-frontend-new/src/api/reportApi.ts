@@ -2,11 +2,13 @@ import instance from './axiosInstance';
 import { ReportResponseDTO, SecurityIssueResponseDTO } from '../types/report';
 
 /**
- * Fetch a report by its scan result ID
+ * Fetch a report by its scan result ID and application ID
  */
-export const getReport = async (resultId: number): Promise<ReportResponseDTO> => {
+export const getReport = async (resultId: number, appId: number): Promise<ReportResponseDTO> => {
   try {
-    const res = await instance.get<any>(`/reports/${resultId}`); // Use any for flexibility
+    const res = await instance.get<any>(`/reports/${resultId}`, {
+      params: { appId }
+    }); // Use any for flexibility
 
     let issuesToProcess: any[] | undefined = undefined; // Allow any type for raw issues
     let preStructuredReport: any | null = null;
@@ -101,10 +103,12 @@ export const getReport = async (resultId: number): Promise<ReportResponseDTO> =>
 };
 
 /**
- * Export a report as CSV by its scan result ID
+ * Export a report as CSV by its scan result ID and application ID
  */
-export const exportReportCsv = async (resultId: number): Promise<string> => {
-  const res = await instance.get(`/reports/${resultId}/csv`);
+export const exportReportCsv = async (resultId: number, appId: number): Promise<string> => {
+  const res = await instance.get(`/reports/${resultId}/csv`, {
+    params: { appId }
+  });
   // Handle both direct response and nested response structures
   return res.data.data || res.data;
 };

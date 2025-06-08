@@ -35,10 +35,10 @@ const Reports: React.FC = () => {
 
   const [isLoadReportModalOpen, setIsLoadReportModalOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
-  const [scanResultId, setScanResultId] = useState('');
-  const [appReports, setAppReports] = useState<Record<number, ReportResponseDTO | null>>({});
+  const [scanResultId, setScanResultId] = useState('');  const [appReports, setAppReports] = useState<Record<number, ReportResponseDTO | null>>({});
   const [loading, setLoading] = useState(false); // Used for Load Report and Download CSV actions
   const [appErrors, setAppErrors] = useState<Record<number, string | null>>({}); // New state for app-specific errors
+  const [scanResultIdError, setScanResultIdError] = useState<string | null>(null); // Field-specific error for scan result ID
 
   const [isIssuesModalOpen, setIsIssuesModalOpen] = useState(false);
   const [issuesModalContent, setIssuesModalContent] = useState<{
@@ -59,8 +59,8 @@ const Reports: React.FC = () => {
 
   // Add state for compare modal and selected scan result for comparison
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
-  const [compareScanId, setCompareScanId] = useState('');
-  const [compareError, setCompareError] = useState<string | null>(null);
+  const [compareScanId, setCompareScanId] = useState('');  const [compareError, setCompareError] = useState<string | null>(null);
+  const [compareScanIdError, setCompareScanIdError] = useState<string | null>(null);
   const [compareReport, setCompareReport] = useState<ReportResponseDTO | null>(null);
   const [compareAppId, setCompareAppId] = useState<number | null>(null);
 
@@ -102,16 +102,13 @@ const Reports: React.FC = () => {
       // For now, just log and set an error.
       console.error(`Report for Scan ID ${resultId} not found or mismatch for app ${appName}`);
     }
-  };
-
-  const handleOpenLoadReportModal = (appId: number) => {
+  };  const handleOpenLoadReportModal = (appId: number) => {
     setSelectedAppId(appId);
     setScanResultId(''); // Clear previous scanResultId input
     setAppErrors(prev => ({ ...prev, [appId]: null })); // Clear specific app error for this app
+    setScanResultIdError(null); // Clear field-specific error when opening modal
     setIsLoadReportModalOpen(true);
-  };
-
-  const handleLoadReportSubmit = async () => {
+  };const handleLoadReportSubmit = async () => {
     const idNum = Number(scanResultId);
 
     if (!selectedAppId) {
@@ -119,51 +116,74 @@ const Reports: React.FC = () => {
       return;
     }
 
+    // Clear all errors before validation
     setAppErrors(prev => ({ ...prev, [selectedAppId!]: null }));
+    setScanResultIdError(null);
 
     if (!(idNum > 0)) {
-      setAppErrors(prev => ({ ...prev, [selectedAppId!]: 'Invalid scan result ID.' }));
+      setScanResultIdError('Invalid scan result ID.');
       return;
     }
 
     setLoading(true);
     try {
-      let data = await getReport(idNum);
-      // Always assign appId from applications list
-      const app = applications.find(a => a.appId === selectedAppId);
-      if (app) {
-        data.appId = app.appId;
-        data.applicationId = app.appId;
-      }
-      let errorForThisApp: string | null = null;
-      const reportAppId = data.appId ?? data.applicationId;
-      if (!data || reportAppId === undefined) {
-        errorForThisApp = `Report for Scan ID ${idNum} not found or has incomplete data.`;
-      } else if (!app || reportAppId !== app.appId) {
-        errorForThisApp = `Report ID ${idNum} does not belong to the selected application.`;
-      }
-      if (errorForThisApp) {
-        setAppErrors(prev => ({ ...prev, [selectedAppId!]: errorForThisApp }));
-        setAppReports(prev => ({ ...prev, [selectedAppId!]: null }));
-      } else if (data) {
-        setAppReports(prev => {
-          const updated = { ...prev, [selectedAppId!]: data };
-          localStorage.setItem('appReports', JSON.stringify(updated));
-          return updated;
-        });
-        setIsLoadReportModalOpen(false); // Ensure modal closes
-        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      let data = await getReport(idNum, selectedAppId);
+      
+      // Store the report since backend validated it belongs to the app
+      setAppReports(prev => {
+        const updated = { ...prev, [selectedAppId!]: data };
+        localStorage.setItem('appReports', JSON.stringify(updated));
+        return updated;
+      });
+      setIsLoadReportModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });    } catch (e: any) {
+      let errorMessage = 'Failed to load report';
+      
+      console.log('API Error Response:', e.response); // Debug log
+      
+      // Handle specific backend error responses
+      if (e.response) {
+        console.log('Response data:', e.response.data); // Debug log
+        console.log('Response status:', e.response.status); // Debug log
+        
+        // Extract error message from various possible response formats
+        let backendMessage = null;
+        
+        // Try different paths to extract the error message
+        if (e.response.data) {
+          backendMessage = e.response.data.message || 
+                          e.response.data.error || 
+                          e.response.data.data?.message ||
+                          e.response.data.data?.error ||
+                          (typeof e.response.data === 'string' ? e.response.data : null);
+        }
+        
+        if (backendMessage && typeof backendMessage === 'string') {
+          errorMessage = backendMessage;
+          console.log('Extracted backend message:', errorMessage); // Debug log
+        } else {
+          // Fallback error messages based on status code
+          switch (e.response.status) {
+            case 400:
+              errorMessage = 'Invalid request. Please check the scan result ID.';
+              break;
+            case 403:
+              errorMessage = 'Access denied. Scan result does not belong to this application.';
+              break;
+            case 404:
+              errorMessage = 'Scan result not found.';
+              break;
+            default:
+              errorMessage = `Server error: ${e.response.status} - ${e.response.statusText}`;
+          }
+        }
+        
+        // Always show error under the input field for API errors
+        setScanResultIdError(errorMessage);
+        
       } else {
-        const unknownError = `Could not retrieve data for Scan Result ID ${idNum}.`;
-        setAppErrors(prev => ({ ...prev, [selectedAppId!]: unknownError }));
-      }
-    } catch (e: any) {
-      const errorMessage = e.response ?
-        `Failed to load report: ${e.message}. Status: ${e.response.status} - ${e.response.statusText}` :
-        `Failed to load report: ${e.message}`;
-      if (selectedAppId) {
-        setAppErrors(prev => ({ ...prev, [selectedAppId!]: errorMessage }));
-        setAppReports(prev => ({ ...prev, [selectedAppId!]: null }));
+        errorMessage = `Network error: ${e.message}`;
+        setScanResultIdError(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -248,7 +268,6 @@ const Reports: React.FC = () => {
       setSearching(false);
     }
   };
-
   // Helper: get scan type from issues
   function getScanType(issues: any[]): string | null {
     if (!issues || issues.length === 0) return null;
@@ -262,50 +281,89 @@ const Reports: React.FC = () => {
     const order = ['High', 'Medium', 'Low', 'Informational'];
     return order.map(key => severityDistribution?.[key] || 0);
   }
-
-  // Open compare modal
-  const openCompareModal = () => {
-    setCompareScanId('');
-    setCompareError(null);
-    setCompareReport(null);
-    setIsCompareModalOpen(true);
-  };
-
   // Handle compare submit
   const handleCompareSubmit = async () => {
     setCompareError(null);
+    setCompareScanIdError(null);
+    
     if (!compareScanId) {
-      setCompareError('Please enter a scan result ID to compare.');
+      setCompareScanIdError('Please enter a scan result ID to compare.');
       return;
     }
     const currentReport = appReports[selectedAppId!];
     if (!currentReport) {
       setCompareError('No scan result loaded to compare with.');
       return;
-    }
-    // Validation: Prevent comparing with itself
+    }    // Validation: Prevent comparing with itself
     if (String(compareScanId).trim() === String(currentReport.resultId).trim()) {
-      setCompareError('Cannot compare a scan result with itself. Please enter a different scan result ID with the same type.');
+      setCompareScanIdError('Cannot compare a scan result with itself. Please enter a different scan result ID with the same type.');
       return;
     }
+
     try {
-      const data = await getReport(Number(compareScanId));
-      if (!data || !data.issues) throw new Error('Scan result not found.');
-      // Always assign appId from applications list
-      const app = applications.find(a => a.appId === selectedAppId);
-      if (app) {
-        data.appId = app.appId;
-        data.applicationId = app.appId;
-      }
+      const data = await getReport(Number(compareScanId), selectedAppId!);
+      
+      // Basic validation for comparison
       const type1 = getScanType(data.issues);
       const type2 = getScanType(currentReport.issues);
-      if (!type1 || !type2 || type1 !== type2) throw new Error('Scan types do not match.');
-      if (!data.summary || !data.summary.bySeverity) throw new Error('No severity data in this scan result.');
+      if (!type1 || !type2 || type1 !== type2) {
+        throw new Error('Scan types do not match.');
+      }
+      if (!data.summary || !data.summary.bySeverity) {
+        throw new Error('No severity data in this scan result.');
+      }
+      
       setCompareReport(data);
-      setCompareAppId(selectedAppId); // Persist the appId for which the comparison is shown
-      setIsCompareModalOpen(false); // Only close the modal, do NOT clear compareReport
+      setCompareAppId(selectedAppId);
+      setIsCompareModalOpen(false);
     } catch (e: any) {
-      setCompareError(e.message || 'Failed to load scan result for comparison.');
+      let errorMessage = 'Failed to load scan result for comparison';
+      
+      console.log('Compare API Error Response:', e.response); // Debug log
+      
+      // Handle specific backend error responses with enhanced error extraction
+      if (e.response) {
+        console.log('Compare Response data:', e.response.data); // Debug log
+        console.log('Compare Response status:', e.response.status); // Debug log
+        
+        let backendMessage = null;
+        
+        // Try different paths to extract the error message (same as Load Report)
+        if (e.response.data) {
+          backendMessage = e.response.data.message || 
+                          e.response.data.error || 
+                          e.response.data.data?.message ||
+                          e.response.data.data?.error ||
+                          (typeof e.response.data === 'string' ? e.response.data : null);
+        }
+        
+        if (backendMessage && typeof backendMessage === 'string') {
+          errorMessage = backendMessage;
+          console.log('Extracted compare backend message:', errorMessage); // Debug log
+        } else {
+          // Fallback error messages based on status code
+          switch (e.response.status) {
+            case 400:
+              errorMessage = 'Invalid request. Please check the scan result ID.';
+              break;
+            case 403:
+              errorMessage = 'Access denied. Scan result does not belong to this application.';
+              break;
+            case 404:
+              errorMessage = 'Scan result not found.';
+              break;
+            default:
+              errorMessage = `Server error: ${e.response.status} - ${e.response.statusText}`;
+          }
+        }
+        
+        // All backend/API errors should show under the input field
+        setCompareScanIdError(errorMessage);
+      } else {
+        // For other errors (network, etc.), also show under the input field
+        const finalMessage = e.message || 'Failed to load scan result for comparison';
+        setCompareScanIdError(finalMessage);
+      }
     }
   };
 
@@ -561,12 +619,12 @@ const Reports: React.FC = () => {
                     {currentReport && currentReport.issues && (
                       <button
                         type="button"
-                        className="mt-2 px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center gap-2"
-                        onClick={() => {
+                        className="mt-2 px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center gap-2"                        onClick={() => {
                           setSelectedAppId(app.appId);
                           setIsCompareModalOpen(true);
                           setCompareScanId('');
                           setCompareError(null);
+                          setCompareScanIdError(null); // Clear field-specific error when opening modal
                           setCompareAppId(app.appId); // Set the appId for which the comparison chart should show
                           // do not clear compareReport here
                         }}
@@ -649,21 +707,28 @@ const Reports: React.FC = () => {
         onClose={() => setIsLoadReportModalOpen(false)}
         onConfirm={handleLoadReportSubmit}
         title="Load Report"
-      >
-        <div className="mb-2">
+      >        <div className="mb-2">
           <label htmlFor="scanResultId" className="block text-sm font-medium text-gray-700">Scan Result ID</label>
           <input
             type="number"
             id="scanResultId"
             value={scanResultId}
-            onChange={(e) => setScanResultId(e.target.value)}
+            onChange={(e) => {
+              setScanResultId(e.target.value);
+              // Clear field-specific error when user starts typing
+              if (scanResultIdError) {
+                setScanResultIdError(null);
+              }
+            }}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             required
             placeholder="Enter scan result ID..."
           />
+          {scanResultIdError && (
+            <div className="mt-1 text-red-600 text-sm">{scanResultIdError}</div>
+          )}
         </div>
-      </Modal>
-      {/* Compare Modal */}
+      </Modal>      {/* Compare Modal */}
       <Modal
         isOpen={isCompareModalOpen}
         onClose={() => setIsCompareModalOpen(false)}
@@ -677,11 +742,20 @@ const Reports: React.FC = () => {
             type="number"
             id="compareScanId"
             value={compareScanId}
-            onChange={e => setCompareScanId(e.target.value)}
+            onChange={(e) => {
+              setCompareScanId(e.target.value);
+              // Clear field-specific error when user starts typing
+              if (compareScanIdError) {
+                setCompareScanIdError(null);
+              }
+            }}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             required
             placeholder="Enter scan result ID to compare..."
           />
+          {compareScanIdError && (
+            <div className="mt-1 text-red-600 text-sm">{compareScanIdError}</div>
+          )}
         </div>
         {compareError && <div className="text-red-600 text-sm mb-2">{compareError}</div>}
       </Modal>
