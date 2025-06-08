@@ -548,7 +548,7 @@ const FlowAnalyzer: React.FC = () => {
         <div className="space-y-4">
           {(searchResults !== null ? searchResults : apps)!.map(app => (
             <div key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-start">
                 <div className="flex-grow mr-4">
                   {/* Combine name and URL */}
                   <h2 className="text-xl font-medium text-gray-800 mb-1">
@@ -575,14 +575,26 @@ const FlowAnalyzer: React.FC = () => {
                         </button>
                       )}
                     </div>                    {(allBusinessFlows && Array.isArray(allBusinessFlows) && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 && !dropdownClosedAppIds.has(app.appId)) ? (
-                      <div className="ml-6 mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="ml-4 mt-3 p-3 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-blue-200 shadow-sm max-w-2xl">
                         <div className="space-y-2">
                           {(allBusinessFlows && Array.isArray(allBusinessFlows)) ? allBusinessFlows.filter(f => f.appId === app.appId).map(flow => (
-                            <div key={flow.id} className="flex items-center">
-                              <span className="inline-flex items-center px-2 py-1 bg-indigo-200 text-indigo-900 rounded-full text-xs font-semibold shadow-sm hover:bg-indigo-300 transition-colors cursor-default border border-indigo-300">
-                                <svg className="w-3 h-3 mr-1 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                {flow.flowName}
-                              </span>
+                            <div key={flow.id} className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 ease-in-out">
+                              {/* Flow Header */}
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full"></div>
+                                <h4 className="text-sm font-bold text-gray-800 tracking-tight">
+                                  {flow.flowName.toUpperCase()}
+                                </h4>
+                              </div>
+
+                              {/* Flow Description */}
+                              {flow.flowDescription && (
+                                <div className="ml-4">
+                                  <p className="text-xs text-gray-600 leading-relaxed">
+                                    {flow.flowDescription}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )) : []}
                         </div>
@@ -590,7 +602,7 @@ const FlowAnalyzer: React.FC = () => {
                     ) : null}
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 flex-shrink-0 mt-4">
                   <button 
                     onClick={() => openAddFlowModal(app)} 
                     className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-sm font-medium flex items-center"
@@ -608,7 +620,7 @@ const FlowAnalyzer: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.001.028-.002.055-.002.082 0 .027.001.054.002.082-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7-.001-.028-.002.055-.002.082 0 .027.001.054.002.082z" />
                     </svg>
-                    View Detail Flows
+                    Manage Flows
                   </button>
                 </div>
               </div>
@@ -818,7 +830,7 @@ const FlowAnalyzer: React.FC = () => {
                               onClick={() => openEditModal(flow)} // Corrected: Was handleEditFlow
                               className="px-3 py-1.5 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs font-medium whitespace-nowrap flex items-center justify-center w-full sm:w-auto"
                           >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 002-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
                               Edit
                           </button>
                           <button 
