@@ -23,6 +23,7 @@ const UserProfile: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState(''); // Add specific email error state
+  const [phoneError, setPhoneError] = useState(''); // Add specific phone error state
   const [loading, setLoading] = useState(true);
   const [forceLogoutModal, setForceLogoutModal] = useState(false);
   const [forceLogoutMsg, setForceLogoutMsg] = useState('');
@@ -61,19 +62,21 @@ const UserProfile: React.FC = () => {
         setCustomMajor('');
       }
     } else {
-      setEditForm({ ...editForm, [e.target.name]: e.target.value });
-      // Clear specific field errors when user starts typing
+      setEditForm({ ...editForm, [e.target.name]: e.target.value });      // Clear specific field errors when user starts typing
       if (e.target.name === 'email') {
         setEmailError('');
+        setError('');
+      } else if (e.target.name === 'phone') {
+        setPhoneError('');
         setError('');
       }
     }
   };
   const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault();    setError('');
     setSuccess('');
     setEmailError(''); // Clear previous email errors
+    setPhoneError(''); // Clear previous phone errors
     let submitForm = { ...editForm };
     if (editForm.major === 'Enter Manually') {
       submitForm.major = customMajor;
@@ -114,8 +117,7 @@ const UserProfile: React.FC = () => {
       }
       
       console.log('Extracted error message:', errorMessage);
-      
-      // Check for duplicate email errors with various patterns
+        // Check for duplicate email errors with various patterns
       const lowerMsg = errorMessage.toLowerCase();
       if (lowerMsg.includes('email already exists') || 
           lowerMsg.includes('email already') || 
@@ -123,6 +125,11 @@ const UserProfile: React.FC = () => {
           lowerMsg.includes('email is already') ||
           (err?.response?.status === 409 && lowerMsg.includes('email'))) { // 409 Conflict status for email
         setEmailError(errorMessage);
+      } else if (lowerMsg.includes('phone number must be numeric') || 
+                 lowerMsg.includes('phone must be') ||
+                 lowerMsg.includes('invalid phone') ||
+                 lowerMsg.includes('phone number') && lowerMsg.includes('numeric')) { // Phone validation errors
+        setPhoneError(errorMessage);
       } else {
         setError(errorMessage);
       }
@@ -208,11 +215,11 @@ const UserProfile: React.FC = () => {
                 <div className="w-28 font-semibold text-gray-600">Major:</div>
                 <div>{user.major}</div>
               </div>
-              <div className="flex gap-4 mb-8">                <button
-                  onClick={() => {
+              <div className="flex gap-4 mb-8">                <button                  onClick={() => {
                     setModalOpen(true);
                     setError('');
                     setEmailError('');
+                    setPhoneError('');
                     setSuccess('');
                   }}
                   className="flex items-center gap-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-sm"
@@ -237,9 +244,9 @@ const UserProfile: React.FC = () => {
           setModalOpen(false);
           setError('');
           setEmailError('');
-        }} title="Edit User Info" showFooterActions={false}>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            {error && !emailError && <div className="text-red-500 text-sm mb-4">{error}</div>}
+          setPhoneError('');
+        }} title="Edit User Info" showFooterActions={false}>          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {error && !emailError && !phoneError && <div className="text-red-500 text-sm mb-4">{error}</div>}
             <div>
               <label className="block mb-1">Username</label>
               <input name="username" value={editForm.username} readOnly className="w-full px-3 py-2 border rounded bg-gray-100 cursor-not-allowed" />
@@ -247,10 +254,10 @@ const UserProfile: React.FC = () => {
               <label className="block mb-1">Email</label>
               <input type="email" name="email" value={editForm.email} onChange={handleEditChange} required className="w-full px-3 py-2 border rounded" />
               {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
-            </div>
-            <div>
+            </div>            <div>
               <label className="block mb-1">Phone</label>
               <input name="phone" value={editForm.phone} onChange={handleEditChange} className="w-full px-3 py-2 border rounded" />
+              {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
             </div>
             <div>
               <label className="block mb-1">Company Name</label>
@@ -275,11 +282,11 @@ const UserProfile: React.FC = () => {
                   required
                 />
               )}
-            </div>            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => {
+            </div>            <div className="flex justify-end gap-2 pt-2">              <button type="button" onClick={() => {
                 setModalOpen(false);
                 setError('');
                 setEmailError('');
+                setPhoneError('');
               }} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
               <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
             </div>

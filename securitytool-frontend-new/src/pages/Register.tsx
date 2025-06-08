@@ -21,10 +21,10 @@ const Register: React.FC = () => {
   });  const [customMajor, setCustomMajor] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
-  // Add specific field error states
+    // Add specific field error states
   const [usernameError, setUsernameError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   
   const [showWaitModal, setShowWaitModal] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
@@ -34,23 +34,25 @@ const Register: React.FC = () => {
       setForm({ ...form, major: e.target.value });
       if (e.target.value === 'Enter Manually') setCustomMajor('');
     } else {
-      setForm({ ...form, [e.target.name]: e.target.value });
-      // Clear specific field errors when user starts typing
+      setForm({ ...form, [e.target.name]: e.target.value });      // Clear specific field errors when user starts typing
       if (e.target.name === 'username') {
         setUsernameError('');
         setError('');
       } else if (e.target.name === 'email') {
         setEmailError('');
         setError('');
+      } else if (e.target.name === 'phone') {
+        setPhoneError('');
+        setError('');
       }
     }
   };
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault();    setError('');
     setSuccess('');
     setUsernameError('');
     setEmailError('');
+    setPhoneError('');
     setShowWaitModal(true);
     let submitForm = { ...form };
     if (form.major === 'Enter Manually') {
@@ -100,14 +102,20 @@ const Register: React.FC = () => {
           lowerMsg.includes('username is already') ||
           (err?.response?.status === 409 && lowerMsg.includes('username'))) {
         setUsernameError(errorMessage);
-      }
-      // Check for email-specific errors
+      }      // Check for email-specific errors
       else if (lowerMsg.includes('email already exists') || 
                lowerMsg.includes('email already') || 
                lowerMsg.includes('duplicate email') ||
                lowerMsg.includes('email is already') ||
                (err?.response?.status === 409 && lowerMsg.includes('email'))) {
         setEmailError(errorMessage);
+      }
+      // Check for phone-specific errors
+      else if (lowerMsg.includes('phone number must be numeric') || 
+               lowerMsg.includes('phone must be') ||
+               lowerMsg.includes('invalid phone') ||
+               lowerMsg.includes('phone number') && lowerMsg.includes('numeric')) {
+        setPhoneError(errorMessage);
       }
       // General error for other cases
       else {
@@ -123,7 +131,7 @@ const Register: React.FC = () => {
         <p className="text-gray-600 text-center mb-6 text-base">
           Create your account to access Security Tool. Manage, scan, and analyze your applications securely and efficiently.
         </p>        <form onSubmit={handleSubmit} className="w-full">
-          {error && !usernameError && !emailError && <div className="mb-4 text-red-500">{error}</div>}
+          {error && !usernameError && !emailError && !phoneError && <div className="mb-4 text-red-500">{error}</div>}
           {success && <div className="mb-4 text-green-600">{success}</div>}
           <div className="mb-4">
             <label className="block mb-1 font-medium">Username</label>
@@ -154,10 +162,10 @@ const Register: React.FC = () => {
             <label className="block mb-1 font-medium">Email</label>
             <input type="email" name="email" value={form.email} onChange={handleChange} required className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Enter your email" />
             {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
-          </div>
-          <div className="mb-4">
+          </div>          <div className="mb-4">
             <label className="block mb-1 font-medium">Phone</label>
             <input name="phone" value={form.phone} onChange={handleChange} className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Enter your phone number" />
+            {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
           </div>
           <div className="mb-4">
             <label className="block mb-1 font-medium">Company Name</label>

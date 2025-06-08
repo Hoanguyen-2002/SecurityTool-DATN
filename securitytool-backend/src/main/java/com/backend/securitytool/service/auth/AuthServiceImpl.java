@@ -36,6 +36,10 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
+        // Validate phone is numeric if provided
+        if (dto.getPhone() != null && !dto.getPhone().isEmpty() && !dto.getPhone().matches("\\d+")) {
+            throw new RuntimeException("Phone number must be numeric");
+        }
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
         String verificationToken = UUID.randomUUID().toString();
         User user = User.builder()
@@ -123,6 +127,9 @@ public class AuthServiceImpl implements AuthService {
             user.setEmail(dto.getEmail());
         }
         if (dto.getPhone() != null) {
+            if (!dto.getPhone().matches("\\d+")) {
+                throw new RuntimeException("Phone number must be numeric");
+            }
             user.setPhone(dto.getPhone());
         }
         if (dto.getMajor() != null) {
