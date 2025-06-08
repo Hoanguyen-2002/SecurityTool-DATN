@@ -69,19 +69,19 @@ const FlowAnalyzer: React.FC = () => {
     onSuccess: () => {
       setIsAddFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
-      queryClient.invalidateQueries({ queryKey: ['paginatedFlows'] });
-      // Clear all errors on success
+      queryClient.invalidateQueries({ queryKey: ['paginatedFlows'] });      // Clear all errors on success
       setAddFlowValidationError(null);
       setAddFlowNameError('');
+      setAddFlowResultIdError(null);
     },
     onError: (err: any) => {
       console.log('Full error object:', err);
       console.log('Error response:', err?.response);
       console.log('Error response data:', err?.response?.data);
-      
-      // Reset previous errors
+        // Reset previous errors
       setAddFlowNameError('');
       setAddFlowValidationError(null);
+      setAddFlowResultIdError(null);
       
       // Try different ways to extract the error message
       let errorMessage = 'Failed to add new Flow, please check entered field.';
@@ -104,16 +104,26 @@ const FlowAnalyzer: React.FC = () => {
         errorMessage = err.message;
       }
       
-      console.log('Extracted error message:', errorMessage);
-      
-      // Check for duplicate flow name errors with various patterns
+      console.log('Extracted error message:', errorMessage);      // Check for specific error types
       const lowerMsg = errorMessage.toLowerCase();
-      if (lowerMsg.includes('already exists') || 
-          lowerMsg.includes('duplicate') || 
-          lowerMsg.includes('name already') ||
-          lowerMsg.includes('flow name') ||
-          lowerMsg.includes('business flow') ||
-          (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
+        // Check for result ID specific errors FIRST (before flow name checks)
+      if (lowerMsg.includes('scan result does not belong') || 
+          lowerMsg.includes('scan result not found') ||
+          lowerMsg.includes('only sonarqube scan result') ||
+          lowerMsg.includes('sonarqube scan result') ||
+          lowerMsg.includes('only sonarqube') ||
+          lowerMsg.includes('result id') ||
+          lowerMsg.includes('resultid') ||
+          lowerMsg.includes('can be analyzed')) {
+        setAddFlowResultIdError(errorMessage);
+      }
+      // Check for duplicate flow name errors with various patterns
+      else if (lowerMsg.includes('already exists') || 
+               lowerMsg.includes('duplicate') || 
+               lowerMsg.includes('name already') ||
+               (lowerMsg.includes('flow name') && !lowerMsg.includes('sonarqube')) ||
+               (lowerMsg.includes('business flow') && !lowerMsg.includes('sonarqube')) ||
+               (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
         setAddFlowNameError(errorMessage);
       } else {
         setAddFlowValidationError(errorMessage);
@@ -124,19 +134,19 @@ const FlowAnalyzer: React.FC = () => {
     onSuccess: () => {
       setIsEditFlowModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['businessFlows'] });
-      queryClient.invalidateQueries({ queryKey: ['paginatedFlows'] });
-      // Clear all errors on success
+      queryClient.invalidateQueries({ queryKey: ['paginatedFlows'] });      // Clear all errors on success
       setEditFlowValidationError(null);
       setEditFlowNameError('');
+      setEditFlowResultIdError(null);
     },
     onError: (err: any) => {
       console.log('Full error object:', err);
       console.log('Error response:', err?.response);
       console.log('Error response data:', err?.response?.data);
-      
-      // Reset previous errors
+        // Reset previous errors
       setEditFlowNameError('');
       setEditFlowValidationError(null);
+      setEditFlowResultIdError(null);
       
       // Try different ways to extract the error message
       let errorMessage = 'Failed to update Flow, please check entered field.';
@@ -158,17 +168,27 @@ const FlowAnalyzer: React.FC = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
-      console.log('Extracted error message:', errorMessage);
-      
-      // Check for duplicate flow name errors with various patterns
+        console.log('Extracted error message:', errorMessage);
+        // Check for specific error types
       const lowerMsg = errorMessage.toLowerCase();
-      if (lowerMsg.includes('already exists') || 
-          lowerMsg.includes('duplicate') || 
-          lowerMsg.includes('name already') ||
-          lowerMsg.includes('flow name') ||
-          lowerMsg.includes('business flow') ||
-          (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
+        // Check for result ID specific errors FIRST (before flow name checks)
+      if (lowerMsg.includes('scan result does not belong') || 
+          lowerMsg.includes('scan result not found') ||
+          lowerMsg.includes('only sonarqube scan result') ||
+          lowerMsg.includes('sonarqube scan result') ||
+          lowerMsg.includes('only sonarqube') ||
+          lowerMsg.includes('result id') ||
+          lowerMsg.includes('resultid') ||
+          lowerMsg.includes('can be analyzed')) {
+        setEditFlowResultIdError(errorMessage);
+      }
+      // Check for duplicate flow name errors with various patterns
+      else if (lowerMsg.includes('already exists') || 
+               lowerMsg.includes('duplicate') || 
+               lowerMsg.includes('name already') ||
+               (lowerMsg.includes('flow name') && !lowerMsg.includes('sonarqube')) ||
+               (lowerMsg.includes('business flow') && !lowerMsg.includes('sonarqube')) ||
+               (err?.response?.status === 409)) { // 409 Conflict status typically indicates duplicate resource
         setEditFlowNameError(errorMessage);
       } else {
         setEditFlowValidationError(errorMessage);
@@ -277,7 +297,6 @@ const FlowAnalyzer: React.FC = () => {
     }
     return [];
   }, [paginatedFlowsData]);
-
   const openAddFlowModal = (app: ApplicationResponseDTO) => {
     setCurrentAppForModal(app);
     setNewFlowData({
@@ -288,13 +307,20 @@ const FlowAnalyzer: React.FC = () => {
       apiEndpoints: []
     });
     setNewFlowEndpoints([{ endpoint: '', httpMethod: 'GET', params: '' }]);
+    // Clear all error states
+    setAddFlowValidationError(null);
+    setAddFlowNameError('');
+    setAddFlowResultIdError(null);
     setIsAddFlowModalOpen(true);
   };
-
   const closeAddFlowModal = () => {
     setIsAddFlowModalOpen(false);
     setNewFlowData({ appId: 0, flowName: '', resultId: 0, flowDescription: '', apiEndpoints: [] });
     setNewFlowEndpoints([{ endpoint: '', httpMethod: 'GET', params: '' }]);
+    // Clear all error states
+    setAddFlowValidationError(null);
+    setAddFlowNameError('');
+    setAddFlowResultIdError(null);
   };
   const openViewFlowsModal = (app: ApplicationResponseDTO) => {
     setCurrentAppForModal(app);
@@ -306,7 +332,6 @@ const FlowAnalyzer: React.FC = () => {
     setIsViewFlowsModalOpen(false);
     // setCurrentAppForModal(null); // Do not reset currentAppForModal here if other modals for the same app might be opened subsequently
   };
-
   // Function to open the edit modal
   const openEditModal = (flow: BusinessFlowResponseDTO) => {
     setEditingFlowData(flow);
@@ -315,13 +340,20 @@ const FlowAnalyzer: React.FC = () => {
       httpMethod: ep.httpMethod, // preserve actual value, do not default to 'GET'
       params: ep.params || ''
     })) || []);
+    // Clear all error states
+    setEditFlowValidationError(null);
+    setEditFlowNameError('');
+    setEditFlowResultIdError(null);
     setIsEditFlowModalOpen(true);
     setIsViewFlowsModalOpen(false); // Hide view flows modal when editing
   };
-
   const closeEditModal = () => {
     setEditingFlowData(null);
     setEditFlowEndpoints([]);
+    // Clear all error states
+    setEditFlowValidationError(null);
+    setEditFlowNameError('');
+    setEditFlowResultIdError(null);
     setIsEditFlowModalOpen(false);
     setIsViewFlowsModalOpen(true); // Show view flows modal again when cancel is clicked
   };
@@ -718,7 +750,7 @@ const FlowAnalyzer: React.FC = () => {
               </button>
             </div>
           </div>
-          {addFlowValidationError && !addFlowNameError && <div className="text-red-600 text-sm mt-2">{addFlowValidationError}</div>}
+          {addFlowValidationError && !addFlowNameError && !addFlowResultIdError && <div className="text-red-600 text-sm mt-2">{addFlowValidationError}</div>}
         </div>
       </Modal>
 
@@ -979,7 +1011,7 @@ const FlowAnalyzer: React.FC = () => {
                         + Add Endpoint
                     </button>
                 </div>
-                {editFlowValidationError && !editFlowNameError && <div className="text-red-600 text-sm mt-2">{editFlowValidationError}</div>}
+                {editFlowValidationError && !editFlowNameError && !editFlowResultIdError && <div className="text-red-600 text-sm mt-2">{editFlowValidationError}</div>}
             </div>
         </Modal>
       )}
