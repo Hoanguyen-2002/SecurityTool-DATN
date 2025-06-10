@@ -22,11 +22,11 @@ This document walks you through:
 
 1. **Pull the SonarQube LTS Community image**  
     ```bash
-   docker pull sonarqube:lts-ccommunity
+   docker pull sonarqube:lts-community
     ```
     
    ```bash
-   docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-ccommunity
+   docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community
     ````
 2. **Run below command on IntelliJ IDEA to test project by SonarQube**
 
