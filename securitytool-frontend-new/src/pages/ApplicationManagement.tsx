@@ -101,6 +101,10 @@ const ApplicationManagement: React.FC = () => {
       setEditModalError(null);
       setEditNameError('');
       setEditUrlError('');
+      
+      // Show success modal
+      setSuccessMessage('Application updated successfully!');
+      setIsSuccessModalOpen(true);
     },
     onError: (err: any) => {
       console.log('Full error object:', err);
@@ -193,6 +197,10 @@ const ApplicationManagement: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ApplicationResponseDTO[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  // Add state for success modal
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const maskAuthInfo = (authInfo: string | undefined | null): string => {
     if (!authInfo || authInfo.length <= 3) {
@@ -619,6 +627,24 @@ const ApplicationManagement: React.FC = () => {
           {editModalError && !editNameError && <ErrorDisplay message={editModalError} />}
         </Modal>
       )}
+
+      {/* Success Modal */}
+      <Modal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        title="Success"
+        showConfirmButton={true}
+        confirmButtonText="OK"
+        onConfirm={() => setIsSuccessModalOpen(false)}
+        showCancelButton={false}
+      >
+        <div className="flex items-center justify-center p-4">
+          <svg className="w-12 h-12 text-green-500 mr-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-lg text-gray-800">{successMessage}</p>
+        </div>
+      </Modal>
 
       {/* Confirm Delete Application Modal */}
       <Modal
