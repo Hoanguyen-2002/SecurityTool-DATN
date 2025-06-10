@@ -356,139 +356,169 @@ const ApplicationManagement: React.FC = () => {
   if (isError && !applications) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center">
-          <h1 className="text-3xl font-bold text-gray-800 mr-4">Application Management</h1>
-          <form onSubmit={handleSearch} className="flex items-center">
-            <div className="flex rounded-full shadow-sm bg-white border border-gray-300 items-center">
-              {/* Search icon on the left */}
-              <span className="flex items-center pl-3 pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Modern Header Section */}
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 shadow-xl">
+        <div className="px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-              </span>
-              <input
-                type="text"
-                className="pl-2 pr-2 py-2 border-0 rounded-full focus:outline-none focus:border-gray-300 w-56 bg-transparent"
-                placeholder="Search by Application name"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold flex items-center transition-colors hover:bg-blue-600 focus:outline-none border-0 shadow-none"
-                disabled={searching}
-              >
-                {/* Search icon in the button */}
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
-                </svg>
-              </button>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Application Management</h1>
+                <p className="text-white/80 text-lg">Manage and configure your applications</p>
+              </div>
             </div>
-            {searchTerm && (
-              <button type="button" className="ml-2 text-gray-400 hover:text-gray-600" onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}>Clear</button>
-            )}
-          </form>
+            
+            {/* Search Form in Header - moved to right */}
+            <form onSubmit={handleSearch} className="flex items-center">
+              <div className="flex rounded-full shadow-sm bg-white/10 backdrop-blur-sm border border-white/20 items-center">
+                <span className="flex items-center pl-3 pointer-events-none">
+                  <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  className="pl-2 pr-2 py-2 border-0 rounded-full focus:outline-none w-56 bg-transparent text-white placeholder-white/60"
+                  placeholder="Search by Application name"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-white/20 text-white rounded-full font-semibold flex items-center transition-colors hover:bg-white/30 focus:outline-none border-0 shadow-none"
+                  disabled={searching}
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                </button>
+              </div>
+              {searchTerm && (
+                <button type="button" className="ml-2 text-white/70 hover:text-white" onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}>Clear</button>
+              )}
+            </form>
+          </div>
         </div>
-        <button
-          onClick={handleAdd}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors text-base font-semibold flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-          </svg>
-          Add New Application
-        </button>
       </div>
-      {searchError && <div className="mb-2"><ErrorDisplay message={searchError} /></div>}
 
-      {(searchResults !== null ? searchResults : applications) && (searchResults !== null ? searchResults : applications)!.length > 0 ? (
-        <div className="space-y-4">
-          {(searchResults !== null ? searchResults : applications)!.map(app => (
-            <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-              <div className="p-6 flex justify-between items-center">
-                <div>
-                  {/* Combine name and URL */}
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    {app.appName}:&nbsp;
-                    <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">
-                      {app.appUrl}
-                    </a>
-                  </h2>
-                  <p className="text-base font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-1 mb-2 inline-block shadow-sm">
-                    Created: {new Date(app.createdAt).toLocaleString()} &nbsp;|&nbsp; Updated: {new Date(app.updatedAt).toLocaleString()}
-                  </p>
-                  {/* Colorful and prettier info, each on its own line */}
-                  <div className="flex flex-col gap-2 mt-2">
-                    <div className="inline-flex items-center bg-yellow-50 border border-yellow-200 rounded px-3 py-1 w-fit">
-                      <span className="font-semibold text-yellow-700 mr-1">SonarQube Auth:</span>
-                      <span className="bg-yellow-100 px-2 py-0.5 rounded text-yellow-800 font-mono tracking-wider">{maskAuthInfo(app.authInfo)}</span>
+      {/* Content Area */}
+      <div className="px-6 py-8">
+        {searchError && <div className="mb-4"><ErrorDisplay message={searchError} /></div>}
+        
+        {/* Add New Application Button - moved below header */}
+        <div className="mb-6">
+          <button
+            onClick={handleAdd}
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-base font-semibold flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Add New Application
+          </button>
+        </div>
+        
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
+          {/* Application cards content */}
+          {(searchResults !== null ? searchResults : applications) && (searchResults !== null ? searchResults : applications)!.length > 0 ? (
+            <div className="space-y-4">
+              {(searchResults !== null ? searchResults : applications)!.map(app => (
+                <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                  <div className="p-6 flex justify-between items-center">
+                    <div>
+                      {/* Combine name and URL */}
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        {app.appName}:&nbsp;
+                        <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">
+                          {app.appUrl}
+                        </a>
+                      </h2>
+                      {/* Separate badges for created and updated dates */}
+                      <div className="flex gap-2 mb-2">
+                        <span className="inline-block bg-green-100 text-green-700 text-xs font-semibold rounded-full px-3 py-1 shadow-sm">
+                          Created: {new Date(app.createdAt).toLocaleString()}
+                        </span>
+                        <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold rounded-full px-3 py-1 shadow-sm">
+                          Updated: {new Date(app.updatedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      {/* Colorful and prettier info, each on its own line */}
+                      <div className="flex flex-col gap-2 mt-2">
+                        <div className="inline-flex items-center rounded px-3 py-1 w-fit">
+                          <span className="font-semibold text-yellow-700 mr-1">SonarQube Auth:</span>
+                          <span className="bg-yellow-100 px-2 py-0.5 rounded text-yellow-800 font-mono tracking-wider rounded-full">{maskAuthInfo(app.authInfo)}</span>
+                        </div>
+                        <div className="inline-flex items-center rounded px-3 py-1 w-fit">
+                          <span className="font-semibold text-green-700 mr-1">Description:</span>
+                          <span className="text-green-900">{app.description ? app.description : <span className="italic text-gray-400">N/A</span>}</span>
+                        </div>
+                        <div className="inline-flex items-center rounded px-3 py-1 w-fit">
+                          <span className="font-semibold text-blue-700 mr-1">Tech Stack:</span>
+                          <span className="text-blue-900">{app.techStack ? app.techStack : <span className="italic text-gray-400">N/A</span>}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="inline-flex items-center bg-green-50 border border-green-200 rounded px-3 py-1 w-fit">
-                      <span className="font-semibold text-green-700 mr-1">Description:</span>
-                      <span className="text-green-900">{app.description ? app.description : <span className="italic text-gray-400">N/A</span>}</span>
-                    </div>
-                    <div className="inline-flex items-center bg-blue-50 border border-blue-200 rounded px-3 py-1 w-fit">
-                      <span className="font-semibold text-blue-700 mr-1">Tech Stack:</span>
-                      <span className="text-blue-900">{app.techStack ? app.techStack : <span className="italic text-gray-400">N/A</span>}</span>
+
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEdit(app)}
+                        type="button"
+                        className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center justify-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                            <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                        </svg>
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteApp(app.appId)} // Changed to open confirmation modal
+                        disabled={deleteMut.isPending && deleteMut.variables === app.appId}
+                        className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
+                                    ${deleteMut.isPending && deleteMut.variables === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`} // Removed w-full
+                      >
+                        {deleteMut.isPending && deleteMut.variables === app.appId ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            Delete
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleEdit(app)}
-                    type="button"
-                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center justify-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                        <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
-                    </svg>
-                    Edit
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteApp(app.appId)} // Changed to open confirmation modal
-                    disabled={deleteMut.isPending && deleteMut.variables === app.appId}
-                    className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
-                                ${deleteMut.isPending && deleteMut.variables === app.appId ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`} // Removed w-full
-                  >
-                    {deleteMut.isPending && deleteMut.variables === app.appId ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        Delete
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500">No applications found. Click "Add New Application" to get started.</p>
-      )}
+          ) : (
+            <p className="text-gray-500">No applications found. Click "Add New Application" to get started.</p>
+          )}
 
-      {/* Pagination Controls */}
-      <div className="flex justify-between items-center my-4">
-        <div>
-          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
-          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
-          <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
-        </div>
-        <div>
-          <span className="text-sm text-gray-600">Total: {totalElements}</span>
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center my-4">
+            <div>
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
+              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
+              <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">Total: {totalElements}</span>
+            </div>
+          </div>
         </div>
       </div>
 

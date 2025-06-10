@@ -392,168 +392,196 @@ const ScanConfig: React.FC = () => {
   if (isError && !applications) return <ErrorDisplay message={error?.message || 'Failed to fetch applications'} />;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mr-4">Scan Tools</h1>
-        <form onSubmit={handleSearch} className="flex items-center">
-          <div className="flex rounded-full shadow-sm bg-white border border-gray-300">
-            <span className="flex items-center pl-3 pointer-events-none">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
-            </span>
-            <input
-              type="text"
-              className="pl-2 pr-2 py-2 border-0 rounded-full focus:outline-none focus:border-gray-300 w-56 bg-transparent"
-              placeholder="Search by Application name"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold flex items-center transition-colors hover:bg-blue-600 focus:outline-none border-0 shadow-none"
-              disabled={searching}
-            >
-              <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
-        
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Modern Header Section */}
+      <div className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-700 shadow-xl">
+        <div className="px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Scan Tools</h1>
+                <p className="text-white/80 text-lg">Configure and run security scans</p>
+              </div>
+            </div>
+            
+            {/* Search Form in Header */}
+            <form onSubmit={handleSearch} className="flex items-center">
+              <div className="flex rounded-full shadow-sm bg-white/10 backdrop-blur-sm border border-white/20">
+                <span className="flex items-center pl-3 pointer-events-none">
+                  <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  className="pl-2 pr-2 py-2 border-0 rounded-full focus:outline-none w-56 bg-transparent text-white placeholder-white/60"
+                  placeholder="Search by Application name"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-white/20 text-white rounded-full font-semibold flex items-center transition-colors hover:bg-white/30 focus:outline-none border-0 shadow-none"
+                  disabled={searching}
+                >
+                  <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                </button>
+              </div>
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="ml-2 px-2 py-1 text-xs text-white/70 hover:text-white rounded-full border border-white/20 bg-white/10"
+                  onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}
+                >
+                  Clear
+                </button>
+              )}
+            </form>
           </div>
-          {searchTerm && (
-            <button
-              type="button"
-              className="ml-2 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 rounded-full border border-gray-200 bg-gray-100"
-              onClick={() => { setSearchTerm(''); setSearchResults(null); setSearchError(null); }}
-            >
-              Clear
-            </button>
-          )}
-        </form>
-      </div>
-      {searchError && <div className="mb-2"><ErrorDisplay message={searchError} /></div>}
-
-      {errorState && 
-        <div className="mb-4">
-          <ErrorDisplay message={errorState} />
         </div>
-      }
+      </div>
 
-      {(searchResults !== null ? searchResults : applications) && (searchResults !== null ? searchResults : applications)!.length > 0 ? (
-        <div className="space-y-4"> 
-          {(searchResults !== null ? searchResults : applications)!.map(app => {
-            if (!app || app.appId === undefined || app.appId === null || isNaN(Number(app.appId))) {
-              console.warn('Skipping rendering application due to missing or invalid appId:', app);
-              return null; // Skip rendering this app if appId is invalid
-            }
-            const appSpecificError = appErrors[app.appId];
-            const isLoadingSonar = loadingStates[`sonar-${app.appId}`];
-            const isLoadingZap = loadingStates[`zap-${app.appId}`];
+      {/* Content Area */}
+      <div className="px-6 py-8">
+        {searchError && <div className="mb-4"><ErrorDisplay message={searchError} /></div>}
+        
+        {errorState && 
+          <div className="mb-4">
+            <ErrorDisplay message={errorState} />
+          </div>
+        }
 
-            // Get latest SonarQube and ZAP scan dates from scan history data (same as popup)
-            const sonarScans = allSonarScans[app.appId];
-            const zapScans = allZapScans[app.appId];
-            const latestSonarDate = getLatestScanDateFromHistory(sonarScans || undefined);
-            const latestZapDate = getLatestScanDateFromHistory(zapScans || undefined);
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
+          {/* Scan configuration content */}
+          {(searchResults !== null ? searchResults : applications) && (searchResults !== null ? searchResults : applications)!.length > 0 ? (
+            <div className="space-y-4"> 
+              {(searchResults !== null ? searchResults : applications)!.map(app => {
+                if (!app || app.appId === undefined || app.appId === null || isNaN(Number(app.appId))) {
+                  console.warn('Skipping rendering application due to missing or invalid appId:', app);
+                  return null; // Skip rendering this app if appId is invalid
+                }
+                const appSpecificError = appErrors[app.appId];
+                const isLoadingSonar = loadingStates[`sonar-${app.appId}`];
+                const isLoadingZap = loadingStates[`zap-${app.appId}`];
 
-            return (
-              <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-                <div className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      {/* Combine name and URL */}
-                      <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>
-                        {app.appName}:&nbsp;
-                        <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
-                      </h2>
-                      {/* Removed separate URL line */}
-                      <div className="flex items-center gap-4 mt-2">
-                        <div className="flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded shadow-sm text-sm">
-                          <span className="font-semibold text-indigo-700">SonarQube Last Scan:</span>
-                          <span className="text-indigo-700">
-                            {latestSonarDate ? new Date(latestSonarDate).toLocaleString() : 'N/A'}
-                          </span>
+                // Get latest SonarQube and ZAP scan dates from scan history data (same as popup)
+                const sonarScans = allSonarScans[app.appId];
+                const zapScans = allZapScans[app.appId];
+                const latestSonarDate = getLatestScanDateFromHistory(sonarScans || undefined);
+                const latestZapDate = getLatestScanDateFromHistory(zapScans || undefined);
+
+                return (
+                  <div key={app.appId} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                    <div className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          {/* Combine name and URL */}
+                          <h2 className="text-xl font-semibold text-gray-800 mb-2 truncate" title={app.appName}>
+                            {app.appName}:&nbsp;
+                            <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl}</a>
+                          </h2>
+                          {/* Removed separate URL line */}
+                          <div className="flex items-center gap-4 mt-2">
+                            <div className="flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded shadow-sm text-sm">
+                              <span className="font-semibold text-indigo-700">SonarQube Last Scan:</span>
+                              <span className="text-indigo-700">
+                                {latestSonarDate ? new Date(latestSonarDate).toLocaleString() : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 bg-red-50 px-3 py-1 rounded shadow-sm text-sm">
+                              <span className="font-semibold text-red-700">ZAP Last Scan:</span>
+                              <span className="text-red-700">
+                                {latestZapDate ? new Date(latestZapDate).toLocaleString() : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 bg-red-50 px-3 py-1 rounded shadow-sm text-sm">
-                          <span className="font-semibold text-red-700">ZAP Last Scan:</span>
-                          <span className="text-red-700">
-                            {latestZapDate ? new Date(latestZapDate).toLocaleString() : 'N/A'}
-                          </span>
+
+                        <div className="flex-shrink-0 flex flex-col space-y-2 ml-4"> {/* Added ml-4 for spacing */}
+                          <button 
+                            onClick={() => openModal(app, 'sonar')} 
+                            disabled={isLoadingSonar || isLoadingZap}
+                            className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
+                                        ${isLoadingSonar ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                          >
+                            {isLoadingSonar ? (
+                              <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Scanning...</>
+                            ) : (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l-4 4-4-4M6 16l-4-4 4-4" /></svg>
+                                Configure SonarQube Scan
+                              </>
+                            )}
+                          </button>
+                          <button 
+                            onClick={() => openModal(app, 'zap')} 
+                            disabled={isLoadingZap || isLoadingSonar}
+                            className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
+                                        ${isLoadingZap ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
+                          >
+                            {isLoadingZap ? (
+                              <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Scanning...</>
+                            ) : (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.246.99-4.659.99-7.132A8 8 0 008 4a8 8 0 00-8 8c0 2.472.345 4.886.99 7.132h14.02z" /></svg>
+                                Configure ZAP Scan
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {appSpecificError && (
+                        <div className="mt-3 mb-3 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                          <p>Error: {appSpecificError}</p>
+                        </div>
+                      )}
+
+                      <div className="border-t border-gray-200 pt-4 mt-4"> {/* Added mt-4 for spacing */}
+                        <h3 className="text-md font-semibold text-gray-700 mb-2">Scan History</h3>
+                        <div className="flex space-x-2"> {/* Changed to flex space-x-2 for horizontal history buttons */}
+                          <button 
+                            onClick={() => openSonarHistoryModal(app.appId, app.appName)} 
+                            className="px-4 py-2 text-sm text-blue-700 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors font-medium"
+                          >
+                            View SonarQube History
+                          </button>
+                          <button 
+                            onClick={() => openZapHistoryModal(app.appId, app.appName)} 
+                            className="px-4 py-2 text-sm text-red-700 hover:text-red-900 bg-red-100 hover:bg-red-200 rounded-md transition-colors font-medium"
+                          >
+                            View ZAP History
+                          </button>
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex-shrink-0 flex flex-col space-y-2 ml-4"> {/* Added ml-4 for spacing */}
-                      <button 
-                        onClick={() => openModal(app, 'sonar')} 
-                        disabled={isLoadingSonar || isLoadingZap}
-                        className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
-                                    ${isLoadingSonar ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                      >
-                        {isLoadingSonar ? (
-                          <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Scanning...</>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l-4 4-4-4M6 16l-4-4 4-4" /></svg>
-                            Configure SonarQube Scan
-                          </>
-                        )}
-                      </button>
-                      <button 
-                        onClick={() => openModal(app, 'zap')} 
-                        disabled={isLoadingZap || isLoadingSonar}
-                        className={`px-4 py-2 text-white rounded-md transition-colors text-sm font-medium flex items-center justify-center 
-                                    ${isLoadingZap ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
-                      >
-                        {isLoadingZap ? (
-                          <><svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Scanning...</>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.246.99-4.659.99-7.132A8 8 0 008 4a8 8 0 00-8 8c0 2.472.345 4.886.99 7.132h14.02z" /></svg>
-                            Configure ZAP Scan
-                          </>
-                        )}
-                      </button>
-                    </div>
                   </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 mt-10">No applications found. Please add an application first via Application Management.</p>
+          )}
 
-                  {appSpecificError && (
-                    <div className="mt-3 mb-3 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-                      <p>Error: {appSpecificError}</p>
-                    </div>
-                  )}
-
-                  <div className="border-t border-gray-200 pt-4 mt-4"> {/* Added mt-4 for spacing */}
-                    <h3 className="text-md font-semibold text-gray-700 mb-2">Scan History</h3>
-                    <div className="flex space-x-2"> {/* Changed to flex space-x-2 for horizontal history buttons */}
-                      <button 
-                        onClick={() => openSonarHistoryModal(app.appId, app.appName)} 
-                        className="px-4 py-2 text-sm text-blue-700 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors font-medium"
-                      >
-                        View SonarQube History
-                      </button>
-                      <button 
-                        onClick={() => openZapHistoryModal(app.appId, app.appName)} 
-                        className="px-4 py-2 text-sm text-red-700 hover:text-red-900 bg-red-100 hover:bg-red-200 rounded-md transition-colors font-medium"
-                      >
-                        View ZAP History
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-center text-gray-500 mt-10">No applications found. Please add an application first via Application Management.</p>
-      )}
-
-      {/* Pagination Controls */}
-      <div className="flex justify-between items-center my-4">
-        <div>
-          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
-          <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
-          <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
-        </div>
-        <div>
-          <span className="text-sm text-gray-600">Total: {totalElements}</span>
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center my-4">
+            <div>
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
+              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
+              <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">Total: {totalElements}</span>
+            </div>
+          </div>
         </div>
       </div>
 

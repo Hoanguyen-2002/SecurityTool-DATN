@@ -53,10 +53,11 @@ const Sidebar: React.FC = () => {
         </Link>
         <button
           onClick={() => setShowLogoutModal(true)}
-          className="flex items-center justify-center gap-1 bg-red-500 text-white p-2 w-16 rounded hover:bg-red-600 shadow-sm ml-2"
+          className="flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 shadow-sm ml-2"
           title="Logout"
         >
           <ArrowRightOnRectangleIcon className="h-5 w-5" />
+          Logout
         </button>
         <Modal
           isOpen={showLogoutModal}
