@@ -431,6 +431,7 @@ const Reports: React.FC = () => {
       <div className="px-6 py-8">
         {searchError && <div className="mb-4"><ErrorDisplay message={searchError} /></div>}
         
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
           {/* Reports content */}
           {applications && applications.length > 0 ? (
             <div className="space-y-4">
@@ -724,105 +725,106 @@ const Reports: React.FC = () => {
               <span className="text-sm text-gray-600">Total: {totalElements}</span>
             </div>
           </div>
+        </div>
 
-          {/* Load Report Modal */}
-          <Modal
-            isOpen={isLoadReportModalOpen}
-            onClose={() => setIsLoadReportModalOpen(false)}
-            onConfirm={handleLoadReportSubmit}
-            title="Load Report"
-            confirmButtonText="Load Report"
-            showConfirmButton={true}
-            showCancelButton={true}
-            cancelButtonText="Cancel"
-            isConfirmDisabled={loading}
-          >
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="scanResultId" className="block text-sm font-medium text-gray-700 mb-2">
-                  Scan Result ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="scanResultId"
-                  value={scanResultId}
-                  onChange={(e) => {
-                    setScanResultId(e.target.value);
-                    // Clear field-specific error when user starts typing
-                    if (scanResultIdError) {
-                      setScanResultIdError(null);
-                    }
-                  }}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  required
-                  placeholder="Enter scan result ID..."
-                  min="1"
-                />
-                {scanResultIdError && (
-                  <div className="mt-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
-                    {scanResultIdError}
-                  </div>
-                )}
-              </div>
-              
-              {loading && (
-                <div className="flex items-center justify-center p-4">
-                  <svg className="animate-spin h-5 w-5 text-indigo-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span className="text-sm text-gray-600">Loading report...</span>
+        {/* Load Report Modal */}
+        <Modal
+          isOpen={isLoadReportModalOpen}
+          onClose={() => setIsLoadReportModalOpen(false)}
+          onConfirm={handleLoadReportSubmit}
+          title="Load Report"
+          confirmButtonText="Load Report"
+          showConfirmButton={true}
+          showCancelButton={true}
+          cancelButtonText="Cancel"
+          isConfirmDisabled={loading}
+        >
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="scanResultId" className="block text-sm font-medium text-gray-700 mb-2">
+                Scan Result ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="scanResultId"
+                value={scanResultId}
+                onChange={(e) => {
+                  setScanResultId(e.target.value);
+                  // Clear field-specific error when user starts typing
+                  if (scanResultIdError) {
+                    setScanResultIdError(null);
+                  }
+                }}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+                placeholder="Enter scan result ID..."
+                min="1"
+              />
+              {scanResultIdError && (
+                <div className="mt-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
+                  {scanResultIdError}
                 </div>
               )}
             </div>
-          </Modal>
-
-          {/* Compare Modal */}
-          <Modal
-            isOpen={isCompareModalOpen}
-            onClose={() => setIsCompareModalOpen(false)}
-            onConfirm={handleCompareSubmit}
-            title="Compare Scan Results"
-            confirmButtonText="Compare"
-            showConfirmButton={true}
-            showCancelButton={true}
-            cancelButtonText="Cancel"
-          >
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="compareScanId" className="block text-sm font-medium text-gray-700 mb-2">
-                  Scan Result ID to Compare <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="compareScanId"
-                  value={compareScanId}
-                  onChange={(e) => {
-                    setCompareScanId(e.target.value);
-                    // Clear field-specific error when user starts typing
-                    if (compareScanIdError) {
-                      setCompareScanIdError(null);
-                    }
-                  }}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  required
-                  placeholder="Enter scan result ID to compare..."
-                  min="1"
-                />
-                {compareScanIdError && (
-                  <div className="mt-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
-                    {compareScanIdError}
-                  </div>
-                )}
+            
+            {loading && (
+              <div className="flex items-center justify-center p-4">
+                <svg className="animate-spin h-5 w-5 text-indigo-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-sm text-gray-600">Loading report...</span>
               </div>
-              
-              {compareError && (
-                <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
-                  {compareError}
+            )}
+          </div>
+        </Modal>
+
+        {/* Compare Modal */}
+        <Modal
+          isOpen={isCompareModalOpen}
+          onClose={() => setIsCompareModalOpen(false)}
+          onConfirm={handleCompareSubmit}
+          title="Compare Scan Results"
+          confirmButtonText="Compare"
+          showConfirmButton={true}
+          showCancelButton={true}
+          cancelButtonText="Cancel"
+        >
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="compareScanId" className="block text-sm font-medium text-gray-700 mb-2">
+                Scan Result ID to Compare <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="compareScanId"
+                value={compareScanId}
+                onChange={(e) => {
+                  setCompareScanId(e.target.value);
+                  // Clear field-specific error when user starts typing
+                  if (compareScanIdError) {
+                    setCompareScanIdError(null);
+                  }
+                }}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+                placeholder="Enter scan result ID to compare..."
+                min="1"
+              />
+              {compareScanIdError && (
+                <div className="mt-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
+                  {compareScanIdError}
                 </div>
               )}
             </div>
-          </Modal>
+            
+            {compareError && (
+              <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
+                {compareError}
+              </div>
+            )}
+          </div>
+        </Modal>
 
       {/* Modal for Displaying Security Issues */}
       {issuesModalContent && (

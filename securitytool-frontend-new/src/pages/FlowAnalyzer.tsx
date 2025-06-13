@@ -566,92 +566,107 @@ const FlowAnalyzer: React.FC = () => {
 
       <div className="p-6">
         {/* ...existing content... */}
-        {(searchResults !== null ? searchResults : apps) && (searchResults !== null ? searchResults : apps)!.length > 0 ? (
-          <div className="space-y-4">
-            {(searchResults !== null ? searchResults : apps)!.map(app => (
-              <div key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
-                <div className="flex justify-between items-start">
-                  <div className="flex-grow mr-4">
-                    {/* Combine name and URL */}
-                    <h2 className="text-xl font-medium text-gray-800 mb-1">
-                      {app.appName}:&nbsp;
-                      <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a>
-                    </h2>
-                    {/* Removed separate URL line */}
-                    {/* Flows for this app */}
-                    <div className="mt-2">
-                      {/* Redesigned Flows: Total */}                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Total Flows</span>                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-200 text-yellow-900 text-sm font-bold shadow border border-yellow-300">
-                          {(allBusinessFlows && Array.isArray(allBusinessFlows)) ? allBusinessFlows.filter(f => f.appId === app.appId).length : 0}
-                        </span>
-                        {(allBusinessFlows && Array.isArray(allBusinessFlows) && allBusinessFlows.filter(f => f.appId === app.appId).length > 0) && (                        <button
-                            onClick={() => toggleFlowDropdown(app.appId)}
-                            className="inline-flex items-center px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-medium hover:bg-gray-300 transition-colors border border-gray-300"
-                          >
-                            <svg className={`w-3 h-3 transition-transform ${!dropdownClosedAppIds.has(app.appId) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                            <span className="ml-1">
-                              {!dropdownClosedAppIds.has(app.appId) ? 'Hide' : 'Show'} Details
-                            </span>
-                          </button>
-                        )}
-                      </div>                    {(allBusinessFlows && Array.isArray(allBusinessFlows) && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 && !dropdownClosedAppIds.has(app.appId)) ? (
-                        <div className="ml-4 mt-3 p-3 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-blue-200 shadow-sm max-w-2xl">
-                          <div className="space-y-2">
-                            {(allBusinessFlows && Array.isArray(allBusinessFlows)) ? allBusinessFlows.filter(f => f.appId === app.appId).map(flow => (
-                              <div key={flow.id} className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 ease-in-out">
-                                {/* Flow Header */}
-                                <div className="flex items-center gap-2 mb-1">
-                                  <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full"></div>
-                                  <h4 className="text-sm font-bold text-gray-800 tracking-tight">
-                                    {flow.flowName.toUpperCase()}
-                                  </h4>
-                                </div>
-
-                                {/* Flow Description */}
-                                {flow.flowDescription && (
-                                  <div className="ml-4">
-                                    <p className="text-xs text-gray-600 leading-relaxed">
-                                      {flow.flowDescription}
-                                    </p>
+        
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-8">
+          {(searchResults !== null ? searchResults : apps) && (searchResults !== null ? searchResults : apps)!.length > 0 ? (
+            <div className="space-y-4">
+              {(searchResults !== null ? searchResults : apps)!.map(app => (
+                <div key={app.appId} className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-grow mr-4">
+                      {/* Combine name and URL */}
+                      <h2 className="text-xl font-medium text-gray-800 mb-1">
+                        {app.appName}:&nbsp;
+                        <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">{app.appUrl || 'N/A'}</a>
+                      </h2>
+                      {/* Removed separate URL line */}
+                      {/* Flows for this app */}
+                      <div className="mt-2">
+                        {/* Redesigned Flows: Total */}                    <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Total Flows</span>                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-200 text-yellow-900 text-sm font-bold shadow border border-yellow-300">
+                            {(allBusinessFlows && Array.isArray(allBusinessFlows)) ? allBusinessFlows.filter(f => f.appId === app.appId).length : 0}
+                          </span>
+                          {(allBusinessFlows && Array.isArray(allBusinessFlows) && allBusinessFlows.filter(f => f.appId === app.appId).length > 0) && (                        <button
+                              onClick={() => toggleFlowDropdown(app.appId)}
+                              className="inline-flex items-center px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-medium hover:bg-gray-300 transition-colors border border-gray-300"
+                            >
+                              <svg className={`w-3 h-3 transition-transform ${!dropdownClosedAppIds.has(app.appId) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                              </svg>
+                              <span className="ml-1">
+                                {!dropdownClosedAppIds.has(app.appId) ? 'Hide' : 'Show'} Details
+                              </span>
+                            </button>
+                          )}
+                        </div>                    {(allBusinessFlows && Array.isArray(allBusinessFlows) && allBusinessFlows.filter(f => f.appId === app.appId).length > 0 && !dropdownClosedAppIds.has(app.appId)) ? (
+                          <div className="ml-4 mt-3 p-3 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-blue-200 shadow-sm max-w-2xl">
+                            <div className="space-y-2">
+                              {(allBusinessFlows && Array.isArray(allBusinessFlows)) ? allBusinessFlows.filter(f => f.appId === app.appId).map(flow => (
+                                <div key={flow.id} className="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 ease-in-out">
+                                  {/* Flow Header */}
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full"></div>
+                                    <h4 className="text-sm font-bold text-gray-800 tracking-tight">
+                                      {flow.flowName.toUpperCase()}
+                                    </h4>
                                   </div>
-                                )}
-                              </div>
-                            )) : []}
+
+                                  {/* Flow Description */}
+                                  {flow.flowDescription && (
+                                    <div className="ml-4">
+                                      <p className="text-xs text-gray-600 leading-relaxed">
+                                        {flow.flowDescription}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )) : []}
+                            </div>
                           </div>
-                        </div>
-                      ) : null}
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2 flex-shrink-0 mt-4">
+                      <button 
+                        onClick={() => openAddFlowModal(app)} 
+                        className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-sm font-medium flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add New Flow
+                      </button>
+                      <button 
+                        onClick={() => openViewFlowsModal(app)} 
+                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.001.028-.002.055-.002.082 0 .027.001.054.002.082-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7-.001-.028-.002.055-.002.082 0 .027.001.054.002.082z" />
+                        </svg>
+                        Manage Flows
+                      </button>
                     </div>
                   </div>
-                  <div className="flex space-x-2 flex-shrink-0 mt-4">
-                    <button 
-                      onClick={() => openAddFlowModal(app)} 
-                      className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-sm font-medium flex items-center"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add New Flow
-                    </button>
-                    <button 
-                      onClick={() => openViewFlowsModal(app)} 
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm font-medium flex items-center"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.001.028-.002.055-.002.082 0 .027.001.054.002.082-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7-.001-.028-.002.055-.002.082 0 .027.001.054.002.082z" />
-                      </svg>
-                      Manage Flows
-                    </button>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No applications found. Please add an application first.</p>
+          )}
+
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center my-4">
+            <div>
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
+              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
+              <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600">Total: {totalElements}</span>
+            </div>
           </div>
-        ) : (
-          <p className="text-gray-500">No applications found. Please add an application first.</p>
-        )}
+        </div>
 
         {/* Add New Flow Modal */}
         <Modal
@@ -1151,18 +1166,6 @@ const FlowAnalyzer: React.FC = () => {
             </div>
           )}
         </Modal>
-
-        {/* Pagination Controls */}
-        <div className="flex justify-between items-center my-4">
-          <div>
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 rounded bg-gray-200 mr-2 disabled:opacity-50">Prev</button>
-            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">Next</button>
-            <span className="ml-4 text-sm text-gray-600">Page {page + 1} of {totalPages}</span>
-          </div>
-          <div>
-            <span className="text-sm text-gray-600">Total: {totalElements}</span>
-          </div>
-        </div>
       </div>
     </div>
   );
