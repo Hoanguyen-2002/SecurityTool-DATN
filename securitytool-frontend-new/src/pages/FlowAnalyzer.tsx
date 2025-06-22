@@ -780,15 +780,17 @@ const FlowAnalyzer: React.FC = () => {
                     />
                     {newFlowEndpoints.length > 1 && (
                       <button
-                        type="button"
-                        onClick={() => removeNewEndpointField(idx)}
-                        className="text-red-500 hover:text-red-700 px-2 py-1 rounded"
-                        title="Remove Endpoint"
+                      type="button"
+                      onClick={() => removeNewEndpointField(idx)}
+                      className="ml-1 w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 text-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 flex items-center justify-center transition-colors"
+                      title="Remove Endpoint"
                       >
-                        &times;
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                       </button>
                     )}
-                  </div>
+                    </div>
                 ))}
                 <button
                   type="button"
