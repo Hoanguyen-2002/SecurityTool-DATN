@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import SetNewPassword from './pages/SetNewPassword';
 import UserProfile from './pages/UserProfile';
 import Modal from './components/Modal';
+import AIChatWidget from './components/AIChatWidget';
 
 function App() {
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -48,7 +49,6 @@ function App() {
           onClose={() => {
             setSessionExpired(false);
             localStorage.removeItem('forceLogoutMsg');
-            window.location.href = '/login';
           }}
           title="Session Expired"
           showConfirmButton={true}
@@ -56,36 +56,27 @@ function App() {
           onConfirm={() => {
             setSessionExpired(false);
             localStorage.removeItem('forceLogoutMsg');
-            window.location.href = '/login';
           }}
           showCancelButton={false}
         >
-          <div className="text-center text-red-600 font-semibold">{sessionMsg}</div>
+          <p>{sessionMsg}</p>
         </Modal>
       )}
       <Routes>
+        <Route path="/" element={<Layout><Dashboard /></Layout>} />
+        <Route path="/applications" element={<Layout><ApplicationManagement /></Layout>} />
+        <Route path="/modules" element={<Layout><ModuleManagement /></Layout>} />
+        <Route path="/scan-config" element={<Layout><ScanConfig /></Layout>} />
+        <Route path="/flow-analyzer" element={<Layout><FlowAnalyzer /></Layout>} />
+        <Route path="/reports" element={<Layout><Reports /></Layout>} />
+        <Route path="/profile" element={<Layout><UserProfile /></Layout>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/set-new-password" element={<SetNewPassword />} />
-        <Route
-          path="*"
-          element={
-            <Layout>
-              <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/applications" element={<ApplicationManagement />} />
-                <Route path="/modules" element={<ModuleManagement />} />
-                <Route path="/scan-config" element={<ScanConfig />} />
-                <Route path="/flow-analyzer" element={<FlowAnalyzer />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/user-profile" element={<UserProfile />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </Layout>
-          }
-        />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <AIChatWidget />
     </>
   );
 }

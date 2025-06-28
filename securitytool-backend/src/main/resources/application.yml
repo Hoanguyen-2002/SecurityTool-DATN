@@ -30,6 +30,15 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  ai:
+    openai:
+      api-key: ${GEMINI_KEY}
+      chat:
+        base-url: https://generativelanguage.googleapis.com
+        completions-path: v1beta/openai/chat/completions
+        options:
+            model: gemini-2.0-flash
+
 server:
   port: 8081
 
@@ -42,4 +51,3 @@ security:
   jwt:
     expiration-ms: 900000 # 15mins in ms
     refresh-expiration-ms: 7200000 # 2hour in ms
-
