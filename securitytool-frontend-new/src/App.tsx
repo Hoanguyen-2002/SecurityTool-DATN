@@ -63,18 +63,19 @@ function App() {
         </Modal>
       )}
       <Routes>
-        <Route path="/" element={<Layout><Dashboard /></Layout>} />
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
         <Route path="/applications" element={<Layout><ApplicationManagement /></Layout>} />
         <Route path="/modules" element={<Layout><ModuleManagement /></Layout>} />
         <Route path="/scan-config" element={<Layout><ScanConfig /></Layout>} />
         <Route path="/flow-analyzer" element={<Layout><FlowAnalyzer /></Layout>} />
         <Route path="/reports" element={<Layout><Reports /></Layout>} />
-        <Route path="/profile" element={<Layout><UserProfile /></Layout>} />
+        <Route path="/user-profile" element={<Layout><UserProfile /></Layout>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/set-new-password" element={<SetNewPassword />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
       <AIChatWidget />
     </>
