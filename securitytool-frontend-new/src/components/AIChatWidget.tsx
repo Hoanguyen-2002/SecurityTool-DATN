@@ -189,25 +189,63 @@ const AIChatWidget: React.FC = () => {
     }).flat();
   };
 
-  // Helper function to format inline text (bold, italic)
+  // Helper function to format inline text (bold, italic, links)
   const formatInlineText = (text: string) => {
-    // Handle bold text **text**
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    // First handle URLs (including those in brackets like [text](url) and plain URLs)
+    const urlRegex = /(https?:\/\/[^\s)]+|\[[^\]]+\]\(https?:\/\/[^)]+\))/g;
+    const urlParts = text.split(urlRegex);
     
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
-      } else {
-        // Handle italic text *text*
-        const italicParts = part.split(/(\*[^*]+\*)/g);
-        return italicParts.map((italicPart, italicIndex) => {
-          if (italicPart.startsWith('*') && italicPart.endsWith('*') && italicPart.length > 2) {
-            return <em key={`${index}-${italicIndex}`} className="italic font-medium text-gray-700">{italicPart.slice(1, -1)}</em>;
-          }
-          return italicPart;
-        });
+    return urlParts.map((urlPart, urlIndex) => {
+      // Check if this part is a markdown link [text](url)
+      const markdownLinkMatch = urlPart.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
+      if (markdownLinkMatch) {
+        const [, linkText, url] = markdownLinkMatch;
+        return (
+          <a
+            key={urlIndex}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+          >
+            {linkText}
+          </a>
+        );
       }
-    });
+      
+      // Check if this part is a plain URL
+      if (urlPart.match(/^https?:\/\//)) {
+        return (
+          <a
+            key={urlIndex}
+            href={urlPart}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors break-all"
+          >
+            {urlPart}
+          </a>
+        );
+      }
+      
+      // Handle bold text **text**
+      const parts = urlPart.split(/(\*\*[^*]+\*\*)/g);
+      
+      return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={`${urlIndex}-${index}`} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
+        } else {
+          // Handle italic text *text*
+          const italicParts = part.split(/(\*[^*]+\*)/g);
+          return italicParts.map((italicPart, italicIndex) => {
+            if (italicPart.startsWith('*') && italicPart.endsWith('*') && italicPart.length > 2) {
+              return <em key={`${urlIndex}-${index}-${italicIndex}`} className="italic font-medium text-gray-700">{italicPart.slice(1, -1)}</em>;
+            }
+            return italicPart;
+          });
+        }
+      });
+    }).flat();
   };
 
   const sendMessage = async (e?: React.FormEvent) => {
