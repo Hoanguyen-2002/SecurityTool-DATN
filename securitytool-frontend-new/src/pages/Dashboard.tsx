@@ -455,6 +455,7 @@ function AppStatsInline({ appId }: { appId: number }) {
       <div className="flex flex-col gap-1 mt-2">
         {severityOrder.map((sev, idx) => {
           const count = stats.severityDistribution[sev] || 0;
+          const displayCount = count > 30 ? '30+' : count.toString();
           return (
             <div key={sev} className="flex items-center h-6">
               <span className={`w-20 text-sm font-semibold capitalize text-gray-700 mr-2 text-left`}>{sev}:</span>
@@ -464,7 +465,7 @@ function AppStatsInline({ appId }: { appId: number }) {
                 style={{ height: '14px', width: '12px', transition: 'width 1s cubic-bezier(0.4,0,0.2,1)' }}
                 title={`${count}`}
               ></div>
-              <span className="ml-2 text-sm text-gray-700 font-semibold">{count}</span>
+              <span className="ml-2 text-sm text-gray-700 font-semibold">{displayCount}</span>
             </div>
           );
         })}
