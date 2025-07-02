@@ -289,7 +289,7 @@ const AIChatWidget: React.FC = () => {
       </button>
       {/* Chat Window */}
       {open && (
-        <div className="fixed z-50 bottom-32 right-8 w-[48rem] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-fade-in">
+        <div className="fixed z-50 bottom-32 right-8 w-[60rem] max-w-[95vw] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-fade-in">
           <div className="flex items-center justify-between px-8 py-4 bg-gradient-to-r from-pink-500 to-orange-500 text-white">
             <span className="font-semibold text-xl">Security-Tool Assistant</span>
             <button onClick={() => setOpen(false)} className="text-white hover:text-gray-200 text-3xl">&times;</button>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ApplicationManagement from './pages/ApplicationManagement';
 import ModuleManagement from './pages/ModuleManagement';
@@ -18,6 +18,11 @@ import AIChatWidget from './components/AIChatWidget';
 function App() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [sessionMsg, setSessionMsg] = useState('');
+  const location = useLocation();
+
+  // Define paths where AIChatWidget should be hidden
+  const authPaths = ['/login', '/register', '/reset-password', '/set-new-password'];
+  const shouldHideChat = authPaths.includes(location.pathname);
 
   useEffect(() => {
     const handler = () => {
@@ -77,7 +82,7 @@ function App() {
         <Route path="/set-new-password" element={<SetNewPassword />} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
-      <AIChatWidget />
+      {!shouldHideChat && <AIChatWidget />}
     </>
   );
 }
