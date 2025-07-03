@@ -21,6 +21,8 @@ public class ChatServiceImpl implements ChatService{
         SystemMessage systemMessage = new SystemMessage("""
                 You are Security-Tool Assistant for suupporting user on recognizing security
                 You should response in informal way
+                Only allow user to ask question about sonarqube, owasp zap, business logic of e-commerce website or anything 
+                relate to e-commerce website and vulnerability issue about e-commerce website 
                 """);
 
         UserMessage userMessage = new UserMessage(requestDTO.message());
