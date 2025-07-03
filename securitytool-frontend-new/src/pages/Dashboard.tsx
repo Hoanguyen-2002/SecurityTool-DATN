@@ -458,14 +458,14 @@ function AppStatsInline({ appId }: { appId: number }) {
           const displayCount = count > 30 ? '30+' : count.toString();
           return (
             <div key={sev} className="flex items-center h-6">
-              <span className={`w-20 text-sm font-semibold capitalize text-gray-700 mr-2 text-left`}>{sev}:</span>
+              <span className={`w-20 text-sm font-semibold capitalize text-gray-700 mr-6 text-left`}>{sev}:</span>
               <div
                 ref={el => { barRefs.current[idx] = el; }}
                 className={`rounded ${colorMap[sev] || 'bg-gray-300'}`}
                 style={{ height: '14px', width: '12px', transition: 'width 1s cubic-bezier(0.4,0,0.2,1)' }}
                 title={`${count}`}
               ></div>
-              <span className="ml-2 text-sm text-gray-700 font-semibold">{displayCount}</span>
+              <span className="ml-4 text-sm text-gray-700 font-semibold">{displayCount}</span>
             </div>
           );
         })}
