@@ -427,7 +427,9 @@ function AppStatsInline({ appId }: { appId: number }) {
         bar.style.width = '12px';
         setTimeout(() => {
           bar.style.transition = 'width 1s cubic-bezier(0.4,0,0.2,1)';
-          bar.style.width = `${count > 0 ? Math.max(12, count * 14) : 12}px`;
+          // Cap the visual representation at 30 issues for bar width calculation
+          const displayCount = Math.min(count, 30);
+          bar.style.width = `${displayCount > 0 ? Math.max(12, displayCount * 14) : 12}px`;
         }, 50);
       }
     });
