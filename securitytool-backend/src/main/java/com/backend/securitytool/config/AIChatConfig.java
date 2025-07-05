@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class AIChatConfig {
     @Bean
     public ChatMemory chatMemory() {
-        // ✅ Remember the last 20 messages in the chat
+        // Remember the last 20 messages in the chat
         return MessageWindowChatMemory.builder()
                 .maxMessages(20)
                 .build();
