@@ -5,6 +5,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,8 +13,9 @@ public class ChatServiceImpl implements ChatService{
 
     private final ChatClient chatClient;
 
-    public ChatServiceImpl(ChatClient.Builder builder) {
-        chatClient = builder.build();
+    @Autowired
+    public ChatServiceImpl(ChatClient chatClient) {
+        this.chatClient = chatClient;
     }
 
     @Override
