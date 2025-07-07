@@ -3,42 +3,115 @@ import axios from '../api/axiosInstance';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+interface Conversation {
+  id: string;
+  title: string;
+  messages: { sender: 'user' | 'ai'; text: string; isWaiting?: boolean }[];
+  createdAt: Date;
+}
+
 const AIChatWidget: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<{ sender: 'user' | 'ai'; text: string; isWaiting?: boolean }[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string>('');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [editingTitleValue, setEditingTitleValue] = useState<string>('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load messages from localStorage on component mount
+  // Helper functions for conversation management
+  const createNewConversation = (): Conversation => {
+    const id = Date.now().toString();
+    return {
+      id,
+      title: `Chat ${conversations.length + 1}`,
+      messages: [],
+      createdAt: new Date()
+    };
+  };
+
+  const getActiveConversation = (): Conversation | undefined => {
+    return conversations.find(conv => conv.id === activeConversationId);
+  };
+
+  const updateActiveConversation = (updater: (conv: Conversation) => Conversation) => {
+    setConversations(prevConversations => 
+      prevConversations.map(conv => 
+        conv.id === activeConversationId ? updater(conv) : conv
+      )
+    );
+  };
+
+  // Load conversations from localStorage on component mount
   useEffect(() => {
-    const savedMessages = localStorage.getItem('ai-chat-messages');
-    if (savedMessages) {
+    const createInitialConversation = (): Conversation => {
+      const id = Date.now().toString();
+      return {
+        id,
+        title: `Chat 1`,
+        messages: [],
+        createdAt: new Date()
+      };
+    };
+
+    const savedConversations = localStorage.getItem('ai-chat-conversations');
+    const savedActiveId = localStorage.getItem('ai-chat-active-id');
+    
+    if (savedConversations) {
       try {
-        const parsedMessages = JSON.parse(savedMessages);
-        // Filter out any waiting messages that might have been saved
-        const cleanedMessages = parsedMessages.filter((msg: any) => !msg.isWaiting);
-        setMessages(cleanedMessages);
+        const parsedConversations: Conversation[] = JSON.parse(savedConversations).map((conv: any) => ({
+          ...conv,
+          createdAt: new Date(conv.createdAt),
+          messages: conv.messages.filter((msg: any) => !msg.isWaiting) // Filter out waiting messages
+        }));
+        
+        setConversations(parsedConversations);
+        
+        if (savedActiveId && parsedConversations.some(conv => conv.id === savedActiveId)) {
+          setActiveConversationId(savedActiveId);
+        } else if (parsedConversations.length > 0) {
+          setActiveConversationId(parsedConversations[0].id);
+        }
       } catch (error) {
-        console.error('Error loading chat messages from localStorage:', error);
+        console.error('Error loading chat conversations from localStorage:', error);
+        // Create initial conversation if loading fails
+        const initialConv = createInitialConversation();
+        setConversations([initialConv]);
+        setActiveConversationId(initialConv.id);
       }
+    } else {
+      // Create initial conversation if none exists
+      const initialConv = createInitialConversation();
+      setConversations([initialConv]);
+      setActiveConversationId(initialConv.id);
     }
   }, []);
 
-  // Save messages to localStorage whenever messages change
+  // Save conversations to localStorage whenever conversations change
   useEffect(() => {
-    if (messages.length > 0) {
+    if (conversations.length > 0) {
       // Filter out waiting messages before saving
-      const messagesToSave = messages.filter(msg => !msg.isWaiting);
-      localStorage.setItem('ai-chat-messages', JSON.stringify(messagesToSave));
+      const conversationsToSave = conversations.map(conv => ({
+        ...conv,
+        messages: conv.messages.filter(msg => !msg.isWaiting)
+      }));
+      localStorage.setItem('ai-chat-conversations', JSON.stringify(conversationsToSave));
     }
-  }, [messages]);
+  }, [conversations]);
+
+  // Save active conversation ID to localStorage
+  useEffect(() => {
+    if (activeConversationId) {
+      localStorage.setItem('ai-chat-active-id', activeConversationId);
+    }
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (open && chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, open]);
+  }, [open, conversations, activeConversationId]);
 
   // Function to copy text to clipboard
   const copyToClipboard = async (text: string) => {
@@ -250,27 +323,89 @@ const AIChatWidget: React.FC = () => {
 
   const sendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !activeConversationId) return;
+    
     const userMsg = { sender: 'user' as const, text: input };
-    setMessages(msgs => [...msgs, userMsg]);
+    
+    // Add user message to active conversation
+    updateActiveConversation(conv => ({
+      ...conv,
+      messages: [...conv.messages, userMsg]
+    }));
+    
     setInput('');
     setLoading(true);
     
     // Add a temporary "waiting" message
     const waitingMsg = { sender: 'ai' as const, text: 'AI is thinking...', isWaiting: true };
-    setMessages(msgs => [...msgs, waitingMsg]);
+    updateActiveConversation(conv => ({
+      ...conv,
+      messages: [...conv.messages, waitingMsg]
+    }));
     
     try {
       const res = await axios.post('/ai/chat', { message: input });
       // Remove the waiting message and add the actual response
-      setMessages(msgs => msgs.slice(0, -1).concat([{ sender: 'ai', text: res.data || 'No response.' }]));
+      updateActiveConversation(conv => ({
+        ...conv,
+        messages: [...conv.messages.slice(0, -1), { sender: 'ai', text: res.data || 'No response.' }]
+      }));
     } catch (err: any) {
       // Remove the waiting message and add the error
-      setMessages(msgs => msgs.slice(0, -1).concat([{ sender: 'ai', text: 'Error: Could not get response.' }]));
+      updateActiveConversation(conv => ({
+        ...conv,
+        messages: [...conv.messages.slice(0, -1), { sender: 'ai', text: 'Error: Could not get response.' }]
+      }));
     } finally {
       setLoading(false);
     }
   };
+
+  const handleNewConversation = () => {
+    const newConv = createNewConversation();
+    setConversations(prev => [...prev, newConv]);
+    setActiveConversationId(newConv.id);
+  };
+
+  const handleCloseConversation = (conversationId: string) => {
+    if (conversations.length <= 1) return; // Don't close if it's the only conversation
+    
+    setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+    
+    if (activeConversationId === conversationId) {
+      const remainingConversations = conversations.filter(conv => conv.id !== conversationId);
+      if (remainingConversations.length > 0) {
+        setActiveConversationId(remainingConversations[0].id);
+      }
+    }
+  };
+
+  const handleStartEditTitle = (conversationId: string, currentTitle: string) => {
+    setEditingTitleId(conversationId);
+    setEditingTitleValue(currentTitle);
+  };
+
+  const handleSaveTitle = (conversationId: string) => {
+    if (editingTitleValue.trim()) {
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === conversationId 
+            ? { ...conv, title: editingTitleValue.trim() }
+            : conv
+        )
+      );
+    }
+    setEditingTitleId(null);
+    setEditingTitleValue('');
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitleId(null);
+    setEditingTitleValue('');
+  };
+
+  const activeConversation = getActiveConversation();
+  const messages = activeConversation?.messages || [];
 
   return (
     <>
@@ -290,9 +425,89 @@ const AIChatWidget: React.FC = () => {
       {/* Chat Window */}
       {open && (
         <div className="fixed z-50 bottom-32 right-8 w-[60rem] max-w-[95vw] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-fade-in">
-          <div className="flex items-center justify-between px-8 py-4 bg-gradient-to-r from-pink-500 to-orange-500 text-white">
-            <span className="font-semibold text-xl">Security-Tool Assistant</span>
-            <button onClick={() => setOpen(false)} className="text-white hover:text-gray-200 text-3xl">&times;</button>
+          {/* Header with tabs */}
+          <div className="bg-gradient-to-r from-pink-500 to-orange-500 text-white">
+            {/* Tab Bar */}
+            <div className="flex items-center px-4 pt-2 overflow-x-auto">
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`flex items-center px-3 py-2 mr-1 rounded-t-lg cursor-pointer transition-colors min-w-0 max-w-40 ${
+                    activeConversationId === conv.id
+                      ? 'bg-white/20 text-white'
+                      : 'bg-white/10 text-white/80 hover:bg-white/15'
+                  }`}
+                  onClick={() => setActiveConversationId(conv.id)}
+                >
+                  {editingTitleId === conv.id ? (
+                    <input
+                      type="text"
+                      value={editingTitleValue}
+                      onChange={(e) => setEditingTitleValue(e.target.value)}
+                      onBlur={() => handleSaveTitle(conv.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveTitle(conv.id);
+                        } else if (e.key === 'Escape') {
+                          handleCancelEditTitle();
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-white/20 text-white text-sm font-medium px-2 py-1 rounded border-none outline-none flex-1 min-w-0"
+                      autoFocus
+                    />
+                  ) : (
+                    <>
+                      <span className="truncate text-sm font-medium flex-1 mr-1">
+                        {conv.title}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartEditTitle(conv.id, conv.title);
+                        }}
+                        className="w-6 h-6 rounded hover:bg-white/20 flex items-center justify-center transition-colors mr-1"
+                        title="Edit conversation name"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                  {conversations.length > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseConversation(conv.id);
+                      }}
+                      className="w-6 h-6 rounded hover:bg-white/20 flex items-center justify-center transition-colors"
+                      title="Close conversation"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+              {/* Plus button for new conversation */}
+              <button
+                onClick={handleNewConversation}
+                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors ml-2 flex-shrink-0"
+                title="New conversation"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Header Title and Close Button */}
+            <div className="flex items-center justify-between px-8 py-4">
+              <span className="font-semibold text-xl">Security-Tool Assistant</span>
+              <button onClick={() => setOpen(false)} className="text-white hover:text-gray-200 text-3xl">&times;</button>
+            </div>
           </div>
           <div className="flex-1 p-8 overflow-y-auto max-h-[48rem]" style={{ minHeight: 600 }}>
             {messages.length === 0 && <div className="text-gray-400 text-center text-lg">Ask me anything!</div>}
