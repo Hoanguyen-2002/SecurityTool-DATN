@@ -3,10 +3,21 @@ import axios from '../api/axiosInstance';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+interface Message {
+  sender: 'user' | 'ai';
+  text: string;
+  isWaiting?: boolean;
+  file?: {
+    name: string;
+    size: number;
+    type: string;
+  };
+}
+
 interface Conversation {
   id: string;
   title: string;
-  messages: { sender: 'user' | 'ai'; text: string; isWaiting?: boolean }[];
+  messages: Message[];
   createdAt: Date;
 }
 
@@ -18,7 +29,10 @@ const AIChatWidget: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [editingTitleValue, setEditingTitleValue] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileUploading, setFileUploading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper functions for conversation management
   const createNewConversation = (): Conversation => {
@@ -323,9 +337,17 @@ const AIChatWidget: React.FC = () => {
 
   const sendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!input.trim() || !activeConversationId) return;
+    if ((!input.trim() && !selectedFile) || !activeConversationId) return;
     
-    const userMsg = { sender: 'user' as const, text: input };
+    const userMsg: Message = { 
+      sender: 'user' as const, 
+      text: input || (selectedFile ? `Uploaded file: ${selectedFile.name}` : ''),
+      file: selectedFile ? {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      } : undefined
+    };
     
     // Add user message to active conversation
     updateActiveConversation(conv => ({
@@ -333,18 +355,43 @@ const AIChatWidget: React.FC = () => {
       messages: [...conv.messages, userMsg]
     }));
     
+    const messageText = input;
+    const fileToUpload = selectedFile;
+    
     setInput('');
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     setLoading(true);
+    setFileUploading(true);
     
     // Add a temporary "waiting" message
-    const waitingMsg = { sender: 'ai' as const, text: 'AI is thinking...', isWaiting: true };
+    const waitingMsg: Message = { sender: 'ai' as const, text: 'AI is analyzing...', isWaiting: true };
     updateActiveConversation(conv => ({
       ...conv,
       messages: [...conv.messages, waitingMsg]
     }));
     
     try {
-      const res = await axios.post('/ai/chat', { message: input });
+      let res: any;
+      
+      if (fileToUpload) {
+        // Upload file with message
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        formData.append('message', messageText || 'Please analyze this file');
+        
+        res = await axios.post('/ai/chat-with-file', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // Regular text message
+        res = await axios.post('/ai/chat', { message: messageText });
+      }
+      
       // Remove the waiting message and add the actual response
       updateActiveConversation(conv => ({
         ...conv,
@@ -352,12 +399,17 @@ const AIChatWidget: React.FC = () => {
       }));
     } catch (err: any) {
       // Remove the waiting message and add the error
+      const errorMessage = fileToUpload 
+        ? 'Error: Could not analyze file. Please try again.'
+        : 'Error: Could not get response.';
+      
       updateActiveConversation(conv => ({
         ...conv,
-        messages: [...conv.messages.slice(0, -1), { sender: 'ai', text: 'Error: Could not get response.' }]
+        messages: [...conv.messages.slice(0, -1), { sender: 'ai', text: errorMessage }]
       }));
     } finally {
       setLoading(false);
+      setFileUploading(false);
     }
   };
 
@@ -402,6 +454,54 @@ const AIChatWidget: React.FC = () => {
   const handleCancelEditTitle = () => {
     setEditingTitleId(null);
     setEditingTitleValue('');
+  };
+
+  // File handling functions
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file type (CSV or text files)
+      const allowedTypes = [
+        'text/csv',
+        'text/plain',
+        'application/csv',
+        'text/comma-separated-values'
+      ];
+      
+      const fileExtension = file.name.toLowerCase().split('.').pop();
+      const isValidType = allowedTypes.includes(file.type) || 
+                         fileExtension === 'csv' || 
+                         fileExtension === 'txt';
+      
+      if (!isValidType) {
+        alert('Please select a CSV or text file only.');
+        return;
+      }
+      
+      // Check file size (limit to 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        alert('File size must be less than 10MB.');
+        return;
+      }
+      
+      setSelectedFile(file);
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const activeConversation = getActiveConversation();
@@ -544,7 +644,22 @@ const AIChatWidget: React.FC = () => {
                   ) : msg.sender === 'ai' ? (
                     <div className="text-base leading-relaxed">{formatAIResponse(msg.text)}</div>
                   ) : (
-                    <div className="text-lg">{msg.text}</div>
+                    <div className="text-lg">
+                      {msg.file && (
+                        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                            <div className="flex-1">
+                              <div className="font-medium text-blue-800">{msg.file.name}</div>
+                              <div className="text-sm text-blue-600">{formatFileSize(msg.file.size)} • {msg.file.type}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {msg.text}
+                    </div>
                   )}
                 </div>
 
@@ -560,23 +675,70 @@ const AIChatWidget: React.FC = () => {
             ))}
             <div ref={chatEndRef} />
           </div>
-          <form onSubmit={sendMessage} className="flex border-t border-gray-200">
-            <input
-              type="text"
-              className="flex-1 px-6 py-4 outline-none text-lg"
-              placeholder="Type your message..."
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              disabled={loading}
-              autoFocus
-            />
-            <button
-              type="submit"
-              className="px-8 py-4 bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors disabled:opacity-50 text-lg"
-              disabled={loading || !input.trim()}
-            >
-              {loading ? '...' : 'Send'}
-            </button>
+          
+          {/* File Upload Area */}
+          {selectedFile && (
+            <div className="px-8 py-4 bg-gray-50 border-t border-gray-200">
+              <div className="flex items-center justify-between p-3 bg-white border border-gray-300 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <div className="font-medium text-gray-900">{selectedFile.name}</div>
+                    <div className="text-sm text-gray-500">{formatFileSize(selectedFile.size)} • {selectedFile.type}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={removeSelectedFile}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  title="Remove file"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+          
+          <form onSubmit={sendMessage} className="border-t border-gray-200">
+            <div className="flex items-center px-6 py-4">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept=".csv,.txt,text/csv,text/plain"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mr-3 p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Upload CSV or text file"
+                disabled={loading || fileUploading}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+              <input
+                type="text"
+                className="flex-1 px-4 py-3 outline-none text-lg border border-gray-300 rounded-lg focus:border-blue-500 transition-colors"
+                placeholder={selectedFile ? "Add a message about your file..." : "Type your message..."}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                disabled={loading || fileUploading}
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="ml-3 px-6 py-3 bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors disabled:opacity-50 text-lg rounded-lg"
+                disabled={loading || fileUploading || (!input.trim() && !selectedFile)}
+              >
+                {loading || fileUploading ? '...' : 'Send'}
+              </button>
+            </div>
           </form>
         </div>
       )}
