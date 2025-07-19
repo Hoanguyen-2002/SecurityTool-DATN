@@ -9,6 +9,7 @@ import com.backend.securitytool.model.entity.User;
 import com.backend.securitytool.repository.UserRepository;
 import com.backend.securitytool.security.JwtUtil;
 import com.backend.securitytool.service.email.EmailService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
 
     @Override
-    public void register(RegisterRequestDTO dto) {
+    public void register(RegisterRequestDTO dto, HttpServletRequest request) {
         // Validate username uniqueness
         if (userRepository.findByUsername(dto.getUsername()).isPresent()) {
             throw new RuntimeException("Username already exists");
@@ -55,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
                 .updatedAt(Instant.now())
                 .build();
         userRepository.save(user);
-        emailService.sendVerificationEmail(dto.getEmail(), verificationToken);
+        emailService.sendVerificationEmail(dto.getEmail(), verificationToken, request);
     }
 
     @Override

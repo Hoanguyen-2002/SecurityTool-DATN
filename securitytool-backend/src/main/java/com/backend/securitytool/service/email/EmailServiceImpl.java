@@ -1,5 +1,6 @@
 package com.backend.securitytool.service.email;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -12,12 +13,14 @@ public class EmailServiceImpl implements EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("${app.frontend.url:http://localhost:3000}")
-    private String frontendUrl;
+//    @Value("${app.frontend.url:http://localhost:3000}")
+//    private String frontendUrl;
 
     @Override
-    public void sendVerificationEmail(String to, String token) {
+    public void sendVerificationEmail(String to, String token, HttpServletRequest request) {
         String subject = "Account Verification";
+
+        String frontendUrl = request.getRequestURL().toString();
         String verificationLink = frontendUrl + "/verify?token=" + token;
         String text = "Thank you for registering!\n\n"
                 + "Please click the link below to verify your account:\n"

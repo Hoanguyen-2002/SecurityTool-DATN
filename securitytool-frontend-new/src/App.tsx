@@ -68,7 +68,7 @@ function App() {
         </Modal>
       )}
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
         <Route path="/applications" element={<Layout><ApplicationManagement /></Layout>} />
         <Route path="/modules" element={<Layout><ModuleManagement /></Layout>} />

@@ -8,6 +8,7 @@ import com.backend.securitytool.model.dto.response.JwtResponseDTO;
 import com.backend.securitytool.model.entity.User;
 import com.backend.securitytool.repository.UserRepository;
 import com.backend.securitytool.service.auth.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +31,8 @@ public class AuthController {
     private UserRepository userRepository;
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequestDTO dto) {
-        authService.register(dto);
+    public ResponseEntity<String> register(@RequestBody RegisterRequestDTO dto, HttpServletRequest request) {
+        authService.register(dto, request);
         return ResponseEntity.ok("Register successful. Please check your email to verify your account.");
     }
 
